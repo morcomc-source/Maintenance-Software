@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+{% block title %}Preventative Maintenance{% endblock %}
+{% block content %}
+<style>
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    #pm-table {
+        min-width: 850px;
+        font-size: 0.88rem;
+    }
+    #pm-table th, #pm-table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    @media (max-width: 576px) {
+        #pm-table th, #pm-table td {
+            font-size: 0.82rem;
+            padding: 6px 5px;
+        }
+    }
+    @media (min-width: 769px) {
+        #table-view { display: block; }
+        #card-view { display: none; }
+    }
+    @media (max-width: 768px) {
+        #table-view { display: none !important; }
+        #card-view { display: block !important; }
+    }
+.center-text {
+    text-align: center;
+}
+</style>
+<h2 class="mb-4 center-text">Preventative Maintenance</h2>
+<style>
+.pm-row-complete td { background-color: #4dff4d; font-weight: bold; }
+.pm-row-due-soon td { background-color: #ffff4d; font-weight: bold; }
+.pm-row-overdue td { background-color: #FF0000; color: white !important; font-weight: bold;}
+.pm-row-secondary td { background-color: #bebec1; font-weight: bold; }
+.pm-card-complete { background-color: #2E6F40; color: white !important; font-weight: bold; }
+.pm-card-due-soon { background-color: #ffff4d; font-weight: bold; }
+.pm-card-overdue { background-color: #FF0000; color: white !important; font-weight: bold; }
+.pm-card-secondary { background-color: #737270; color: white !important; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px;}
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
+</style>
+<!-- Tabs (moved outside the form) -->
+<div class="d-flex gap-2 mb-4">
+    {% if current_user.role == 'admin' %}
+    <button class="btn btn-outline-primary tab-button" onclick="openTab(1)">Add New PM</button>
+    {% endif %}
+</div>
+<!-- SEARCH TAB -->
+<div id="tab-0" class="tab-content active">
+    <form method="get" action="/pm" class="row g-3 mb-4">
+        <div class="col-md-12">
+            <label class="form-label">Search for Preventative Maintenance Form:</label>
+            <input type="text" name="search" class="form-control" placeholder="Search by main equipment, sub equipment, frequency, last done, next due, or assigned to" value="{{ search or '' }}">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a href="/pm" class="btn btn-secondary ms-2">Reset</a>
+        </div>
+    </form>
+    {% if items %}
+        <div class="d-flex align-items-center mb-4">
+                    
+            <div class="flex-grow-1"></div>
+        
+            <div class="d-flex gap-3 flex-wrap">
+<span class="pm-overdue-legion px-3 py-2">Overdue</span>
+<span class="pm-due-soon-legion text-dark px-3 py-2">Due Today</span>
+<span class="pm-complete-legion px-3 py-2">Completed</span>
+<span class="pm-secondary-legion px-3 py-2">Normal / Future</span>
+</div>
+        
+            <div class="flex-grow-1"></div>
+        </div>
+    
+        <!-- Table View (default on desktop) -->
+        <div id="table-view" class="table-responsive">
+            <table id="pm-table" class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th class="center-text">Main Equipment</th>
+                        <th class="center-text">Sub Equipment</th>
+                        <th class="center-text">Frequency</th>
+                        <th class="center-text">Last Done</th>
+                        <th class="center-text">Next Due</th>
+                        <th class="center-text">Assigned To</th>
+                        <th class="center-text">Tasks</th>
+                        <th class="center-text">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+                        {% set next_due_str = item.next_due|string if item.next_due else '' %}
+                        {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
+                            'pm-row-due-soon' if next_due_str == today else
+                            'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
+                        <tr class="{{ row_class }}">
+                            <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
+                            <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
+                            <td class="center-text">{{ item.frequency|default('N/A') }}</td>
+                            <td class="center-text">{{ item.last_done|default('N/A') }}</td>
+                            <td class="center-text">{{ item.next_due|default('N/A') }}</td>
+                            <td class="center-text">{{ item.assigned_to|default('N/A') }}</td>
+                            <td class="center-text">
+                                {% if item.checklist %}
+                                    {{ item.checklist|selectattr('type', 'equalto', 'task')|list|length }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </td>
+                            <td class="center-text">
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️</button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="startPM({{ item.id }})">Start</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Card View (hidden by default on desktop) -->
+        <div id="card-view" style="display: none;">
+            <div class="row g-3">
+                {% for item in items %}
+                    <div class="col-12 col-md-6 col-lg-4">
+                        {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+                        {% set next_due_str = item.next_due|string if item.next_due else '' %}
+                        {% set card_class = 'pm-card-complete' if is_completed or (item.last_done|string == today) else
+                            'pm-card-due-soon' if next_due_str == today else
+                            'pm-card-overdue' if next_due_str and next_due_str < today else
+                            'pm-card-secondary' %}
+                        <div class="card h-100 {{ card_class }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.main_equipment|default('N/A') }}</h5>
+                                <h6 class="card-subtitle mb-3">{{ item.sub_equipment|default('N/A') }}</h6>
+                                <p class="mb-1"><strong>Frequency:</strong> {{ item.frequency|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Last Done:</strong> {{ item.last_done|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Next Due:</strong> {{ item.next_due|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Assigned To:</strong> {{ item.assigned_to|default('N/A') }}</p>
+                                <p class="mb-3"><strong>Tasks:</strong>
+                                    {% if item.checklist %}
+                                        {{ item.checklist|selectattr('type', 'equalto', 'task')|list|length }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="card-footer border-0 d-flex flex-wrap gap-2">
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁 View</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>
+                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="startPM({{ item.id }})">Start PM</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <p>No PMs found. {% if current_user.role == 'admin' %}Try a broader search or add a new PM.{% else %}No PMs assigned to you.{% endif %}</p>
+    {% endif %}
+</div>
+<!-- ADD / EDIT TAB -->
+<div id="tab-1" class="tab-content">
+    <form method="post" id="add-edit-form" class="row g-3">
+        <input type="hidden" name="index" id="form-index">
+        <div class="col-md-4">
+            <label class="form-label">Main Equipment <span class="text-danger">*</span></label>
+            <select name="main_equipment" id="main-equipment-select" class="form-select" required>
+                <option value="">— Pick —</option>
+                <option value="Press 1">Press 1</option>
+                <option value="Press 2">Press 2</option>
+                <option value="Press 3">Press 3</option>
+                <option value="Press 4">Press 4</option>
+                <option value="Press 5">Press 5</option>
+            </select>
+        </div>
+        <div class="col-md-4" id="sub-equipment-group">
+            <label class="form-label">Machine List</label>
+            <select name="sub_equipment" id="sub-equipment-select" class="form-select">
+                <option value="">— Pick —</option>
+            </select>
+        </div>
+<div class="col-md-4" id="frequency-group">
+    <label class="form-label">Frequency <span class="text-danger">*</span></label>
+    <select name="frequency" id="frequency" class="form-select" required>
+        <option value="">— Pick —</option>
+        <option value="Daily">Daily</option>
+        <option value="Weekly">Weekly</option>
+        <option value="Bi-Weekly">Bi-Weekly</option>
+        <option value="Monthly">Monthly</option>
+        <option value="Quarterly">Quarterly</option>
+        <option value="Bi-Annually">Bi-Annually</option>
+        <option value="Annually">Annually</option>
+    </select>
+</div>
+{% if current_user.role == 'admin' %}
+<div class="col-12">
+    <label class="form-label">Assign to Technician</label>
+    <select name="assigned_user" class="form-select">
+        {% for tech in technicians %}
+        <option value="{{ tech.id }}">{{ tech.username }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+        <div class="col-12">
+            <h4>Tasks / Checklist</h4>
+            <div id="tasks-container"></div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="addTask()">+ Add Task</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="addTitle()">+ Add Section Title</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Last Done Date</label>
+            <input name="last_done" id="last_done" type="date" class="form-control">
+        </div>
+        <div class="col-12">
+            <button type="submit" id="submit-btn" class="btn btn-success mt-3">Add PM</button>
+        </div>
+    </form>
+</div>
+<!-- View Modal - With Clear "Close" Button -->
+<div class="modal fade" id="view-modal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">PM Details</h5>
+            </div>
+            <div class="modal-body" id="view-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Simple Delete Confirmation Popup -->
+<div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <p>Are you sure you want to delete this PM? This action cannot be undone.</p>
+        <form method="post" id="delete-form">
+            <input type="hidden" name="delete_index" id="delete-index">
+            <button type="submit" class="btn btn-danger me-2">Yes, Delete</button>
+            <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+<!-- Start PM / Completion Modal -->
+<div class="modal fade" id="completion-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completion-title">Complete PM</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="completion-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="savePMCompletion()">Save Completion</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // ====================== DATA ======================
+    let pmData = {{ items | tojson | safe }};
+    let currentPMIndex = null; // real DB id now
+    // ====================== HELPERS ======================
+    function normalizeDateOnly(d) {
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setHours(0, 0, 0, 0);
+        return x;
+    }
+    function parseDueDate(value) {
+        if (!value) return null;
+        if (value === "N/A") return null;
+        if (typeof value === "string") {
+            const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) {
+                const y = parseInt(m[1], 10);
+                const mo = parseInt(m[2], 10) - 1;
+                const da = parseInt(m[3], 10);
+                return normalizeDateOnly(new Date(y, mo, da));
+            }
+        }
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return null;
+        return normalizeDateOnly(d);
+    }
+    function isPMComplete(pm) {
+        if (!pm || !pm.checklist || pm.checklist.length === 0) return false;
+        const tasks = pm.checklist.filter(x => x.type === "task");
+        if (tasks.length === 0) return false;
+        return tasks.every(x => x.completed === true);
+    }
+    // ====================== TAB & FORM ======================
+    function openTab(tabIndex) {
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        document.querySelectorAll(".tab-button").forEach(b => b.classList.remove("active"));
+        const targetTab = document.getElementById("tab-" + tabIndex);
+        if (targetTab) targetTab.classList.add("active");
+        const buttons = document.querySelectorAll(".tab-button");
+        if (buttons[tabIndex]) buttons[tabIndex].classList.add("active");
+        if (tabIndex === 1) {
+            resetPMForm();
+        }
+    }
+    function resetPMForm() {
+        document.getElementById('form-index').value = '';
+        document.getElementById('submit-btn').innerText = 'Add PM';
+        document.getElementById('main-equipment-select').value = '';
+        document.getElementById('sub-equipment-select').value = '';
+        document.getElementById('frequency').value = '';
+        document.getElementById('last_done').value = '';
+        document.getElementById('tasks-container').innerHTML = '';
+        // No hiding - keep visible by default
+    }
+    // ====================== CHECKLIST BUILDERS ======================
+    function addTask() {
+        const container = document.getElementById("tasks-container");
+        const row = document.createElement("div");
+        row.className = "input-group mb-2";
+        row.innerHTML = `
+            <input type="hidden" name="checklist_type[]" value="task">
+            <input type="text" name="checklist_item[]" class="form-control" placeholder="Task description">
+            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+        `;
+        container.appendChild(row);
+    }
+    function addTitle() {
+        const container = document.getElementById("tasks-container");
+        const row = document.createElement("div");
+        row.className = "input-group mb-2";
+        row.innerHTML = `
+            <input type="hidden" name="checklist_type[]" value="title">
+            <input type="text" name="checklist_item[]" class="form-control fw-bold" placeholder="Section title (e.g. Daily Checks)">
+            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+        `;
+        container.appendChild(row);
+    }
+    // ====================== EDIT ======================
+function editPM(id) {
+    if (!id) {
+        alert("PM not found!");
+        return;
+    }
+    const pm = pmData.find(p => p.id === id);
+    if (!pm) {
+        alert("PM not found!");
+        return;
+    }
+    openTab(1);
+    document.getElementById('form-index').value = id;
+    document.getElementById('main-equipment-select').value = pm.main_equipment || '';
+    document.getElementById('frequency').value = pm.frequency || '';
+    document.getElementById('last_done').value = pm.last_done || '';
+    document.getElementById('main-equipment-select').dispatchEvent(new Event('change'));
+    setTimeout(() => {
+        document.getElementById('sub-equipment-select').value = pm.sub_equipment || '';
+    }, 200);
+    // Build checklist
+    const container = document.getElementById('tasks-container');
+    let html = '';
+    if (pm.checklist && pm.checklist.length > 0) {
+        pm.checklist.forEach(item => {
+            const type = item.type === "title" ? "title" : "task";
+            const fw = item.type === "title" ? "fw-bold" : "";
+            html += `
+                <div class="input-group mb-2">
+                    <input type="hidden" name="checklist_type[]" value="${type}">
+                    <input type="text" name="checklist_item[]" class="form-control ${fw}" value="${item.item || ''}">
+                    <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+                </div>`;
+        });
+    }
+    container.innerHTML = html;
+    document.getElementById('submit-btn').innerText = 'Update PM';
+    // Populate assigned user (single select)
+    const assignedSelect = document.querySelector('select[name="assigned_user"]');
+    if (assignedSelect) {
+        assignedSelect.value = pm.assigned_user_id || '';
+    }
+}
+    // ====================== VIEW ======================
+    function viewPM(id) {
+        const pm = pmData.find(p => p.id === id);
+        if (!pm) return;
+        console.log("=== VIEW PM DEBUG ===");
+        console.log("Full PM object:", pm);
+        console.log("Checklist array:", pm.checklist);
+        let html = `
+            <p><strong>Main Equipment:</strong> ${pm.main_equipment || 'N/A'}</p>
+            <p><strong>Sub Equipment:</strong> ${pm.sub_equipment || 'N/A'}</p>
+            <p><strong>Frequency:</strong> ${pm.frequency || 'N/A'}</p>
+            <p><strong>Last Done:</strong> ${pm.last_done || 'N/A'}</p>
+            <p><strong>Next Due:</strong> ${pm.next_due || 'N/A'}</p>
+            <hr>
+            <h5>Checklist:</h5>
+        `;
+        if (pm.checklist && pm.checklist.length > 0) {
+            pm.checklist.forEach(item => {
+                if (item.type === "title") {
+                    html += `<h6 class="mt-3 border-bottom pb-2 fw-bold">${item.item}</h6>`;
+                } else {
+                    const checked = item.completed ? 'checked' : '';
+                    html += `
+                        <div class="form-check ms-4 mb-2">
+                            <input class="form-check-input" type="checkbox" disabled ${checked}>
+                            <label class="form-check-label">${item.item}</label>
+                        </div>`;
+                }
+            });
+        } else {
+            html += `<p><em>No checklist items found.</em></p>`;
+        }
+        document.getElementById('view-content').innerHTML = html;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('view-modal'));
+        modal.show();
+    }
+    // ====================== DELETE ======================
+    function showDeleteConfirm(id) {
+        document.getElementById("delete-index").value = id;
+        document.getElementById("delete-modal").style.display = "flex";
+    }
+    function hideDeleteModal() {
+        document.getElementById("delete-modal").style.display = "none";
+    }
+    // ====================== START / COMPLETE PM ======================
+    function startPM(id) {
+        currentPMIndex = id;
+        const pm = pmData.find(p => p.id === id);
+        if (!pm) {
+            alert("PM not found!");
+            return;
+        }
+        let html = `
+            <p><strong>${pm.main_equipment || "N/A"}</strong> — ${pm.sub_equipment || "N/A"}</p>
+            <p><strong>Frequency:</strong> ${pm.frequency || "N/A"}</p>
+            <hr>
+            <h5>Checklist</h5>
+        `;
+        if (pm.checklist && pm.checklist.length > 0) {
+            pm.checklist.forEach((item, i) => {
+                if (item.type === "title") {
+                    html += `<h6 class="mt-4 mb-2 border-bottom pb-2 fw-bold">${item.item}</h6>`;
+                } else {
+                    const checked = item.completed ? "checked" : "";
+                    html += `
+                        <div class="form-check mb-3 ms-3">
+                            <input class="form-check-input" type="checkbox" id="comp_task_${i}" ${checked}>
+                            <label class="form-check-label fs-5" for="comp_task_${i}">${item.item}</label>
+                        </div>`;
+                }
+            });
+        }
+        document.getElementById("completion-content").innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById("completion-modal"));
+        modal.show();
+    }
+    function savePMCompletion() {
+    if (currentPMIndex === null) {
+        console.log("No PM selected");
+        return;
+    }
+    const checkboxes = document.querySelectorAll("#completion-content input[type='checkbox']");
+    const completedTasks = Array.from(checkboxes).map(cb => cb.checked);
+    console.log("Sending completion for PM ID:", currentPMIndex);
+    console.log("Completed tasks:", completedTasks);
+    fetch(`/pm/complete_pm/${currentPMIndex}`, { // ← ADDED /pm/ here
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: completedTasks })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Server response:", data);
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById("completion-modal")).hide();
+            alert("PM completed successfully!");
+            location.reload();
+        } else {
+            alert("Failed to save completion.");
+        }
+    })
+    .catch(error => {
+        console.error("Fetch error:", error);
+        alert("Error saving completion. Check console for details.");
+    });
+}
+    // ====================== EQUIPMENT SELECTORS ======================
+document.getElementById("main-equipment-select").addEventListener("change", () => {
+    const selected = document.getElementById("main-equipment-select").value;
+    // No display toggle - always visible
+    const subSelect = document.getElementById("sub-equipment-select");
+    subSelect.innerHTML = '<option value="">— Pick —</option>';
+    if (selected === "Press 1" || selected === "Press 2" || selected === "Press 3" || selected === "Press 4") {
+        ["Billet Heater", "Log Shear", "Press", "Quench", "Runout Table",
+         "Handling Equipment", "Head Stretcher", "Tail Stretcher", "Finish Saw"]
+            .forEach(opt => {
+                const option = document.createElement("option");
+                option.value = opt; option.text = opt;
+                subSelect.add(option);
+            });
+    } else if (selected === "Press 5") {
+        ["Log Manipulator", "Billet Heater", "Log Shear", "Press", "Quench", "Runout Table",
+         "Handling Equipment", "Head Stretcher", "Tail Stretcher", "Finish Saw"]
+            .forEach(opt => {
+                const option = document.createElement("option");
+                option.value = opt; option.text = opt;
+                subSelect.add(option);
+            });
+    }
+});
+document.getElementById("sub-equipment-select").addEventListener("change", () => {
+    // No display toggle - always visible
+});
+    // Search form listeners (kept from original)
+    document.getElementById("main-equipment-select-search").addEventListener("change", () => { /* same as above but for search */ });
+    document.getElementById("sub-equipment-select-search").addEventListener("change", () => { /* same */ });
+    // ====================== EXPORT ======================
+function exportPMtoPDF(id) {
+    window.location.href = `/pm/export_pm_pdf/${id}`;
+}
+    // ====================== INIT ======================
+    document.addEventListener("DOMContentLoaded", () => {
+        // applyPMRowColors(); // ← commented because you use cards, not table
+        resetPMForm(); // start clean
+        document.getElementById("sub-equipment-group").style.display = "block";
+        document.getElementById("frequency-group").style.display = "block";
+    });
+</script>
+{% endblock %}

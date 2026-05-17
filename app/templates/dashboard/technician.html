@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Technician Dashboard{% endblock %}
+{% block content %}
+<h2>Welcome, Technician {{ current_user.username }}</h2>
+<p>Access your assigned tasks and inventory.</p>
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>PMs</h4>
+                <a href="{{ url_for('pm.index') }}" class="btn btn-primary">View PMs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>Parts</h4>
+                <a href="{{ url_for('parts.index') }}" class="btn btn-primary">View Parts</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>Work Orders</h4>
+                <a href="{{ url_for('workorder.index') }}" class="btn btn-primary">View Work Orders</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>Equipment</h4>
+                <a href="{{ url_for('equipment.index') }}" class="btn btn-primary">View Equipment</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

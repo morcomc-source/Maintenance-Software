@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="text-center mt-5">
+    <h1 class="display-4">Maintenance Inventory</h1>
+    <p class="lead">Select a section</p>
+    <div class="mt-4">
+        <a href="/parts" class="btn btn-primary btn-lg mx-2">Parts</a>
+        <a href="/pm" class="btn btn-primary btn-lg mx-2">PM</a>
+        <a href="/work" class="btn btn-primary btn-lg mx-2">Work Orders</a>
+    </div>
+</div>
+{% endblock %}

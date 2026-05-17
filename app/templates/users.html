@@ -1,0 +1,109 @@
+# File: app/templates/users.html
+# Updated with users_json for JS
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+{% block content %}
+<h2>Manage Users</h2>
+<!-- Add User Form -->
+<form method="post" class="mb-4">
+    <input type="hidden" name="add_user" value="1">
+    <div class="row g-3">
+        <div class="col-md-3"><input name="username" class="form-control" placeholder="Username" required></div>
+        <div class="col-md-3"><input name="email" class="form-control" placeholder="Email (optional)"></div>
+        <div class="col-md-3"><input name="password" type="password" class="form-control" placeholder="Password" required></div>
+        <div class="col-md-2">
+            <select name="role" class="form-select">
+                <option value="technician">Technician</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="col-md-1"><button type="submit" class="btn btn-success">Add</button></div>
+    </div>
+</form>
+<!-- User List -->
+<table class="table table-striped">
+    <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email or 'N/A' }}</td>
+            <td>
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="update_role" value="1">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <select name="new_role" onchange="this.form.submit()">
+                        <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>Technician</option>
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                    </select>
+                </form>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">✏️</button>
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="delete_user" value="1">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete user?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="edit-user-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="edit-user-form">
+                    <input type="hidden" name="update_user" value="1">
+                    <input type="hidden" name="user_id" id="edit-user-id">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input name="username" id="edit-username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email (optional)</label>
+                        <input name="email" id="edit-email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password (optional)</label>
+                        <input name="password" type="password" class="form-control" placeholder="Leave blank to keep current">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" id="edit-role" class="form-select">
+                            <option value="technician">Technician</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // User data for editing (serialized list)
+    let userData = {{ users_json | tojson | safe }};
+
+    function editUser(id) {
+        const user = userData.find(u => u.id === id);
+        if (!user) return alert("User not found!");
+
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-username').value = user.username;
+        document.getElementById('edit-email').value = user.email || '';
+        document.getElementById('edit-role').value = user.role;
+
+        const modal = new bootstrap.Modal(document.getElementById('edit-user-modal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

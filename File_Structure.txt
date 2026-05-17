@@ -1,0 +1,53 @@
+inventoryapp/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── pm.py
+│   │   ├── workorder.py
+│   │   ├── equipment.py
+│   │   └── part.py
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── dashboard.py
+│   │   ├── pm.py
+│   │   ├── equipment.py
+│   │   ├── workorder.py
+│   │   ├── parts.py
+│   │   └── barcode.py	
+│   ├── templates/
+│   │    ├── base.html
+│   │    ├── pm.html
+│   │    ├── parts.html
+│   │    ├── home.html
+│   │    ├── users.html
+│   │    ├── work.html
+│   │    ├── auth/
+│   │    │    ├──change_password.html
+│   │    │    ├──login.html
+│   │    │    ├──register.html
+│   │    └── dashboard/
+│   │         ├──admin.html
+│   │         ├──technician.html
+│   ├── static/
+│   │         ├──manifest.json
+│   │         ├──serviceworker.js
+│   │   	  └── icons/
+│   │    	        ├──icon-192.png
+│   │    		    └──icon-512.png
+├── migrations/
+│   └── ... (migration files)
+├── backup/
+├── instance/
+│   └── inventory.db
+├── run.py
+├── add_columns.py
+├── app.py
+├── create_db.py
+├── force_change.py
+├── create_admin.py
+└── requirements.txt
+

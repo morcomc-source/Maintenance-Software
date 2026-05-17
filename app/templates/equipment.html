@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block content %}
+<h2>Equipment</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Last Maintenance</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for equipment in equipments %}
+        <tr>
+            <td>{{ equipment.name }}</td>
+            <td>{{ equipment.location or 'N/A' }}</td>
+            <td>{{ equipment.status }}</td>
+            <td>{{ equipment.last_maintenance or 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

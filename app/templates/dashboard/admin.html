@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<h2>Welcome, Admin {{ current_user.username }}</h2>
+<p>You have full access to the system.</p>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>PMs</h4>
+                <a href="{{ url_for('pm.index') }}" class="btn btn-primary">Manage PMs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>Parts</h4>
+                <a href="{{ url_for('parts.index') }}" class="btn btn-primary">Manage Parts</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4>Users</h4>
+                <a href="{{ url_for('pm.manage_users') }}" class="btn btn-primary">Manage Users</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
