@@ -34,23 +34,20 @@ def create_app():
     from .models.pm import PM
     from .models.part import Part
     from .models.equipment import Equipment
-    from .models.workorder import WorkOrder
   
-    # Register blueprints (late imports)
+# Register blueprints
     from .routes.pm import bp as pm_bp
     from .routes.parts import bp as parts_bp
     from .routes.auth import bp as auth_bp
     from .routes.dashboard import bp as dashboard_bp
-    from .routes.barcode import bp as barcode_bp
-    from .routes.equipment import bp as equipment_bp
     from .routes.workorder import bp as workorder_bp
-  
+    from .routes.equipment import bp as equipment_bp   # ← Make sure this line exists
+
     app.register_blueprint(pm_bp, url_prefix='/pm')
     app.register_blueprint(parts_bp, url_prefix='/parts')
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp)
-    app.register_blueprint(barcode_bp, url_prefix='/barcode')
-    app.register_blueprint(equipment_bp, url_prefix='/equipment')
     app.register_blueprint(workorder_bp, url_prefix='/workorder')
-  
+    app.register_blueprint(equipment_bp, url_prefix='/equipment')
+    
     return app

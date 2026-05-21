@@ -1,40 +1,94 @@
 {% extends "base.html" %}
 {% block title %}Technician Dashboard{% endblock %}
+
 {% block content %}
-<h2>Welcome, Technician {{ current_user.username }}</h2>
-<p>Access your assigned tasks and inventory.</p>
-<div class="row mt-4">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h4>PMs</h4>
-                <a href="{{ url_for('pm.index') }}" class="btn btn-primary">View PMs</a>
+<div class="container mt-4">
+    <h2 class="mb-4">Welcome, {{ current_user.username }}</h2>
+    <p class="lead">Here's your current workload</p>
+
+    <div class="row g-4">
+
+        <!-- PMs -->
+        <div class="col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h1 class="display-1 mb-3">🔧</h1>
+                    <h4>Preventative Maintenance</h4>
+                    
+                    <div class="row mt-4 text-center">
+                        <div class="col-6 mb-3">
+                            <h5 class="text-primary">{{ stats.total_assigned }}</h5>
+                            <small class="text-muted">Assigned</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h5 class="text-warning">{{ stats.due_today }}</h5>
+                            <small class="text-muted">Due Today</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-danger">{{ stats.overdue }}</h5>
+                            <small class="text-muted">Past Due</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success">{{ stats.upcoming }}</h5>
+                            <small class="text-muted">Upcoming</small>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('pm.index') }}" class="btn btn-primary btn-lg w-100 mt-4">
+                        View My PMs
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h4>Parts</h4>
-                <a href="{{ url_for('parts.index') }}" class="btn btn-primary">View Parts</a>
+
+        <!-- Work Orders - Updated -->
+		<div class="col-md-6">
+			<div class="card text-center h-100 shadow-sm">
+				<div class="card-body">
+					<h1 class="display-1 mb-3">📋</h1>
+					<h4>Work Orders</h4>
+					<h5 class="text-primary mt-3">{{ stats.assigned_workorders }} Assigned</h5>
+					<p class="text-muted">Your current tasks</p>
+					
+					<a href="{{ url_for('workorder.index') }}" class="btn btn-primary btn-lg w-100 mt-3">
+						View Work Orders
+					</a>
+					
+					<a href="{{ url_for('workorder.new') }}" class="btn btn-success btn-lg w-100 mt-2">
+						+ Create New Work Order
+					</a>
+				</div>
+			</div>
+		</div>
+
+        <!-- Parts -->
+        <div class="col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h1 class="display-1 mb-3">📦</h1>
+                    <h4>Parts & Inventory</h4>
+                    <p class="text-muted">Search and check stock</p>
+                    <a href="{{ url_for('parts.index') }}" class="btn btn-primary btn-lg w-100 mt-5">
+                        View Parts
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h4>Work Orders</h4>
-                <a href="{{ url_for('workorder.index') }}" class="btn btn-primary">View Work Orders</a>
+
+        <!-- Equipment -->
+        <div class="col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h1 class="display-1 mb-3">🏭</h1>
+                    <h4>Equipment</h4>
+                    <p class="text-muted">View machines & assets</p>
+                    <a href="{{ url_for('equipment.index') }}" class="btn btn-primary btn-lg w-100 mt-5">
+                        View Equipment
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h4>Equipment</h4>
-                <a href="{{ url_for('equipment.index') }}" class="btn btn-primary">View Equipment</a>
-            </div>
-        </div>
+
     </div>
 </div>
 {% endblock %}

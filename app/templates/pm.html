@@ -124,7 +124,8 @@
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="startPM({{ item.id }})">Start</button>
-                            </td>
+								<button class="btn btn-sm btn-info" onclick="viewHistory({{ item.id }})">📋 History</button>
+								</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -549,5 +550,9 @@ function exportPMtoPDF(id) {
         document.getElementById("sub-equipment-group").style.display = "block";
         document.getElementById("frequency-group").style.display = "block";
     });
+	// ====================== VIEW HISTORY ======================
+function viewHistory(id) {
+    window.location.href = `/pm/history/${id}`;
+}
 </script>
 {% endblock %}

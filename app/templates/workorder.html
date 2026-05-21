@@ -1,23 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Work Orders{% endblock %}
+{% block title %}New Work Order{% endblock %}
+
 {% block content %}
-<h2>Work Orders</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for wo in workorders %}
-        <tr>
-            <td>{{ wo.title }}</td>
-            <td>{{ wo.description or 'N/A' }}</td>
-            <td>{{ wo.status }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="container mt-4">
+    <h2 class="mb-4">Create New Work Order</h2>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('workorder.create') }}">
+                <div class="mb-3">
+                    <label class="form-label">Equipment <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" name="equipment" class="form-control" placeholder="Equipment name or barcode" required>
+                        <button type="button" class="btn btn-outline-primary" onclick="scanBarcode()">📷 Scan</button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Issue / Description <span class="text-danger">*</span></label>
+                    <textarea name="description" class="form-control" rows="5" placeholder="Describe the problem..." required></textarea>
+                </div>
+
+                {% if current_user.role == 'admin' %}
+                <div class="mb-3">
+                    <label class="form-label">Assign To</label>
+                    <select name="assigned_to_id" class="form-select">
+                        <option value="">— Leave Unassigned —</option>
+                        {% for tech in technicians %}
+                        <option value="{{ tech.id }}">{{ tech.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-success btn-lg w-100">
+                    Submit Work Order
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function scanBarcode() {
+    const code = prompt("Enter barcode or equipment code:");
+    if (code) document.querySelector('input[name="equipment"]').value = code;
+}
+</script>
 {% endblock %}

@@ -336,27 +336,43 @@ text-align: center;
         });
     });
     function editPart(idx) {
-        const part = partsData[idx][1];
-        document.getElementById('form-index').value = part.id;
-        openTab(1);
-        document.getElementById('barcode-input').value = part.barcode || '';
-        document.querySelector('[name="name"]').value = part.name || '';
-        document.getElementById('part-number-input').value = part.part_number || '';
-        document.querySelector('[name="qty"]').value = part.qty != null ? part.qty : '0';
-        document.querySelector('[name="min_stock"]').value = part.min_stock != null ? part.min_stock : '0';
-        document.querySelector('[name="max_stock"]').value = part.max_stock != null ? part.max_stock : '999';
-        document.querySelector('[name="location"]').value = part.location || '';
-        document.querySelector('[name="sublocation"]').value = part.sublocation || '';
-        if (part.barcode) {
-            document.getElementById('barcode-image').src = '/parts/generate_barcode?code=' + encodeURIComponent(part.barcode) + '&t=' + new Date().getTime();
-            document.getElementById('barcode-image').style.display = 'block';
-            document.getElementById('export-pdf').style.display = 'block';
-        } else {
-            document.getElementById('barcode-image').style.display = 'none';
-            document.getElementById('export-pdf').style.display = 'block'; // Show even without barcode
-        }
-        document.getElementById('submit-btn').innerText = 'Update Part';
-    }
+		const part = partsData[idx][1];   // This should be the data object
+		
+		if (!part) {
+			console.error("Part data not found for index:", idx);
+			alert("Error: Could not load part data.");
+			return;
+		}
+
+		console.log("Editing part:", part); // Helpful for debugging
+
+		// Fill the form
+		document.getElementById('form-index').value = part.id || '';
+		
+		document.getElementById('barcode-input').value = part.barcode || '';
+		document.querySelector('[name="name"]').value = part.name || '';
+		document.getElementById('part-number-input').value = part.part_number || '';
+		
+		document.querySelector('[name="qty"]').value = part.qty != null ? part.qty : '0';
+		document.querySelector('[name="min_stock"]').value = part.min_stock != null ? part.min_stock : '0';
+		document.querySelector('[name="max_stock"]').value = part.max_stock != null ? part.max_stock : '999';
+		
+		document.querySelector('[name="location"]').value = part.location || '';
+		document.querySelector('[name="sublocation"]').value = part.sublocation || '';
+
+		// Show barcode image if exists
+		if (part.barcode) {
+			document.getElementById('barcode-image').src = '/parts/generate_barcode?code=' + encodeURIComponent(part.barcode) + '&t=' + new Date().getTime();
+			document.getElementById('barcode-image').style.display = 'block';
+			document.getElementById('export-pdf').style.display = 'block';
+		} else {
+			document.getElementById('barcode-image').style.display = 'none';
+		}
+
+		document.getElementById('submit-btn').innerText = 'Update Part';
+		
+		openTab(1);   // Switch to the Add/Edit tab
+	}
     function showDeleteConfirm(idx) {
         const part = partsData[idx][1];
         document.getElementById('delete-index').value = part.id;

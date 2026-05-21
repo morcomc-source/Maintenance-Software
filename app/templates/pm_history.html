@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <a href="{{ url_for('pm.index') }}" class="btn btn-secondary mb-3">← Back to PM List</a>
+
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <strong>PM History - {{ pm.main_equipment }} {{ pm.sub_equipment or '' }}</strong>
+        </div>
+        <div class="card-body">
+            {% if completions %}
+                {% for completion in completions %}
+                <div class="border rounded p-3 mb-4">
+                    <div class="d-flex justify-content-between">
+                        <h5>
+                            Completed on: <strong>{{ completion.completed_date.strftime('%Y-%m-%d %H:%M') }}</strong>
+                        </h5>
+                        <span class="badge bg-success">
+                            By: {{ completion.completed_by.username if completion.completed_by else 'Unknown' }}
+                        </span>
+                    </div>
+
+                    {% if completion.notes %}
+                    <p><strong>Notes:</strong> {{ completion.notes }}</p>
+                    {% endif %}
+
+                    <h6>Checklist Results:</h6>
+                    <ul class="list-group">
+                        {% for item in completion.checklist_results %}
+                            {% if item.type == 'title' %}
+                                <li class="list-group-item fw-bold bg-light">{{ item.item }}</li>
+                            {% else %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ item.item }}
+                                    <span class="badge bg-{{ 'success' if item.completed else 'secondary' }}">
+                                        {{ '✅ Completed' if item.completed else '⭕ Not Done' }}
+                                    </span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No completion history yet for this PM.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
