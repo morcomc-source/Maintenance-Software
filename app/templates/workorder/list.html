@@ -2,125 +2,240 @@
 {% block title %}Work Orders{% endblock %}
 
 {% block content %}
+
+<style>
+.table thead th {
+    background-color: #6c757d !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+/* row colors */
+.table-success-dark td {
+    background-color: #4caf50 !important;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+.table-danger-dark td {
+    background-color: #d9534f !important;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* force all table text black */
+.table tbody td,
+.table tbody td * {
+    color: #000 !important;
+    font-weight: 600;
+}
+
+/* overrides for specific fields */
+.assigned-user {
+    color: #000 !important;
+    font-weight: 600;
+}
+
+.completed-date {
+    color: #000 !important;
+    font-weight: 600;
+}
+/* Limit Description column width and wrap text */
+td:nth-child(3) {  /* Description column */
+    max-width: 325px;
+    white-space: normal !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Make sure other columns don't stretch too much */
+th:nth-child(3),
+td:nth-child(3) {
+    width: 325px;
+}
+.btn.hover-danger:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545 !important;
+}
+/* Lighter hover for Edit button */
+.btn.hover-light:hover {
+    background-color: #f8f9fa !important;
+    color: #495057 !important;
+    border-color: #adb5bd !important;
+}
+</style>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>
-            {% if current_user.role == 'admin' %}All Work Orders{% else %}My Work Orders{% endif %}
+            {% if current_user.role == 'admin' %}
+                All Work Orders
+            {% else %}
+                My Assigned Work Orders
+            {% endif %}
         </h2>
-        <a href="{{ url_for('workorder.new') }}" class="btn btn-success">+ Create New Work Order</a>
+        <a href="{{ url_for('workorder.new') }}" class="btn btn-success">+ New Work Order</a>
     </div>
 
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
+    <table class="table table-striped table-hover align-middle" id="workorder-table">
+        <thead style="background-color: #495057 !important;">
             <tr>
-                <th>ID</th>
-                <th>Equipment</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Created By</th>
-                <th>Assigned To</th>
-                <th>Created At</th>
-                {% if current_user.role == 'admin' %}
-                <th>Actions</th>
-                {% endif %}
+                <th class="text-center sortable">ID</th>
+				<th class="text-center sortable">Equipment</th>
+				<th class="text-center sortable" style="width: 325px;">Description</th>
+				<th class="text-center sortable">Priority</th>
+				<th class="text-center sortable">Status</th>
+				<th class="text-center sortable">Created By</th>
+				<th class="text-center sortable">Assigned To</th>
+				<th class="text-center sortable">Created At</th>
+				<th class="text-center sortable">Expected Completion</th>
+				<th class="text-center sortable">Completed On</th>
+                <th class="text-center">Actions</th>
             </tr>
         </thead>
-        <tbody>
-            {% for wo in workorders %}
-            <tr>
-                <td><strong>#{{ wo.id }}</strong></td>
+
+                <tbody>
+        {% for wo in workorders %}
+            <tr class="{% if wo.status == 'Completed' %}table-success-dark{% elif wo.expected_completion_date and wo.expected_completion_date < today %}table-danger-dark{% endif %}">
+                <td class="text-center"><strong>#{{ wo.id }}</strong></td>
                 <td>{{ wo.equipment }}</td>
-                <td>{{ wo.description[:100] }}{% if wo.description|length > 100 %}...{% endif %}</td>
-                <td>
+                <td style="max-width: 325px; white-space: normal; word-wrap: break-word;">
+					{{ wo.description[:150] }}{% if wo.description|length > 150 %}...{% endif %}
+				</td>
+                <td class="text-center">
+                    {% if wo.priority %}
+                        <span class="badge fs-5 fw-bold
+                            {% if wo.priority >= 4 %}bg-danger
+                            {% elif wo.priority == 3 %}bg-warning
+                            {% elif wo.priority == 2 %}bg-warning
+                            {% else %}bg-secondary{% endif %}">
+                            {{ wo.priority }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
                     <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'Assigned' else 'primary' }}">
                         {{ wo.status }}
                     </span>
                 </td>
-                <td>{{ wo.created_by.username if wo.created_by else 'N/A' }}</td>
-                <td>
+                <td class="text-center">
+                    {{ wo.created_by.username if wo.created_by else 'N/A' }}
+                </td>
+                <td class="text-center">
                     {% if wo.assigned_to %}
-                        <strong style="color: #28a745;">{{ wo.assigned_to.username }}</strong>
+                        <strong class="assigned-user">{{ wo.assigned_to.username }}</strong>
                     {% else %}
                         <span class="text-muted">Unassigned</span>
                     {% endif %}
                 </td>
-                <td>{{ wo.created_at.strftime('%Y-%m-%d %H:%M') if wo.created_at else 'N/A' }}</td>
-                
-                {% if current_user.role == 'admin' %}
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="assignWorkOrder({{ wo.id }})">
-                        Assign
-                    </button>
+                <td class="text-center">
+                    {{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}
                 </td>
-                {% endif %}
+                <td class="text-center">
+                    {% if wo.expected_completion_date %}
+                        <strong>{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}</strong>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if wo.completed_at %}
+                        <strong class="completed-date">
+                            {{ wo.completed_at.strftime('%Y-%m-%d') }}
+                        </strong>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
+                    {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}"class="btn btn-sm btn-outline-secondary hover-light">✏️ Edit/Assign</a>
+                        <button class="btn btn-sm btn-outline-secondary hover-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
+                    {% endif %}
+                </td>
             </tr>
-            {% else %}
+        {% else %}
             <tr>
-                <td colspan="8" class="text-center py-4">No work orders found.</td>
+                <td colspan="11" class="text-center py-4">
+                    No work orders found.
+                </td>
             </tr>
-            {% endfor %}
+        {% endfor %}
         </tbody>
     </table>
 </div>
 
-<!-- Assignment Modal -->
-{% if current_user.role == 'admin' %}
-<div class="modal fade" id="assignModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Assign Work Order</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <select id="assign-select" class="form-select">
-                    <option value="">Select Technician...</option>
-                    {% for tech in technicians %}
-                    <option value="{{ tech.id }}">{{ tech.username }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveAssignment()">Assign</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <script>
-let currentWOId = null;
+document.querySelectorAll('.sortable').forEach(header => {
+    header.addEventListener('click', () => {
 
-function assignWorkOrder(woId) {
-    currentWOId = woId;
-    const modal = new bootstrap.Modal(document.getElementById('assignModal'));
-    modal.show();
-}
+        const table = document.getElementById('workorder-table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
 
-function saveAssignment() {
-    const assigned_to_id = document.getElementById('assign-select').value;
-    if (!assigned_to_id) {
-        alert("Please select a technician");
-        return;
-    }
+        const index = Array.from(header.parentNode.children).indexOf(header);
+        const isAsc = header.classList.toggle('asc');
 
-    fetch(`/workorder/assign/${currentWOId}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({assigned_to_id: parseInt(assigned_to_id)})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
-            alert("✅ Work Order assigned successfully!");
-            location.reload();
-        } else {
-            alert("Failed to assign.");
+        function parseDate(val) {
+            const d = new Date(val);
+            return isNaN(d) ? null : d.getTime();
         }
-    })
-    .catch(() => alert("Connection error"));
-}
+
+        function isCompleted(row) {
+            const status = row.children[4].textContent.trim();
+            return status === "Completed";
+        }
+
+        function isOverdue(row) {
+            const cell = row.children[8].textContent.trim();
+            const date = parseDate(cell);
+            if (!date) return false;
+            return date < Date.now();
+        }
+
+        rows.sort((a, b) => {
+
+            const aCompleted = isCompleted(a);
+            const bCompleted = isCompleted(b);
+
+            const aOverdue = isOverdue(a);
+            const bOverdue = isOverdue(b);
+
+            // PRIORITY RULE (always active)
+            const rank = (row) => {
+                if (isCompleted(row)) return 3;
+                if (isOverdue(row)) return 1;
+                return 2;
+            };
+
+            const rankDiff = rank(a) - rank(b);
+            if (rankDiff !== 0) {
+                return isAsc ? rankDiff : -rankDiff;
+            }
+
+            // normal column sort inside same group
+            let valA = a.children[index].textContent.trim();
+            let valB = b.children[index].textContent.trim();
+
+            const numA = Number(valA);
+            const numB = Number(valB);
+
+            if (!isNaN(numA) && !isNaN(numB)) {
+                return isAsc ? numA - numB : numB - numA;
+            }
+
+            return isAsc
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    });
+});
 </script>
+
 {% endblock %}

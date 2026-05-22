@@ -4,38 +4,52 @@
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-4">Create New Work Order</h2>
-
+    
     <div class="card">
         <div class="card-body">
             <form method="POST" action="{{ url_for('workorder.create') }}">
-                <div class="mb-3">
-                    <label class="form-label">Equipment <span class="text-danger">*</span></label>
-                    <div class="input-group">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Equipment <span class="text-danger">*</span></label>
                         <input type="text" name="equipment" class="form-control" placeholder="Equipment name or barcode" required>
-                        <button type="button" class="btn btn-outline-primary" onclick="scanBarcode()">📷 Scan</button>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Priority (1-5)</label>
+                        <select name="priority" class="form-select">
+                            <option value="1">1 - Low</option>
+                            <option value="2">2</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4</option>
+                            <option value="5">5 - Critical</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Description / Issue <span class="text-danger">*</span></label>
+                        <textarea name="description" class="form-control" rows="5" placeholder="Describe the problem..." required></textarea>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Expected Completion Date</label>
+                        <input type="date" name="expected_completion_date" class="form-control">
+                    </div>
+
+                    {% if current_user.role == 'admin' %}
+                    <div class="col-md-6">
+                        <label class="form-label">Assign To</label>
+                        <select name="assigned_to_id" class="form-select">
+                            <option value="">— Leave Unassigned —</option>
+                            {% for tech in technicians %}
+                            <option value="{{ tech.id }}">{{ tech.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-12 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg w-100">Create Work Order</button>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Issue / Description <span class="text-danger">*</span></label>
-                    <textarea name="description" class="form-control" rows="5" placeholder="Describe the problem..." required></textarea>
-                </div>
-
-                {% if current_user.role == 'admin' %}
-                <div class="mb-3">
-                    <label class="form-label">Assign To</label>
-                    <select name="assigned_to_id" class="form-select">
-                        <option value="">— Leave Unassigned —</option>
-                        {% for tech in technicians %}
-                        <option value="{{ tech.id }}">{{ tech.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-
-                <button type="submit" class="btn btn-success btn-lg w-100">
-                    Submit Work Order
-                </button>
             </form>
         </div>
     </div>
