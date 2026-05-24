@@ -22,6 +22,7 @@ class WorkOrder(db.Model):
     completed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     completion_notes = db.Column(db.Text, nullable=True)
+    parts_used = db.Column(db.JSON, nullable=True)  
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     assigned_at = db.Column(db.DateTime, nullable=True)

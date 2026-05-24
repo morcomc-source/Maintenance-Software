@@ -1,136 +1,216 @@
 {% extends "base.html" %}
 {% block title %}Work Order #{{ wo.id }}{% endblock %}
-
 {% block content %}
+
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">Work Order #{{ wo.id }} - {{ wo.equipment }}</h4>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
-                    <p><strong>Priority:</strong> 
-                        {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}
-                    </p>
-                    <p><strong>Status:</strong> 
-                        <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">
-                            {{ wo.status }}
-                        </span>
-                    </p>
-                    <p><strong>Assigned To:</strong> {{ wo.assigned_to.username if wo.assigned_to else 'Unassigned' }}</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Expected Completion:</strong> 
-                        {% if wo.expected_completion_date %}{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}{% else %}-{% endif %}
-                    </p>
-                    <p><strong>Created At:</strong> {{ wo.created_at.strftime('%Y-%m-%d %H:%M') if wo.created_at else 'N/A' }}</p>
-                </div>
-            </div>
+    <!-- Description (full width, prominent) -->
+    <div class="mb-4">
+        <strong>Description / Issue:</strong><br>
+        <p class="border p-3 bg-light rounded">{{ wo.description | default('No description provided') }}</p>
+    </div>
 
-            <hr>
-            <h5>Description</h5>
-            <p class="border p-3 bg-light">{{ wo.description }}</p>
-
-            <!-- Completion Information - Show for ALL Completed Work Orders -->
-            {% if wo.status == 'Completed' %}
-            <div class="mt-4 p-3 border rounded bg-light">
-                <h5 class="text-success">✅ Completion Information</h5>
-                
-                <p><strong>Completed By:</strong> {{ wo.completed_by.username if wo.completed_by else 'Unknown' }}</p>
-                <p><strong>Completed On:</strong> {{ wo.completed_at.strftime('%Y-%m-%d %H:%M') if wo.completed_at else 'N/A' }}</p>
-                
-                {% if wo.completion_notes %}
-                <hr>
-                <p><strong>Notes from Technician:</strong></p>
-                <p style="white-space: pre-wrap; background:#f8f9fa; padding:15px; border-radius:6px;">
-                    {{ wo.completion_notes }}
-                </p>
-                {% else %}
-                <p class="text-muted">No additional notes were provided.</p>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- Action Buttons for Technician -->
-            {% if current_user.role == 'technician' and wo.assigned_to_id == current_user.id and wo.status != 'Completed' %}
-            <div class="mt-4 d-flex gap-3">
-                {% if wo.status == 'In Progress' %}
-                <button onclick="pauseWorkOrder({{ wo.id }})" class="btn btn-warning btn-lg">⏸️ Pause / On Hold</button>
-                {% else %}
-                <button onclick="markInProgress({{ wo.id }})" class="btn btn-warning btn-lg">🚧 Mark as In Progress</button>
-                {% endif %}
-                <button onclick="showCompleteModal({{ wo.id }})" class="btn btn-success btn-lg">✅ Complete Work Order</button>
-            </div>
-            {% endif %}
+    <div class="row">
+        <div class="col-md-6">
+            <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
+            <p><strong>Priority:</strong> {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}</p>
+            <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">{{ wo.status }}</span></p>
+            <p><strong>Assigned To:</strong> {{ wo.assigned_to.username if wo.assigned_to else 'Unassigned' }}</p>
         </div>
-        <div class="card-footer text-end">
-            <button onclick="window.history.back()" class="btn btn-secondary">Close</button>
+        <div class="col-md-6">
+            <p><strong>Created On:</strong> {% if wo.created_at %}{{ wo.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Expected Completion:</strong> {% if wo.expected_completion_date %}{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Completed On:</strong> {% if wo.completed_at %}{{ wo.completed_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Completed By:</strong> {{ wo.completed_by.username if wo.completed_by else 'N/A' }}</p>
         </div>
+    </div>
+
+    <!-- Completion Notes -->
+    {% if wo.completion_notes %}
+    <div class="mt-4 p-3 bg-light border rounded">
+        <strong>Completion Notes:</strong><br>
+        {{ wo.completion_notes }}
+    </div>
+    {% endif %}
+
+    <!-- Parts Used -->
+    {% if wo.parts_used %}
+    <div class="mt-3 p-3 bg-light border rounded">
+        <strong>Parts Used:</strong><br>
+        <ul>
+        {% for part in wo.parts_used %}
+            <li>{{ part.name }} × {{ part.quantity }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="mt-4">
+        {% if current_user.role == 'technician' and wo.assigned_to_id == current_user.id %}
+            {% if wo.status != 'Completed' %}
+                <button class="btn btn-warning me-2" onclick="markInProgress({{ wo.id }})">🚧 Start / In Progress</button>
+                <button class="btn btn-secondary me-2" onclick="pauseWorkOrder({{ wo.id }})">⏸️ Pause</button>
+                <button class="btn btn-success" onclick="showCompleteModal({{ wo.id }})">✅ Complete Work Order</button>
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 
-<!-- Complete Modal -->
+<!-- Complete Modal (unchanged) -->
 <div class="modal fade" id="completeModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Complete Work Order #{{ wo.id }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <textarea id="completion-notes" class="form-control" rows="5" placeholder="Add any notes about the completion..."></textarea>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Completion Notes</label>
+                    <textarea id="completion-notes" class="form-control" rows="3" placeholder="What was done?"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Parts Used</label>
+                    <div class="input-group mb-2">
+                        <input type="text" id="part-search" class="form-control" placeholder="Barcode, name, part number...">
+                        <button class="btn btn-primary" onclick="searchParts(document.getElementById('part-search').value)">Search</button>
+                        <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+                    </div>
+                    
+                    <div id="scanner-preview" style="display: none; margin: 10px 0; background:#000; padding:10px; border-radius:8px; min-height: 320px;"></div>
+                    <div id="part-results" class="list-group mt-2" style="max-height: 200px; overflow-y:auto; display:none;"></div>
+                    <ul id="parts-list" class="list-group mt-3"></ul>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="completeWorkOrder()">Mark as Completed</button>
+                <button type="button" class="btn btn-success" onclick="completeWorkOrder()">✅ Complete Work Order</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function markInProgress(woId) {
-    if (confirm("Mark as In Progress?")) {
-        fetch(`/workorder/in_progress/${woId}`, { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert("🚧 Marked as In Progress!");
-                window.location.href = "{{ url_for('workorder.index') }}";
-            }
-        });
-    }
-}
-
-function pauseWorkOrder(woId) {
-    if (confirm("Pause and set to On Hold?")) {
-        fetch(`/workorder/pause/${woId}`, { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert("⏸️ Set to On Hold.");
-                window.location.href = "{{ url_for('workorder.index') }}";
-            }
-        });
-    }
-}
-
 let currentWOId = null;
+let partsUsed = [];
+let html5QrcodeScanner = null;
 
+// Show Modal
 function showCompleteModal(woId) {
     currentWOId = woId;
-    const modal = new bootstrap.Modal(document.getElementById('completeModal'));
-    modal.show();
+    partsUsed = [];
+    renderPartsList();
+    new bootstrap.Modal(document.getElementById('completeModal')).show();
 }
 
+// Scanner
+function startScanning() {
+    document.getElementById("scanner-preview").style.display = "block";
+
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+
+    const config = { fps: 20, qrbox: { width: 600, height: 100 } };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('part-search').value = decodedText;
+            searchParts(decodedText);
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+
+function stopScanning() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            document.getElementById("scanner-preview").style.display = "none";
+        });
+    }
+}
+
+// Search Parts
+function searchParts(query) {
+    const resultsDiv = document.getElementById('part-results');
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    fetch(`/parts/search?q=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+            resultsDiv.innerHTML = '';
+            if (data.length === 0) {
+                resultsDiv.innerHTML = `<div class="list-group-item text-muted">No matching part for "${query}"</div>`;
+            } else {
+                data.forEach(part => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = `${part.name} (Stock: ${part.quantity || 0})`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        addScannedPart(part.name);
+                        resultsDiv.style.display = 'none';
+                    };
+                    resultsDiv.appendChild(item);
+                });
+            }
+            resultsDiv.style.display = 'block';
+        });
+}
+
+// Add Part after selecting or scanning
+function addScannedPart(partName) {
+    const qty = prompt(`Part: ${partName}\n\nHow many were used?`, "1");
+    if (qty && qty.trim() !== "") {
+        const quantity = parseInt(qty);
+        if (!isNaN(quantity) && quantity > 0) {
+            partsUsed.push({ name: partName, quantity: quantity });
+            renderPartsList();
+            document.getElementById('part-search').value = '';
+        }
+    }
+}
+
+function renderPartsList() {
+    const list = document.getElementById('parts-list');
+    list.innerHTML = '';
+    if (partsUsed.length === 0) {
+        list.innerHTML = '<li class="list-group-item text-muted">No parts added yet</li>';
+        return;
+    }
+    partsUsed.forEach((part, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.innerHTML = `${part.name} × ${part.quantity} <button class="btn btn-sm btn-outline-danger" onclick="removePart(${i})">Remove</button>`;
+        list.appendChild(li);
+    });
+}
+
+function removePart(i) {
+    partsUsed.splice(i, 1);
+    renderPartsList();
+}
+
+// Complete
 function completeWorkOrder() {
-    const notes = document.getElementById('completion-notes').value;
+    const notes = document.getElementById('completion-notes').value.trim();
     fetch(`/workorder/complete/${currentWOId}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ notes: notes })
+        body: JSON.stringify({ notes: notes, parts_used: partsUsed })
     })
     .then(r => r.json())
     .then(data => {
@@ -138,8 +218,45 @@ function completeWorkOrder() {
             bootstrap.Modal.getInstance(document.getElementById('completeModal')).hide();
             alert("🎉 Work Order Completed!");
             window.location.href = "{{ url_for('workorder.index') }}";
+        } else {
+            alert("Error: " + (data.error || "Unknown error"));
         }
-    });
+    })
+    .catch(() => alert("Request failed."));
+}
+function markInProgress(woId) {
+    if (confirm("Mark this work order as In Progress?")) {
+        fetch(`/workorder/in_progress/${woId}`, { 
+            method: 'POST' 
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert("🚧 Work Order marked as In Progress!");
+                location.reload();
+            } else {
+                alert("Error: " + (data.error || "Unknown error"));
+            }
+        })
+        .catch(() => alert("Request failed."));
+    }
+}
+function pauseWorkOrder(woId) {
+    if (confirm("Pause this work order and set it to On Hold?")) {
+        fetch(`/workorder/pause/${woId}`, { 
+            method: 'POST' 
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert("⏸️ Work Order paused and set to On Hold.");
+                location.reload();
+            } else {
+                alert("Error: " + (data.error || "Unknown error"));
+            }
+        })
+        .catch(() => alert("Request failed."));
+    }
 }
 </script>
 {% endblock %}

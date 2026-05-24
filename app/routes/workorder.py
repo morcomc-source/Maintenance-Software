@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.workorder import WorkOrder
 from app.models.user import User
+from app.models.part import Part
 from datetime import datetime
 
 bp = Blueprint('workorder', __name__)
@@ -176,53 +177,81 @@ def details(wo_id):
 @login_required
 def mark_in_progress(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
+    
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
+    
     wo.status = "In Progress"
     db.session.commit()
     return jsonify({'success': True})
 
 
-# ====================== COMPLETE ======================
+# ====================== COMPLETE WORK ORDER ======================
 @bp.route('/complete/<int:wo_id>', methods=['POST'])
 @login_required
 def complete(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
+    
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
-   
+    
     data = request.get_json()
     notes = data.get('notes', '')
-   
-    wo.status = "Completed"
-    wo.completed_by_id = current_user.id
-    wo.completed_at = datetime.utcnow()
-    wo.completion_notes = notes.strip() if notes else None
-   
-    db.session.commit()
-    return jsonify({'success': True})
-
+    parts_used = data.get('parts_used', [])
+    
+    try:
+        for item in parts_used:
+            part_name = item.get('name')
+            quantity_used = int(item.get('quantity', 0))
+            
+            if quantity_used <= 0:
+                continue
+                
+            part = Part.query.filter_by(name=part_name).first()
+            if part:
+                if part.qty < quantity_used:
+                    return jsonify({'success': False, 'error': f'Not enough stock for {part_name}'}), 400
+                
+                part.qty -= quantity_used   # Deduct from stock
+            else:
+                print(f"⚠️ Part not found: {part_name}")
+        
+        # Update Work Order
+        wo.status = "Completed"
+        wo.completed_by_id = current_user.id
+        wo.completed_at = datetime.utcnow()
+        wo.completion_notes = notes.strip() if notes else None
+        wo.parts_used = parts_used
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        print("Complete Error:", str(e))   # This will show in terminal
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ====================== PAUSE ======================
 @bp.route('/pause/<int:wo_id>', methods=['POST'])
 @login_required
 def pause(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
+    
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
-   
+    
     wo.status = "On Hold"
     db.session.commit()
     return jsonify({'success': True})
     
-# ====================== DELETE WORK ORDER ======================
+# ====================== DELETE WORK ORDER (Admin Only) ======================
 @bp.route('/delete/<int:wo_id>', methods=['POST'])
 @login_required
 def delete(wo_id):
     if current_user.role != 'admin':
         flash("Only admins can delete work orders.", "danger")
         return redirect(url_for('workorder.index'))
-    
+   
     wo = WorkOrder.query.get_or_404(wo_id)
     db.session.delete(wo)
     db.session.commit()
