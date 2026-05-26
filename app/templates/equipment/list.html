@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Equipment Inventory</h2>
+        <a href="{{ url_for('equipment.new') }}" class="btn btn-success">+ Add New Equipment</a>
+    </div>
+
+    <!-- Search and Scan Bar -->
+    <div class="input-group mb-4">
+        <input type="text" id="search-input" class="form-control" placeholder="Search by name, serial, barcode, or location...">
+        <button class="btn btn-primary" onclick="searchEquipment()">Search</button>
+        <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+    </div>
+
+    <!-- Desktop Table View -->
+    <div id="table-view">
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Equipment ID</th>
+                    <th>Name</th>
+                    <th>Serial #</th>
+                    <th>Model</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Barcode</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eq in equipment_list %}
+                <tr>
+                    <td><strong>{{ eq.equipment_id }}</strong></td>
+                    <td>{{ eq.name }}</td>
+                    <td>{{ eq.serial_number or '-' }}</td>
+                    <td>{{ eq.model or '-' }}</td>
+                    <td>{{ eq.location or '-' }}</td>
+                    <td><span class="badge bg-{{ 'success' if eq.status == 'Active' else 'warning' }}">{{ eq.status }}</span></td>
+                    <td>{{ eq.barcode or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-sm btn-danger" onclick="deleteEquipment({{ eq.id }})">Delete</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center">No equipment found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div id="card-view" class="row">
+        {% for eq in equipment_list %}
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ eq.name }}</h5>
+                    <p class="mb-1"><strong>ID:</strong> {{ eq.equipment_id }}</p>
+                    <p class="mb-1"><strong>Serial:</strong> {{ eq.serial_number or '-' }}</p>
+                    <p class="mb-1"><strong>Location:</strong> {{ eq.location or '-' }}</p>
+                    <p class="mb-1"><strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if eq.status == 'Active' else 'warning' }}">{{ eq.status }}</span>
+                    </p>
+                    <p class="mb-2"><strong>Barcode:</strong> {{ eq.barcode or '-' }}</p>
+
+                    <div class="mt-3">
+                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-sm btn-danger" onclick="deleteEquipment({{ eq.id }})">Delete</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Full Screen Scanner Overlay -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
+
+<script>
+let html5QrcodeScanner = null;
+
+// Responsive View Switch
+function updateView() {
+    const isMobile = window.innerWidth <= 768;
+    document.getElementById("table-view").style.display = isMobile ? "none" : "block";
+    document.getElementById("card-view").style.display = isMobile ? "block" : "none";
+}
+
+window.addEventListener('resize', updateView);
+document.addEventListener("DOMContentLoaded", updateView);
+
+// Scanner Functions
+function startScanning() {
+    document.getElementById("scanner-overlay").style.display = "flex";
+
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('search-input').value = decodedText;
+            searchEquipment();
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+
+function stopScanning() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            document.getElementById("scanner-overlay").style.display = "none";
+        });
+    } else {
+        document.getElementById("scanner-overlay").style.display = "none";
+    }
+}
+
+function searchEquipment() {
+    const query = document.getElementById('search-input').value.trim();
+    if (query) {
+        window.location.href = "{{ url_for('equipment.index') }}?q=" + encodeURIComponent(query);
+    } else {
+        location.reload();
+    }
+}
+
+function deleteEquipment(id) {
+    if (confirm("Delete this equipment? This cannot be undone!")) {
+        fetch(`/equipment/delete/${id}`, { method: 'POST' })
+        .then(r => {
+            if (r.ok) {
+                alert("Equipment deleted.");
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

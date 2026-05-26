@@ -12,26 +12,39 @@ bp = Blueprint('workorder', __name__)
 @bp.route('/')
 @login_required
 def index():
-    if current_user.role == 'admin':
-        workorders = WorkOrder.query.order_by(
-            WorkOrder.status == 'Completed',      # Completed at bottom
-            (WorkOrder.expected_completion_date < datetime.now().date()).desc(),  # Overdue at top
-            WorkOrder.priority.desc(),            # Highest priority first
+    query = request.args.get('q', '').strip()
+    
+    if query:
+        # Filter work orders by equipment name, equipment_id, or barcode
+        workorders = WorkOrder.query.filter(
+            (WorkOrder.equipment.ilike(f'%{query}%')) |
+            (WorkOrder.equipment_id.ilike(f'%{query}%'))
+        ).order_by(
+            WorkOrder.status == 'Completed',
+            (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
+            WorkOrder.priority.desc(),
             WorkOrder.created_at.desc()
         ).all()
-        technicians = User.query.filter_by(role='technician').all()
     else:
-        workorders = WorkOrder.query.filter_by(assigned_to_id=current_user.id)\
-                        .order_by(
-                            WorkOrder.status == 'Completed',
-                            (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
-                            WorkOrder.priority.desc(),
-                            WorkOrder.created_at.desc()
-                        ).all()
-        technicians = []
-   
+        if current_user.role == 'admin':
+            workorders = WorkOrder.query.order_by(
+                WorkOrder.status == 'Completed',
+                (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
+                WorkOrder.priority.desc(),
+                WorkOrder.created_at.desc()
+            ).all()
+        else:
+            workorders = WorkOrder.query.filter_by(assigned_to_id=current_user.id)\
+                            .order_by(
+                                WorkOrder.status == 'Completed',
+                                (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
+                                WorkOrder.priority.desc(),
+                                WorkOrder.created_at.desc()
+                            ).all()
+    
+    technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
     today = datetime.now().date()
- 
+    
     return render_template('workorder/list.html',
                          workorders=workorders,
                          technicians=technicians,
@@ -47,26 +60,30 @@ def new():
 @login_required
 def create():
     equipment = request.form.get('equipment')
+    equipment_id = request.form.get('equipment_id')
     description = request.form.get('description')
     assigned_to_id = request.form.get('assigned_to_id')
     
+    # NEW: Get Priority and Expected Date from form
+    priority = request.form.get('priority')
+    expected_str = request.form.get('expected_completion_date')
+
     if not equipment or not description:
         flash("Equipment and Description are required", "danger")
         return redirect(url_for('workorder.new'))
-    
+
     try:
         assigned_to_id = int(assigned_to_id) if assigned_to_id else None
     except:
         assigned_to_id = None
 
-    # Priority
+    # Convert priority to int
     try:
-        priority = int(request.form.get('priority'))
+        priority = int(priority) if priority else None
     except:
         priority = None
 
-    # Expected Completion Date
-    expected_str = request.form.get('expected_completion_date')
+    # Convert expected date
     expected_completion_date = None
     if expected_str:
         try:
@@ -76,6 +93,7 @@ def create():
 
     new_wo = WorkOrder(
         equipment=equipment,
+        equipment_id=equipment_id,
         description=description,
         status="Assigned" if assigned_to_id else "Open",
         priority=priority,
@@ -84,10 +102,17 @@ def create():
         assigned_to_id=assigned_to_id,
         created_at=datetime.utcnow()
     )
-    db.session.add(new_wo)
-    db.session.commit()
-    flash("✅ Work Order created successfully!", "success")
-    return redirect(url_for('workorder.index'))
+   
+    try:
+        db.session.add(new_wo)
+        db.session.commit()
+        flash("✅ Work Order created successfully!", "success")
+        return redirect(url_for('workorder.index'))
+    except Exception as e:
+        db.session.rollback()
+        flash("Error saving work order. Please try again.", "danger")
+        print("Work Order Save Error:", str(e))
+        return redirect(url_for('workorder.new'))
 
 @bp.route('/assign/<int:wo_id>', methods=['POST'])
 @login_required

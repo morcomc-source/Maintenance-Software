@@ -1,64 +1,143 @@
 {% extends "base.html" %}
 {% block title %}New Work Order{% endblock %}
-
 {% block content %}
+
 <div class="container mt-4">
-    <h2 class="mb-4">Create New Work Order</h2>
-    
+    <h2>Create New Work Order</h2>
     <div class="card">
         <div class="card-body">
             <form method="POST" action="{{ url_for('workorder.create') }}">
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <label class="form-label">Equipment <span class="text-danger">*</span></label>
-                        <input type="text" name="equipment" class="form-control" placeholder="Equipment name or barcode" required>
+                <div class="mb-3">
+                    <label class="form-label">Equipment <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" id="equipment-search" name="equipment" class="form-control" placeholder="Type name or scan barcode..." required>
+                        <button type="button" class="btn btn-primary" onclick="searchEquipment()">Search</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Priority (1-5)</label>
+                    <input type="hidden" name="equipment_id" id="equipment-id-hidden">
+                    
+                    <div id="equipment-results" class="list-group mt-1" style="max-height: 220px; overflow-y:auto; display:none;"></div>
+                    
+                    <div id="selected-equipment" class="mt-2 p-2 bg-light border rounded" style="display:none;">
+                        <strong>Selected:</strong> <span id="selected-name"></span> 
+                        (<span id="selected-id" style="color:#007bff;"></span>)
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Issue / Description <span class="text-danger">*</span></label>
+                    <textarea name="description" class="form-control" rows="5" placeholder="Describe the problem..." required></textarea>
+                </div>
+
+                <!-- Admin Only Fields -->
+                {% if current_user.role == 'admin' %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Priority</label>
                         <select name="priority" class="form-select">
+                            <option value="">— Select Priority —</option>
                             <option value="1">1 - Low</option>
-                            <option value="2">2</option>
-                            <option value="3" selected>3 - Medium</option>
-                            <option value="4">4</option>
-                            <option value="5">5 - Critical</option>
+                            <option value="2">2 - Medium</option>
+                            <option value="3">3 - High</option>
+                            <option value="4">4 - Critical</option>
                         </select>
                     </div>
-
-                    <div class="col-12">
-                        <label class="form-label">Description / Issue <span class="text-danger">*</span></label>
-                        <textarea name="description" class="form-control" rows="5" placeholder="Describe the problem..." required></textarea>
-                    </div>
-
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Expected Completion Date</label>
                         <input type="date" name="expected_completion_date" class="form-control">
                     </div>
-
-                    {% if current_user.role == 'admin' %}
-                    <div class="col-md-6">
-                        <label class="form-label">Assign To</label>
-                        <select name="assigned_to_id" class="form-select">
-                            <option value="">— Leave Unassigned —</option>
-                            {% for tech in technicians %}
-                            <option value="{{ tech.id }}">{{ tech.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-
-                    <div class="col-12 mt-4">
-                        <button type="submit" class="btn btn-success btn-lg w-100">Create Work Order</button>
-                    </div>
                 </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Assign To</label>
+                    <select name="assigned_to_id" class="form-select">
+                        <option value="">— Leave Unassigned —</option>
+                        {% for tech in technicians %}
+                        <option value="{{ tech.id }}">{{ tech.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-success btn-lg w-100">
+                    Submit Work Order
+                </button>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Full Screen Scanner Overlay -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
+
 <script>
-function scanBarcode() {
-    const code = prompt("Enter barcode or equipment code:");
-    if (code) document.querySelector('input[name="equipment"]').value = code;
+let html5QrcodeScanner = null;
+
+// Live search as you type
+document.getElementById('equipment-search').addEventListener('input', function() {
+    searchEquipment(this.value);
+});
+
+function searchEquipment(query = '') {
+    const resultsDiv = document.getElementById('equipment-results');
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    fetch(`/equipment/search?q=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+            resultsDiv.innerHTML = '';
+            data.forEach(eq => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = `${eq.equipment_id} - ${eq.name}`;
+                item.onclick = (e) => {
+                    e.preventDefault();
+                    document.getElementById('equipment-search').value = eq.name;
+                    document.getElementById('equipment-id-hidden').value = eq.equipment_id;
+                    document.getElementById('selected-name').textContent = eq.name;
+                    document.getElementById('selected-id').textContent = eq.equipment_id;
+                    document.getElementById('selected-equipment').style.display = 'block';
+                    resultsDiv.style.display = 'none';
+                };
+                resultsDiv.appendChild(item);
+            });
+            resultsDiv.style.display = 'block';
+        });
+}
+
+// Scanner
+function startScanning() {
+    document.getElementById("scanner-overlay").style.display = "flex";
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('equipment-search').value = decodedText;
+            searchEquipment(decodedText);
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+
+function stopScanning() {
+    if (html5QrcodeScanner) html5QrcodeScanner.stop();
+    document.getElementById("scanner-overlay").style.display = "none";
 }
 </script>
 {% endblock %}

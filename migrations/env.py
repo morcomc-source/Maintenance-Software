@@ -1,6 +1,6 @@
 import logging
 from logging.config import fileConfig
-from app.models import user, pm
+
 from flask import current_app
 
 from alembic import context

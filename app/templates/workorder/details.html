@@ -232,27 +232,28 @@ function markInProgress(woId) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert("🚧 Work Order marked as In Progress!");
-                location.reload();
+                alert("🚧 Marked as In Progress!");
+                window.location.href = "{{ url_for('workorder.index') }}";  // Return to main list
             } else {
-                alert("Error: " + (data.error || "Unknown error"));
+                alert("Error: " + (data.error || "Unknown"));
             }
         })
         .catch(() => alert("Request failed."));
     }
 }
+
 function pauseWorkOrder(woId) {
-    if (confirm("Pause this work order and set it to On Hold?")) {
+    if (confirm("Pause this work order and set to On Hold?")) {
         fetch(`/workorder/pause/${woId}`, { 
             method: 'POST' 
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert("⏸️ Work Order paused and set to On Hold.");
-                location.reload();
+                alert("⏸️ Set to On Hold.");
+                window.location.href = "{{ url_for('workorder.index') }}";  // Return to main list
             } else {
-                alert("Error: " + (data.error || "Unknown error"));
+                alert("Error: " + (data.error || "Unknown"));
             }
         })
         .catch(() => alert("Request failed."));

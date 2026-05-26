@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Edit Equipment{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <h2>Edit Equipment</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Name *</label>
+                        <input type="text" name="name" value="{{ eq.name }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Serial Number</label>
+                        <input type="text" name="serial_number" value="{{ eq.serial_number or '' }}" class="form-control">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Manufacturer</label>
+                        <input type="text" name="manufacturer" value="{{ eq.manufacturer or '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Model</label>
+                        <input type="text" name="model" value="{{ eq.model or '' }}" class="form-control">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Location</label>
+                        <input type="text" name="location" value="{{ eq.location or '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Barcode</label>
+                        <div class="input-group">
+                            <input type="text" name="barcode" id="barcode-input" value="{{ eq.barcode or '' }}" class="form-control" placeholder="Barcode">
+                            <button type="button" class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>Purchase Date</label>
+                    <input type="date" name="purchase_date" value="{% if eq.purchase_date %}{{ eq.purchase_date.strftime('%Y-%m-%d') }}{% endif %}" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label>Status</label>
+                    <select name="status" class="form-select">
+                        <option value="Active" {{ 'selected' if eq.status == 'Active' else '' }}>Active</option>
+                        <option value="Maintenance" {{ 'selected' if eq.status == 'Maintenance' else '' }}>Maintenance</option>
+                        <option value="Retired" {{ 'selected' if eq.status == 'Retired' else '' }}>Retired</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label>Notes</label>
+                    <textarea name="notes" class="form-control" rows="3">{{ eq.notes or '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-success">Update Equipment</button>
+                <a href="{{ url_for('equipment.index') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Full Screen Scanner Overlay -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
+
+<script>
+let html5QrcodeScanner = null;
+
+function startScanning() {
+    document.getElementById("scanner-overlay").style.display = "flex";
+
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('barcode-input').value = decodedText;
+            alert("✅ Barcode updated: " + decodedText);
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+
+function stopScanning() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            document.getElementById("scanner-overlay").style.display = "none";
+        });
+    } else {
+        document.getElementById("scanner-overlay").style.display = "none";
+    }
+}
+</script>
+{% endblock %}

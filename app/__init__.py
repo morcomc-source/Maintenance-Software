@@ -41,7 +41,7 @@ def create_app():
     from .routes.auth import bp as auth_bp
     from .routes.dashboard import bp as dashboard_bp
     from .routes.workorder import bp as workorder_bp
-    from .routes.equipment import bp as equipment_bp   # ← Make sure this line exists
+    from .routes.equipment import bp as equipment_bp
 
     app.register_blueprint(pm_bp, url_prefix='/pm')
     app.register_blueprint(parts_bp, url_prefix='/parts')

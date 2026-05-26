@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Work Orders{% endblock %}
-
 {% block content %}
+
 <style>
 .table thead th {
     background-color: #6c757d !important;
     color: #fff !important;
     font-weight: 700;
 }
-
 /* row colors */
 .table-success-dark td {
     background-color: #4caf50 !important;
@@ -20,46 +19,30 @@
     color: #fff !important;
     font-weight: 500;
 }
-
 /* force all table text black */
 .table tbody td,
 .table tbody td * {
     color: #000 !important;
     font-weight: 600;
 }
-
 /* Light Gray background for all action buttons */
 .btn-outline-info,
 .btn-outline-dark,
 .btn-danger,
 .btn-warning {
-    background-color: #f8f9fa !important;   /* Light gray */
+    background-color: #f8f9fa !important;
     border-color: #adb5bd;
     color: #495057;
     border-width: 2px;
 }
-
 /* Hover effects */
-.btn-outline-info:hover { 
-    background-color: #d1ecf1 !important; 
-    border-color: #17a2b8;
-}
-.btn-outline-dark:hover { 
-    background-color: #e2e3e5 !important; 
-    border-color: #6c757d;
-}
-.btn-danger:hover { 
-    background-color: #dc3545 !important; 
-    color: white !important; 
-}
-.btn-warning:hover { 
-    background-color: #ffc107 !important; 
-}
-
+.btn-outline-info:hover { background-color: #d1ecf1 !important; border-color: #17a2b8; }
+.btn-outline-dark:hover { background-color: #e2e3e5 !important; border-color: #6c757d; }
+.btn-danger:hover { background-color: #dc3545 !important; color: white !important; }
+.btn-warning:hover { background-color: #ffc107 !important; }
 /* Other styles */
 .assigned-user { color: #000 !important; font-weight: 600; }
 .completed-date { color: #000 !important; font-weight: 600; }
-
 /* Description column */
 td:nth-child(3), th:nth-child(3) {
     max-width: 325px;
@@ -68,7 +51,6 @@ td:nth-child(3), th:nth-child(3) {
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
-
 /* Mobile Card View */
 @media (max-width: 768px) {
     #workorder-table { display: none; }
@@ -78,6 +60,7 @@ td:nth-child(3), th:nth-child(3) {
     .workorder-card { display: none; }
 }
 </style>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>
@@ -89,6 +72,13 @@ td:nth-child(3), th:nth-child(3) {
         </h2>
     </div>
 
+    <!-- Search and Scan Bar -->
+    <div class="input-group mb-4">
+        <input type="text" id="search-input" class="form-control" placeholder="Search by equipment, description, or ID...">
+        <button class="btn btn-primary" onclick="searchWorkOrders()">Search</button>
+        <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+    </div>
+
     <!-- Toggle + New Button -->
     <div class="mb-4">
         <div class="row g-2">
@@ -98,8 +88,8 @@ td:nth-child(3), th:nth-child(3) {
                 </button>
             </div>
             <div class="col-6 col-md-4">
-                <a href="{{ url_for('workorder.new') }}" class="btn btn-success w-100 fw-bold">
-                    + New Work Order
+                <a href="/workorder/new" class="btn btn-success w-100 fw-bold">
+                    + Create New Work Order
                 </a>
             </div>
         </div>
@@ -113,12 +103,10 @@ td:nth-child(3), th:nth-child(3) {
                 <th class="text-center sortable">Equipment</th>
                 <th class="text-center sortable" style="width: 325px;">Description</th>
                 <th class="text-center sortable">Priority</th>
+                <th class="text-center sortable">Expected Completion</th>
                 <th class="text-center sortable">Status</th>
-                <th class="text-center sortable">Created By</th>
                 <th class="text-center sortable">Assigned To</th>
                 <th class="text-center sortable">Created At</th>
-                <th class="text-center sortable">Expected Completion</th>
-                <th class="text-center sortable">Completed On</th>
                 <th class="text-center">Actions</th>
             </tr>
         </thead>
@@ -132,11 +120,7 @@ td:nth-child(3), th:nth-child(3) {
                 </td>
                 <td class="text-center">
                     {% if wo.priority %}
-                        <span class="badge fs-5 fw-bold
-                            {% if wo.priority >= 4 %}bg-danger
-                            {% elif wo.priority == 3 %}bg-warning
-                            {% elif wo.priority == 2 %}bg-warning
-                            {% else %}bg-secondary{% endif %}">
+                        <span class="badge fs-5 fw-bold {% if wo.priority >= 4 %}bg-danger{% elif wo.priority == 3 %}bg-warning{% else %}bg-info{% endif %}">
                             {{ wo.priority }}
                         </span>
                     {% else %}
@@ -144,11 +128,17 @@ td:nth-child(3), th:nth-child(3) {
                     {% endif %}
                 </td>
                 <td class="text-center">
-                    <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'Assigned' else 'primary' }}">
+                    {% if wo.expected_completion_date %}
+                        <strong>{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}</strong>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'Assigned' or wo.status == 'In Progress' else 'primary' }}">
                         {{ wo.status }}
                     </span>
                 </td>
-                <td class="text-center">{{ wo.created_by.username if wo.created_by else 'N/A' }}</td>
                 <td class="text-center">
                     {% if wo.assigned_to %}
                         <strong class="assigned-user">{{ wo.assigned_to.username }}</strong>
@@ -158,108 +148,108 @@ td:nth-child(3), th:nth-child(3) {
                 </td>
                 <td class="text-center">{{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}</td>
                 <td class="text-center">
-                    {% if wo.expected_completion_date %}
-                        <strong>{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}</strong>
+                    {% if current_user.role == 'technician' %}
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">📋 Details</a>
                     {% else %}
-                        <span class="text-muted">-</span>
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
+                    {% endif %}
+                    {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
                     {% endif %}
                 </td>
-                <td class="text-center">
-                    {% if wo.completed_at %}
-                        <strong class="completed-date">{{ wo.completed_at.strftime('%Y-%m-%d') }}</strong>
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-					{% if current_user.role == 'technician' %}
-						<a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">📋 Details / Start</a>
-					{% else %}
-						<a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
-					{% endif %}
-
-					{% if current_user.role == 'admin' %}
-						<a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
-						<button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
-					{% endif %}
-				</td>
             </tr>
         {% else %}
             <tr>
-                <td colspan="11" class="text-center py-4">
+                <td colspan="9" class="text-center py-4">
                     No work orders found.
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    <!-- Mobile Card View -->
+    <div class="d-md-none">
+        {% for wo in workorders %}
+        <div class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="mb-1">#{{ wo.id }} - {{ wo.equipment }}</h5>
+                    <span class="badge bg-{{ 'light text-dark' if wo.status == 'Completed' or wo.expected_completion_date and wo.expected_completion_date < today else 'primary' }}">
+                        {{ wo.status }}
+                    </span>
+                </div>
+                <p class="mb-1"><strong>Priority:</strong> {{ wo.priority or '-' }}</p>
+                <p class="mb-1"><strong>Expected:</strong> {{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '-' }}</p>
+                <p class="small mb-2">{{ wo.description[:100] }}{% if wo.description|length > 100 %}...{% endif %}</p>
+                <div class="d-flex gap-2">
+                    {% if current_user.role == 'technician' %}
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">📋 Details</a>
+                    {% else %}
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">👁️ Details</a>
+                    {% endif %}
+                    {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
-<!-- Mobile Card View -->
-<div class="d-md-none">
-{% for wo in workorders %}
-<div class="card workorder-card mb-3
-{% if wo.status == 'Completed' %}bg-success text-white
-{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white
-{% else %}bg-light{% endif %}">
-<div class="card-body">
-<div class="d-flex justify-content-between align-items-start">
-<h5 class="mb-1">#{{ wo.id }} - {{ wo.equipment }}</h5>
-<span class="badge bg-{{ 'light text-dark' if wo.status == 'Completed' or wo.expected_completion_date and wo.expected_completion_date < today else 'primary' }}">
-{{ wo.status }}
-</span>
-</div>
-<p class="mb-1"><strong>Priority:</strong> {{ wo.priority or '-' }}</p>
-<p class="mb-1"><strong>Expected:</strong> {{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '-' }}</p>
-<p class="small mb-2">{{ wo.description[:100] }}{% if wo.description|length > 100 %}...{% endif %}</p>
-<div class="d-flex gap-2">
-    {% if current_user.role == 'technician' %}
-        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">📋 Details / Start</a>
-    {% else %}
-        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">👁️ Details</a>
-    {% endif %}
-
-    {% if current_user.role == 'admin' %}
-        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
-    {% endif %}
-</div>
-</div>
-</div>
-{% endfor %}
+<!-- Full Screen Scanner Overlay -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
 </div>
 
 <script>
-// Table Sorting
-document.querySelectorAll('.sortable').forEach(header => {
-    header.addEventListener('click', () => {
-        const table = document.getElementById('workorder-table');
-        if (!table) return;
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const index = Array.from(header.parentNode.children).indexOf(header);
-        const isAsc = header.classList.toggle('asc');
+let html5QrcodeScanner = null;
 
-        rows.sort((a, b) => {
-            let valA = a.children[index].textContent.trim();
-            let valB = b.children[index].textContent.trim();
-            const numA = Number(valA);
-            const numB = Number(valB);
-            if (!isNaN(numA) && !isNaN(numB)) {
-                return isAsc ? numA - numB : numB - numA;
-            }
-            return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        });
-        rows.forEach(row => tbody.appendChild(row));
+// Scanner
+function startScanning() {
+    document.getElementById("scanner-overlay").style.display = "flex";
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('search-input').value = decodedText;
+            searchWorkOrders();
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
     });
-});
+}
 
-// Toggle Incomplete Filter
+function stopScanning() {
+    if (html5QrcodeScanner) html5QrcodeScanner.stop();
+    document.getElementById("scanner-overlay").style.display = "none";
+}
+
+function searchWorkOrders() {
+    const query = document.getElementById('search-input').value.trim();
+    if (query) {
+        window.location.href = "{{ url_for('workorder.index') }}?q=" + encodeURIComponent(query);
+    } else {
+        location.reload();
+    }
+}
+
+// Your original functions
 let showOnlyIncomplete = false;
-
 function toggleIncomplete() {
     showOnlyIncomplete = !showOnlyIncomplete;
     const btn = document.getElementById('incomplete-btn');
-    
     if (showOnlyIncomplete) {
         btn.textContent = "Show All";
         btn.classList.remove('btn-primary');
@@ -269,20 +259,15 @@ function toggleIncomplete() {
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-primary');
     }
-    
     filterAllViews();
 }
-
 function filterAllViews() {
-    // Desktop Table
     const rows = document.querySelectorAll('#workorder-table tbody tr');
     rows.forEach(row => {
-        const statusCell = row.children[4]; // Status is the 5th column (index 4)
+        const statusCell = row.children[5];
         const status = statusCell ? statusCell.textContent.trim() : '';
         row.style.display = (showOnlyIncomplete && status === 'Completed') ? 'none' : '';
     });
-
-    // Mobile Cards
     const cards = document.querySelectorAll('.workorder-card');
     cards.forEach(card => {
         const statusBadge = card.querySelector('.badge');
@@ -292,9 +277,7 @@ function filterAllViews() {
 }
 function deleteWorkOrder(woId) {
     if (confirm("⚠️ Delete this work order permanently? This cannot be undone!")) {
-        fetch(`/workorder/delete/${woId}`, {
-            method: 'POST'
-        })
+        fetch(`/workorder/delete/${woId}`, { method: 'POST' })
         .then(response => {
             if (response.ok) {
                 alert("🗑️ Work Order deleted successfully!");

@@ -11,11 +11,11 @@ with app.app_context():
     db.session.add(admin)
     
     # Technician
-    tech = User(username='technician1', role='technician')
-    tech.set_password('password123')
+    tech = User(username='tech', role='technician')
+    tech.set_password('tech')
     db.session.add(tech)
     
     db.session.commit()
     print('✅ Users created successfully!')
-    print('Admin -> username: admin | password: admin123')
-    print('Technician -> username: technician1 | password: password123')
+    print('Admin -> username: admin | password: admin')
+    print('Technician -> username: tech | password: tech')
