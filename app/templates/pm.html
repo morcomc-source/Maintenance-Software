@@ -32,7 +32,7 @@
     text-align: center;
 }
 </style>
-<h2 class="mb-4 center-text">Preventative Maintenance</h2>
+<h2 class="mb-4 center-text" id="pm-page-title">Preventative Maintenance</h2>
 <style>
 .pm-row-complete td { background-color: #4dff4d; font-weight: bold; }
 .pm-row-due-soon td { background-color: #ffff4d; font-weight: bold; }
@@ -48,13 +48,15 @@
 .pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
 </style>
 <!-- Tabs (moved outside the form) -->
-<div class="d-flex gap-2 mb-4">
-    {% if current_user.role == 'admin' %}
-    <button class="btn btn-outline-primary tab-button" onclick="openTab(1)">Add New PM</button>
-    {% endif %}
-</div>
+
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
+{% if current_user.role == 'admin' or current_user.is_admin() %}
+<div class="d-flex gap-2 mb-4">
+    <button class="btn btn-outline-primary" onclick="openTab(1)">Add New PM</button>
+</div>
+{% endif %}
+
     <form method="get" action="/pm" class="row g-3 mb-4">
         <div class="col-md-12">
             <label class="form-label">Search for Preventative Maintenance Form:</label>
@@ -178,6 +180,13 @@
 </div>
 <!-- ADD / EDIT TAB -->
 <div id="tab-1" class="tab-content">
+<div class="container mt-2">
+    <div class="mb-3">
+        <button type="button" class="btn btn-secondary" onclick="openTab(0); resetPMForm();">← Back to PM List</button>
+    </div>
+    <h2 class="mb-4 text-center">Create New PM</h2>
+    <div class="card">
+        <div class="card-body">
     <form method="post" id="add-edit-form" class="row g-3">
         <input type="hidden" name="index" id="form-index">
         <div class="col-md-4">
@@ -236,6 +245,9 @@
             <button type="submit" id="submit-btn" class="btn btn-success mt-3">Add PM</button>
         </div>
     </form>
+        </div>
+    </div>
+</div>
 </div>
 <!-- View Modal - With Clear "Close" Button -->
 <div class="modal fade" id="view-modal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true">
@@ -312,6 +324,16 @@
     }
     // ====================== TAB & FORM ======================
     function openTab(tabIndex) {
+    const pageTitle = document.getElementById('pm-page-title');
+    if (pageTitle) {
+        if (tabIndex === 1) {
+            pageTitle.style.display = 'none';
+        } else {
+            pageTitle.style.display = '';
+            pageTitle.textContent = 'Preventative Maintenance';
+        }
+    }
+
         document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
         document.querySelectorAll(".tab-button").forEach(b => b.classList.remove("active"));
         const targetTab = document.getElementById("tab-" + tabIndex);

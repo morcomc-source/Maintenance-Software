@@ -58,15 +58,16 @@ text-align: center;
     .btn-show-all-stock:hover { background-color: #737270; color: white !important; }
     .btn-outline-success:hover { background-color: #737270; color: white !important; }
 </style>
-<h2 class="mb-4 center-text">Parts Inventory Page</h2>
-<!-- Tabs -->
-<div class="d-flex gap-2 mb-4">
-    {% if current_user.is_admin() %}
-    <button class="btn btn-outline-primary tab-button" onclick="openTab(1)">Add New Part</button>
-    {% endif %}
-</div>
+<h2 id="parts-page-title" class="mb-4 center-text">Parts Inventory Page</h2>
+
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
+{% if current_user.is_admin() %}
+<div class="d-flex gap-2 mb-4">
+    <button class="btn btn-outline-primary" onclick="openTab(1)">Add New Part</button>
+</div>
+{% endif %}
+
 <div class="row g-3 align-items-center mb-4">
 <div class="col-md-6">
 <form method="get" action="/parts" class="d-flex gap-2">
@@ -165,6 +166,16 @@ text-align: center;
 <!-- ADD / EDIT TAB -->
 {% if current_user.is_admin() %}
 <div id="tab-1" class="tab-content">
+<div class="container mt-2">
+    <div class="mb-3">
+        <button type="button" class="btn btn-secondary" onclick="openTab(0)">← Back to Parts List</button>
+    </div>
+    <h2 class="mb-4 text-center">Create New Part</h2>
+    <div class="mb-0"><!-- spacer -->
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
     <form method="post" id="add-edit-form" class="row g-3">
         <input type="hidden" name="index" id="form-index">
         <div class="col-md-6">
@@ -234,6 +245,9 @@ text-align: center;
             <button type="button" id="export-pdf" class="btn btn-outline-primary" style="display: none;">Parts Export</button>
         </div>
     </form>
+        </div>
+    </div>
+</div>
 </div>
 {% endif %}
 <!-- Scanner Preview -->
@@ -271,10 +285,23 @@ text-align: center;
         alert('Library error: Supported formats not defined. Check network or browser console for details.');
     }
     function openTab(tabIndex) {
+    const pageTitle = document.getElementById('parts-page-title');
+    if (pageTitle) {
+        if (tabIndex === 1) {
+            pageTitle.style.display = 'none';
+        } else {
+            pageTitle.style.display = '';
+            pageTitle.textContent = 'Parts Inventory Page';
+        }
+    }
+
+    const addBtn = document.getElementById('add-part-tab-btn');
+    if (addBtn) {
+        addBtn.style.display = (tabIndex === 1) ? 'none' : '';
+    }
+
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + tabIndex).classList.add('active');
-        document.querySelectorAll('.tab-button')[tabIndex].classList.add('active');
         if (tabIndex === 1 && !document.getElementById('form-index').value) {
             document.getElementById('add-edit-form').reset();
             document.getElementById('submit-btn').innerText = 'Add Part';
