@@ -34,6 +34,7 @@ def create_app():
     from .models.pm import PM
     from .models.part import Part
     from .models.equipment import Equipment
+    from .models.settings import PartLocation, PartSublocation
   
 # Register blueprints
     from .routes.pm import bp as pm_bp
@@ -42,6 +43,7 @@ def create_app():
     from .routes.dashboard import bp as dashboard_bp
     from .routes.workorder import bp as workorder_bp
     from .routes.equipment import bp as equipment_bp
+    from .routes.settings import bp as settings_bp
 
     app.register_blueprint(pm_bp, url_prefix='/pm')
     app.register_blueprint(parts_bp, url_prefix='/parts')
@@ -49,5 +51,6 @@ def create_app():
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(workorder_bp, url_prefix='/workorder')
     app.register_blueprint(equipment_bp, url_prefix='/equipment')
+    app.register_blueprint(settings_bp)
     
     return app

@@ -28,7 +28,7 @@ class WorkOrder(db.Model):
     completion_notes = db.Column(db.Text, nullable=True)
     parts_used = db.Column(db.JSON, nullable=True)
    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
     assigned_at = db.Column(db.DateTime, nullable=True)
    
     created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_workorders')

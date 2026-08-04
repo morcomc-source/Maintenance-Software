@@ -350,3 +350,18 @@ def manage_users():
     users_list = [{'id': u.id, 'username': u.username, 'email': u.email, 'role': u.role} for u in users]
    
     return render_template('users.html', users=users, users_json=users_list)
+
+# ====================== DELETE PM HISTORY RECORD (Admin Only) ======================
+@bp.route('/history/delete/<int:completion_id>', methods=['POST'])
+@login_required
+def delete_history(completion_id):
+    if current_user.role != 'admin':
+        flash("Only admins can delete history records.", "danger")
+        return redirect(url_for('pm.index'))
+
+    completion = PMCompletion.query.get_or_404(completion_id)
+    pm_id = completion.pm_id
+    db.session.delete(completion)
+    db.session.commit()
+    flash("History record deleted.", "success")
+    return redirect(url_for('pm.history', pm_id=pm_id))

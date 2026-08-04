@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}System Setup{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">System Setup</h2>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+
+    <div class="row g-4">
+        <!-- Locations -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <strong>Part Locations</strong>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_location') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="name" class="form-control" placeholder="New location name" required>
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </div>
+                    </form>
+                    <ul class="list-group">
+                        {% for loc in locations %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ loc.name }}
+                            <form method="POST" action="{{ url_for('settings.delete_location', id=loc.id) }}" onsubmit="return confirm('Delete this location?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No locations yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sublocations -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <strong>Part Sub-locations</strong>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_sublocation') }}" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-5">
+                                <input type="text" name="name" class="form-control" placeholder="Name (e.g. A6)" required>
+                            </div>
+                            <div class="col-4">
+                                <input type="text" name="group_label" class="form-control" placeholder="Group (e.g. A)">
+                            </div>
+                            <div class="col-3">
+                                <button type="submit" class="btn btn-success w-100">Add</button>
+                            </div>
+                        </div>
+                    </form>
+                    <ul class="list-group" style="max-height: 400px; overflow-y: auto;">
+                        {% for sub in sublocations %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if sub.group_label %}<span class="badge bg-secondary me-1">{{ sub.group_label }}</span>{% endif %}
+                                {{ sub.name }}
+                            </span>
+                            <form method="POST" action="{{ url_for('settings.delete_sublocation', id=sub.id) }}" onsubmit="return confirm('Delete this sublocation?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No sublocations yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

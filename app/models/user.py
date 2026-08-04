@@ -11,7 +11,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default='technician')
     must_change_password = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
     email = db.Column(db.String(120), unique=True, nullable=True)
 
     def set_password(self, password, reset_flag=False, simple=False):

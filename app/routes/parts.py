@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, flash, url_for,
 from flask_login import login_required, current_user
 from app import db
 from app.models.part import Part
+from app.models.settings import PartLocation, PartSublocation
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -160,7 +161,9 @@ def index():
             }
         ))
 
-    return render_template("parts.html", items=items, search=search)
+    locations = PartLocation.query.order_by(PartLocation.name).all()
+    sublocations = PartSublocation.query.order_by(PartSublocation.group_label, PartSublocation.name).all()
+    return render_template("parts.html", items=items, search=search, locations=locations, sublocations=sublocations)
 
 
 @bp.route('/search')

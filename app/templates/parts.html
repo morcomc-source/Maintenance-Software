@@ -199,26 +199,31 @@ text-align: center;
             <label class="form-label">Location</label>
             <select name="location" class="form-select">
                 <option value="">— Pick —</option>
-                <option value="Press 5">Press 5</option>
-                <option value="PLC Room">PLC Room</option>
+                {% for loc in locations %}
+                <option value="{{ loc.name }}">{{ loc.name }}</option>
+                {% endfor %}
             </select>
         </div>
         <div class="col-md-6">
             <label class="form-label">Sublocation</label>
             <select name="sublocation" class="form-select">
                 <option value="">— Pick —</option>
-                <optgroup label="A">
-                    <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
-                    <option value="A4">A4</option><option value="A5">A5</option>
+                {% set ns = namespace(current_group=None) %}
+                {% for sub in sublocations %}
+                    {% if sub.group_label != ns.current_group %}
+                        {% if ns.current_group is not none %}
                 </optgroup>
-                <optgroup label="B">
-                    <option value="B1">B1</option><option value="B2">B2</option><option value="B3">B3</option>
-                    <option value="B4">B4</option><option value="B5">B5</option>
+                        {% endif %}
+                        {% set ns.current_group = sub.group_label %}
+                        {% if sub.group_label %}
+                <optgroup label="{{ sub.group_label }}">
+                        {% endif %}
+                    {% endif %}
+                <option value="{{ sub.name }}">{{ sub.name }}</option>
+                {% endfor %}
+                {% if ns.current_group %}
                 </optgroup>
-                <optgroup label="C">
-                    <option value="C1">C1</option><option value="C2">C2</option><option value="C3">C3</option>
-                    <option value="C4">C4</option><option value="C5">C5</option>
-                </optgroup>
+                {% endif %}
             </select>
         </div>
         <div class="col-12">

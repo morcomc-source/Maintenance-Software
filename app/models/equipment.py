@@ -16,7 +16,7 @@ class Equipment(db.Model):
     status = db.Column(db.String(50), default='Active')
     barcode = db.Column(db.String(100), unique=True, nullable=True)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return f'<Equipment {self.equipment_id} - {self.name}>'

@@ -2,68 +2,86 @@
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Welcome, Admin {{ current_user.username }}</h2>
-    <p class="lead">System Overview</p>
+    <h2 class="mb-2">Welcome, Admin {{ current_user.username }}</h2>
+    <p class="lead mb-4">System Overview</p>
+
     <div class="row g-4">
         <!-- PMs -->
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h1 class="display-1 mb-3">🔧</h1>
                     <h4>Preventative Maintenance</h4>
-                    <a href="{{ url_for('pm.index') }}" class="btn btn-primary btn-lg w-100 mt-3">
+                    <a href="{{ url_for('pm.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
                         Manage PMs
                     </a>
                 </div>
             </div>
         </div>
+
         <!-- Parts -->
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h1 class="display-1 mb-3">📦</h1>
                     <h4>Parts & Inventory</h4>
-                    <a href="{{ url_for('parts.index') }}" class="btn btn-primary btn-lg w-100 mt-3">
+                    <a href="{{ url_for('parts.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
                         Manage Parts
                     </a>
                 </div>
             </div>
         </div>
+
         <!-- Work Orders -->
-		<div class="col-md-6 col-lg-4">
-			<div class="card text-center h-100 shadow-sm">
-				<div class="card-body">
-					<h1 class="display-1 mb-3">📋</h1>
-					<h4>Work Orders</h4>
-					<a href="{{ url_for('workorder.index') }}" class="btn btn-primary btn-lg w-100 mt-2">
-						View All Work Orders
-					</a>
-					<a href="/workorder/new" class="btn btn-success btn-lg w-100 mt-2">
-						+ Create New Work Order
-					</a>
-				</div>
-			</div>
-		</div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">📋</h1>
+                    <h4>Work Orders</h4>
+                    <a href="{{ url_for('workorder.index') }}" class="btn btn-primary btn-lg w-100 mt-2">
+                        View All Work Orders
+                    </a>
+                    <a href="{{ url_for('workorder.new') }}" class="btn btn-success btn-lg w-100 mt-2">
+                        + Create New Work Order
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Equipment -->
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h1 class="display-1 mb-3">🏭</h1>
                     <h4>Equipment</h4>
-                    <a href="{{ url_for('equipment.index') }}" class="btn btn-primary btn-lg w-100 mt-3">
+                    <a href="{{ url_for('equipment.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
                         Manage Equipment
                     </a>
                 </div>
             </div>
         </div>
+
         <!-- Users -->
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h1 class="display-1 mb-3">👥</h1>
                     <h4>Manage Users</h4>
-                    <a href="{{ url_for('pm.manage_users') }}" class="btn btn-primary btn-lg w-100 mt-3">
+                    <a href="{{ url_for('pm.manage_users') }}" class="btn btn-primary btn-lg w-100 mt-auto">
                         Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Setup -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">⚙️</h1>
+                    <h4>System Setup</h4>
+                    <a href="{{ url_for('settings.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Locations
                     </a>
                 </div>
             </div>
