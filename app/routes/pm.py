@@ -4,6 +4,7 @@ from app import db
 from app.models.pm import PM
 from app.models.pm_completion import PMCompletion   # ← Important for history
 from app.models.user import User
+from app.models.settings import PMMainEquipment, PMMachine, PMFrequency
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from reportlab.lib.pagesizes import letter
@@ -146,8 +147,29 @@ def index():
     tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
 
-    return render_template("pm.html", items=items, today=today, tomorrow=tomorrow, 
-                           technicians=technicians, search=search)
+    pm_mains = PMMainEquipment.query.order_by(PMMainEquipment.name).all()
+    pm_machines = PMMachine.query.order_by(PMMachine.name).all()
+    pm_frequencies = PMFrequency.query.order_by(PMFrequency.name).all()
+    machines_json = [
+        {
+            "id": m.id,
+            "name": m.name,
+            "main_name": m.main_equipment.name if m.main_equipment else None
+        }
+        for m in pm_machines
+    ]
+    return render_template(
+        "pm.html",
+        items=items,
+        today=today,
+        tomorrow=tomorrow,
+        technicians=technicians,
+        search=search,
+        pm_mains=pm_mains,
+        pm_machines=pm_machines,
+        pm_frequencies=pm_frequencies,
+        machines_json=machines_json
+    )
 
 
 # ====================== COMPLETE PM (with Full History) ======================

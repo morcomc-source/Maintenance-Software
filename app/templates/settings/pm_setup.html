@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}PM Setup{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">PM Setup</h2>
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary mb-4">← Back to System Setup</a>
+
+    <div class="row g-4">
+        <!-- Main Equipment -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Main Equipment</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_pm_main') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Press 1" required>
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </div>
+                    </form>
+                    <ul class="list-group">
+                        {% for item in mains %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ item.name }}
+                            <form method="POST" action="{{ url_for('settings.delete_pm_main', id=item.id) }}" onsubmit="return confirm('Delete this item?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">None yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Machines -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Machines</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_pm_machine') }}" class="mb-3">
+                        <input type="text" name="name" class="form-control mb-2" placeholder="e.g. Log Shear" required>
+                        <select name="main_equipment_id" class="form-select mb-2">
+                            <option value="">— Optional: link to main equipment —</option>
+                            {% for m in mains %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-success w-100">Add Machine</button>
+                    </form>
+                    <ul class="list-group" style="max-height: 360px; overflow-y: auto;">
+                        {% for item in machines %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                {{ item.name }}
+                                {% if item.main_equipment %}
+                                <small class="text-muted">({{ item.main_equipment.name }})</small>
+                                {% endif %}
+                            </span>
+                            <form method="POST" action="{{ url_for('settings.delete_pm_machine', id=item.id) }}" onsubmit="return confirm('Delete this machine?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">None yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Frequencies -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Frequencies</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_pm_frequency') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Monthly" required>
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </div>
+                    </form>
+                    <ul class="list-group">
+                        {% for item in frequencies %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ item.name }}
+                            <form method="POST" action="{{ url_for('settings.delete_pm_frequency', id=item.id) }}" onsubmit="return confirm('Delete this frequency?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">None yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -207,68 +207,101 @@ def mark_in_progress(wo_id):
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
     
     wo.status = "In Progress"
+    now = datetime.utcnow()
+    if not wo.started_at:
+        wo.started_at = now
+    else:
+        wo.resumed_at = now
+    wo.paused_at = None
+    wo.pause_reason = None
+    wo.pause_reason = None
     db.session.commit()
     return jsonify({'success': True})
 
 
 # ====================== COMPLETE WORK ORDER ======================
+
 @bp.route('/complete/<int:wo_id>', methods=['POST'])
 @login_required
 def complete(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
-    
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
-    
-    data = request.get_json()
+
+    data = request.get_json(silent=True) or {}
     notes = data.get('notes', '')
     parts_used = data.get('parts_used', [])
-    
+
     try:
-        for item in parts_used:
-            part_name = item.get('name')
-            quantity_used = int(item.get('quantity', 0))
-            
-            if quantity_used <= 0:
-                continue
-                
-            part = Part.query.filter_by(name=part_name).first()
-            if part:
-                if part.qty < quantity_used:
-                    return jsonify({'success': False, 'error': f'Not enough stock for {part_name}'}), 400
-                
-                part.qty -= quantity_used   # Deduct from stock
-            else:
-                print(f"⚠️ Part not found: {part_name}")
-        
-        # Update Work Order
+        # Deduct parts if Part model available
+        try:
+            from app.models.part import Part
+            for pu in parts_used or []:
+                part_name = pu.get('name')
+                qty = int(pu.get('quantity') or 0)
+                if not part_name or qty <= 0:
+                    continue
+                part = Part.query.filter(Part.name.ilike(part_name)).first()
+                if part:
+                    part.qty = max(0, int(part.qty or 0) - qty)
+        except Exception as part_err:
+            print("Part deduct warning:", part_err)
+
+        now = datetime.utcnow()
+        # Accumulate active work time (if currently in progress, not paused)
+        last_start = wo.resumed_at or wo.started_at
+        if last_start:
+            if wo.paused_at is None or (wo.resumed_at and wo.paused_at and wo.resumed_at >= wo.paused_at):
+                delta = int((now - last_start).total_seconds())
+                if delta > 0:
+                    wo.total_work_seconds = (wo.total_work_seconds or 0) + delta
+
         wo.status = "Completed"
         wo.completed_by_id = current_user.id
-        wo.completed_at = datetime.utcnow()
+        wo.completed_at = now
         wo.completion_notes = notes.strip() if notes else None
-        wo.parts_used = parts_used
-        
+        wo.parts_used = parts_used if parts_used else wo.parts_used
+        wo.paused_at = None
+        wo.pause_reason = None
+
         db.session.commit()
         return jsonify({'success': True})
-        
     except Exception as e:
         db.session.rollback()
-        print("Complete Error:", str(e))   # This will show in terminal
+        print("Complete Error:", str(e))
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 # ====================== PAUSE ======================
+
 @bp.route('/pause/<int:wo_id>', methods=['POST'])
 @login_required
 def pause(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
-    
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
-    
+
+    data = request.get_json(silent=True) or {}
+    reason = (data.get('reason') or data.get('pause_reason') or '').strip()
+    if not reason:
+        return jsonify({'success': False, 'error': 'Pause reason is required'}), 400
+
+    now = datetime.utcnow()
+
+    # Add active segment since last start/resume into total
+    last_start = wo.resumed_at or wo.started_at
+    if last_start and (wo.paused_at is None or (wo.resumed_at and wo.paused_at and wo.resumed_at >= wo.paused_at)):
+        delta = int((now - last_start).total_seconds())
+        if delta > 0:
+            wo.total_work_seconds = (wo.total_work_seconds or 0) + delta
+
     wo.status = "On Hold"
+    wo.paused_at = now
+    wo.pause_reason = reason
     db.session.commit()
     return jsonify({'success': True})
-    
+
+
 # ====================== DELETE WORK ORDER (Admin Only) ======================
 @bp.route('/delete/<int:wo_id>', methods=['POST'])
 @login_required

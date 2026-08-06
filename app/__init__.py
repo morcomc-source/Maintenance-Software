@@ -53,4 +53,20 @@ def create_app():
     app.register_blueprint(equipment_bp, url_prefix='/equipment')
     app.register_blueprint(settings_bp)
     
+    
+    # Local time display (Central)
+    @app.template_filter("localtime")
+    def localtime_filter(value, fmt="%Y-%m-%d %I:%M %p"):
+        if value is None:
+            return "—"
+        try:
+            from zoneinfo import ZoneInfo
+            from datetime import timezone
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            local = value.astimezone(ZoneInfo("America/Chicago"))
+            return local.strftime(fmt)
+        except Exception:
+            return value.strftime(fmt) if hasattr(value, "strftime") else str(value)
+
     return app

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Parts Locations{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-2 text-center">Parts Locations</h2>
+    <p class="text-center text-muted mb-4">
+        Main Location &amp; Sublocation + bin codes (Row → Section → Shelf → Slot)
+    </p>
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary mb-4">← Back to System Setup</a>
+
+    <!-- Main Location + Sublocation -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white"><strong>Main Location</strong> (area / room)</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_location') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Main Warehouse" required>
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </div>
+                    </form>
+                    <ul class="list-group" style="max-height:280px;overflow-y:auto;">
+                        {% for loc in locations %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ loc.name }}
+                            <form method="POST" action="{{ url_for('settings.delete_location', id=loc.id) }}" onsubmit="return confirm('Delete this location?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">None yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white"><strong>Sublocation</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_sublocation') }}" class="mb-3">
+                        <select name="location_id" class="form-select mb-2" required>
+                            <option value="">— Main Location —</option>
+                            {% for loc in locations %}
+                            <option value="{{ loc.id }}">{{ loc.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="input-group">
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Aisle A" required>
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </div>
+                    </form>
+                    <ul class="list-group" style="max-height:280px;overflow-y:auto;">
+                        {% for sub in sublocations %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <small class="text-muted">{{ sub.location.name if sub.location else '—' }}</small>
+                                → <strong>{{ sub.name }}</strong>
+                            </span>
+                            <form method="POST" action="{{ url_for('settings.delete_sublocation', id=sub.id) }}" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">None yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="mb-3">Bin location codes</h5>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Rows</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_row') }}" class="mb-3">
+                        <input type="text" name="code" class="form-control mb-2" placeholder="R01" required>
+                        <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
+                        <button type="submit" class="btn btn-success w-100">Add Row</button>
+                    </form>
+                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                        {% for r in rows %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>{{ r.code }}</strong>
+                            <form method="POST" action="{{ url_for('settings.delete_row', id=r.id) }}" onsubmit="return confirm('Delete row and its sections?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Sections</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_section') }}" class="mb-3">
+                        <select name="row_id" class="form-select mb-2" required>
+                            <option value="">— Row —</option>
+                            {% for r in rows %}<option value="{{ r.id }}">{{ r.code }}</option>{% endfor %}
+                        </select>
+                        <input type="text" name="code" class="form-control mb-2" placeholder="S01" required>
+                        <button type="submit" class="btn btn-success w-100">Add Section</button>
+                    </form>
+                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                        {% for s in sections %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>{{ s.row.code if s.row else '?' }}-{{ s.code }}</strong></span>
+                            <form method="POST" action="{{ url_for('settings.delete_section', id=s.id) }}" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Shelves</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_shelf') }}" class="mb-3">
+                        <input type="text" name="code" class="form-control mb-2" placeholder="H01" required>
+                        <button type="submit" class="btn btn-success w-100">Add Shelf</button>
+                    </form>
+                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                        {% for h in shelves %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>{{ h.code }}</strong>
+                            <form method="POST" action="{{ url_for('settings.delete_shelf', id=h.id) }}" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white"><strong>Slots</strong></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('settings.add_slot') }}" class="mb-3">
+                        <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
+                        <button type="submit" class="btn btn-success w-100">Add Slot</button>
+                    </form>
+                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                        {% for p in slots %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>{{ p.code }}</strong>
+                            <form method="POST" action="{{ url_for('settings.delete_slot', id=p.id) }}" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </li>
+                        {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

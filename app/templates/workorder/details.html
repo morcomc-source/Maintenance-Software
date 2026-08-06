@@ -1,5 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Work Order #{{ wo.id }}{% endblock %}
+{% block title %}Work Order #{{ wo.id }}
+  </div>
+</div>
+
+{% endblock %}
 {% block content %}
 
 <div class="container mt-4">
@@ -8,6 +12,13 @@
             <h4 class="mb-0">Work Order #{{ wo.id }} - {{ wo.equipment }}</h4>
         </div>
         <div class="card-body">
+            {% if wo.pause_reason %}
+            <div class="alert alert-warning mt-3 mb-3">
+                <strong>⏸️ On Hold — Reason:</strong>
+                <div class="mt-1">{{ wo.pause_reason }}</div>
+            </div>
+            {% endif %}
+
     <!-- Description (full width, prominent) -->
     <div class="mb-4">
         <strong>Description / Issue:</strong><br>
@@ -91,9 +102,42 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-success" onclick="completeWorkOrder()">✅ Complete Work Order</button>
-            </div>
+
+</div>
         </div>
     </div>
+</div>
+
+
+<div class="container mt-3 mb-4">
+  <div class="card border-secondary">
+    <div class="card-header bg-secondary text-white">⏱️ Time Tracking</div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Started:</strong>
+            {{ wo.started_at|localtime }}
+          </p>
+          <p class="mb-1"><strong>Paused:</strong>
+            {{ wo.paused_at|localtime }}
+          </p>
+          <p class="mb-1"><strong>Last resumed:</strong>
+            {{ wo.resumed_at|localtime }}
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Completed:</strong>
+            {{ wo.completed_at|localtime }}
+          </p>
+          <p class="mb-0"><strong>Active work time:</strong>
+            {% if wo.total_work_seconds %}
+              {{ wo.total_work_seconds // 3600 }}h {{ (wo.total_work_seconds % 3600) // 60 }}m {{ wo.total_work_seconds % 60 }}s
+            {% else %}—{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -243,21 +287,27 @@ function markInProgress(woId) {
 }
 
 function pauseWorkOrder(woId) {
-    if (confirm("Pause this work order and set to On Hold?")) {
-        fetch(`/workorder/pause/${woId}`, { 
-            method: 'POST' 
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert("⏸️ Set to On Hold.");
-                window.location.href = "{{ url_for('workorder.index') }}";  // Return to main list
-            } else {
-                alert("Error: " + (data.error || "Unknown"));
-            }
-        })
-        .catch(() => alert("Request failed."));
+    const reason = prompt("Why is this work order being paused?");
+    if (reason === null) return;
+    if (!reason.trim()) {
+        alert("A pause reason is required.");
+        return;
     }
+    fetch(`/workorder/pause/${woId}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ reason: reason.trim() })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert("⏸️ Work order set to On Hold.");
+            window.location.href = "{{ url_for('workorder.index') }}";
+        } else {
+            alert(data.error || "Could not pause.");
+        }
+    })
+    .catch(() => alert("Request failed."));
 }
 </script>
 {% endblock %}

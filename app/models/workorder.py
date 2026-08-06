@@ -26,6 +26,11 @@ class WorkOrder(db.Model):
     completed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     completion_notes = db.Column(db.Text, nullable=True)
+    pause_reason = db.Column(db.Text, nullable=True)
+    total_work_seconds = db.Column(db.Integer, nullable=True)
+    resumed_at = db.Column(db.DateTime, nullable=True)
+    paused_at = db.Column(db.DateTime, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
     parts_used = db.Column(db.JSON, nullable=True)
    
     created_at = db.Column(db.DateTime, default=datetime.now)

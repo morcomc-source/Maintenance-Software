@@ -14,5 +14,11 @@ class Part(db.Model):
     min_stock = db.Column(db.String(50), default='0')  # ← Add this
     max_stock = db.Column(db.String(50), default='999')  # ← Add this
     
+    
+    # On-order tracking
+    on_order = db.Column(db.Boolean, default=False)
+    ordered_by = db.Column(db.String(80), nullable=True)
+    ordered_at = db.Column(db.DateTime, nullable=True)
+
     def __repr__(self):
         return f"<Part {self.name}: {self.qty}>"

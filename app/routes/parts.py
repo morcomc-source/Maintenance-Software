@@ -1,11 +1,13 @@
+from datetime import datetime
 import reportlab.rl_config as rl_config
 rl_config.renderPMBackend = 'rlPyCairo'
 
 from flask import Blueprint, render_template, request, redirect, flash, url_for, send_file, jsonify
 from flask_login import login_required, current_user
 from app import db
+from sqlalchemy import cast, Integer
 from app.models.part import Part
-from app.models.settings import PartLocation, PartSublocation
+from app.models.settings import PartLocation, PartSublocation, PartRow, PartSection, PartShelf, PartSlot
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -13,6 +15,31 @@ from reportlab.lib.units import inch
 from reportlab.graphics.barcode import code128
 from reportlab.graphics import renderPM
 from reportlab.lib.units import mm
+
+
+def _save_main_location_if_new(name):
+    name = (name or "").strip()
+    if not name:
+        return
+    if not PartLocation.query.filter_by(name=name).first():
+        db.session.add(PartLocation(name=name))
+
+
+
+def _maybe_clear_on_order(part):
+    """Clear on-order when qty is above min stock."""
+    try:
+        q = int(part.qty if part.qty is not None else 0)
+        m = int(part.min_stock if part.min_stock is not None else 0)
+    except (TypeError, ValueError):
+        return False
+    if bool(getattr(part, "on_order", False)) and q > m:
+        part.on_order = False
+        part.ordered_by = None
+        part.ordered_at = None
+        return True
+    return False
+
 
 bp = Blueprint("parts", __name__)
 
@@ -94,9 +121,16 @@ def index():
                     part.qty = int(request.form.get("qty", 0))
                     part.min_stock = int(request.form.get("min_stock", 0))
                     part.max_stock = int(request.form.get("max_stock", 999))
-                    part.location = request.form.get("location", "").strip()
-                    part.sublocation = request.form.get("sublocation", "").strip()
-
+                    loc_row = request.form.get("loc_row", "").strip()
+                    loc_section = request.form.get("loc_section", "").strip()
+                    loc_shelf = request.form.get("loc_shelf", "").strip()
+                    loc_slot = request.form.get("loc_slot", "").strip()
+                    if loc_row and loc_section and loc_shelf and loc_slot:
+                        part.location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                        part.sublocation = request.form.get("sublocation", "").strip()
+                    else:
+                        part.location = request.form.get("location", "").strip()
+                        part.sublocation = request.form.get("sublocation", "").strip()
                     db.session.commit()
                     flash("Part updated successfully!", "success")
                 else:
@@ -105,6 +139,39 @@ def index():
                 db.session.rollback()
                 flash(f"Error updating part: {str(e)}", "danger")
             return redirect(url_for("parts.index"))
+        # ADD NEW PART
+        name = request.form.get("name", "").strip()
+        if name:
+            try:
+                loc_row = request.form.get("loc_row", "").strip()
+                loc_section = request.form.get("loc_section", "").strip()
+                loc_shelf = request.form.get("loc_shelf", "").strip()
+                loc_slot = request.form.get("loc_slot", "").strip()
+                if loc_row and loc_section and loc_shelf and loc_slot:
+                    location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                    sublocation = request.form.get("sublocation", "").strip()
+                else:
+                    location = request.form.get("location", "").strip()
+                    sublocation = request.form.get("sublocation", "").strip()
+                new_part = Part(
+                    barcode=request.form.get("barcode", "").strip() or None,
+                    name=name,
+                    part_number=request.form.get("part_number", "").strip(),
+                    qty=int(request.form.get("qty", 0)),
+                    min_stock=int(request.form.get("min_stock", 0)),
+                    max_stock=int(request.form.get("max_stock", 999)),
+                    location=location,
+                    sublocation=sublocation,
+                )
+                db.session.add(new_part)
+                _save_main_location_if_new(request.form.get("main_location") or request.form.get("sublocation"))
+                db.session.commit()
+                flash("Part added successfully!", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error adding part: {str(e)}", "danger")
+            return redirect(url_for("parts.index"))
+
 
         # ADD NEW PART
         name = request.form.get("name", "").strip()
@@ -117,10 +184,19 @@ def index():
                     qty=int(request.form.get("qty", 0)),
                     min_stock=int(request.form.get("min_stock", 0)),
                     max_stock=int(request.form.get("max_stock", 999)),
-                    location=request.form.get("location", "").strip(),
+                    location=(
+                f"{request.form.get('loc_row','').strip()}-{request.form.get('loc_section','').strip()}-{request.form.get('loc_shelf','').strip()}-{request.form.get('loc_slot','').strip()}"
+                if all([
+                    request.form.get('loc_row', '').strip(),
+                    request.form.get('loc_section', '').strip(),
+                    request.form.get('loc_shelf', '').strip(),
+                    request.form.get('loc_slot', '').strip()
+                ]) else request.form.get("location", "").strip()
+            ),
                     sublocation=request.form.get("sublocation", "").strip(),
                 )
                 db.session.add(new_part)
+                _save_main_location_if_new(request.form.get("main_location") or request.form.get("sublocation"))
                 db.session.commit()
                 flash("Part added successfully!", "success")
             except Exception as e:
@@ -133,6 +209,8 @@ def index():
 
     # ====================== GET + SEARCH ======================
     search = request.args.get("search", "").strip().lower()
+    low_stock = request.args.get("low_stock", "").lower() in ("1", "true", "yes")
+    show_all = request.args.get("show_all", "").lower() in ("1", "true", "yes")
 
     if search:
         parts = Part.query.filter(
@@ -142,7 +220,20 @@ def index():
             Part.location.ilike(f"%{search}%")
         ).all()
     else:
-        parts = Part.query.all()
+        if low_stock:
+            parts = Part.query.filter(Part.qty <= cast(Part.min_stock, Integer)).all()
+        else:
+            parts = Part.query.all()
+
+    
+    # Auto-clear ON ORDER when qty > min_stock
+    changed = False
+    for _p in list(parts):
+        if _maybe_clear_on_order(_p):
+            changed = True
+    if changed:
+        db.session.commit()
+        print(f"✅ Cleared on-order for restocked parts")
 
     items = []
     for i, part in enumerate(parts):
@@ -158,12 +249,41 @@ def index():
                 "max_stock": part.max_stock,
                 "location": part.location,
                 "sublocation": part.sublocation,
+                "on_order": bool(getattr(part, "on_order", False) or False),
+                "ordered_by": getattr(part, "ordered_by", None),
+                "ordered_at": (part.ordered_at.strftime("%Y-%m-%d %H:%M") if getattr(part, "ordered_at", None) else None),
             }
         ))
-
+    rows = PartRow.query.order_by(PartRow.code).all()
+    sections = PartSection.query.order_by(PartSection.code).all()
+    shelves = PartShelf.query.order_by(PartShelf.code).all()
+    slots = PartSlot.query.order_by(PartSlot.code).all()
     locations = PartLocation.query.order_by(PartLocation.name).all()
-    sublocations = PartSublocation.query.order_by(PartSublocation.group_label, PartSublocation.name).all()
-    return render_template("parts.html", items=items, search=search, locations=locations, sublocations=sublocations)
+    sublocations = PartSublocation.query.order_by(PartSublocation.name).all()
+    sections_json = [{"id": s.id, "code": s.code, "row_id": s.row_id} for s in sections]
+    sublocations_json = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "location_name": s.location.name if s.location else None,
+            "location_id": s.location_id
+        }
+        for s in sublocations
+    ]
+    return render_template(
+        "parts.html",
+        items=items,
+        search=search,
+        rows=rows,
+        shelves=shelves,
+        slots=slots,
+        locations=locations,
+        sublocations=sublocations,
+        sections_json=sections_json,
+        sublocations_json=sublocations_json
+    )
+
+
 
 
 @bp.route('/search')
@@ -189,3 +309,30 @@ def search():
     } for p in parts]
     
     return jsonify(results)
+
+
+# ====================== MARK ON ORDER ======================
+@bp.route("/mark_ordered/<int:id>", methods=["POST"])
+@login_required
+def mark_ordered(id):
+    part = Part.query.get_or_404(id)
+    ordered_by = (request.form.get("ordered_by") or "").strip() or current_user.username
+    part.on_order = True
+    part.ordered_by = ordered_by
+    part.ordered_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"'{part.name}' marked ON ORDER by {part.ordered_by}.", "success")
+    return redirect(request.referrer or url_for("parts.index"))
+
+
+@bp.route("/clear_ordered/<int:id>", methods=["POST"])
+@login_required
+def clear_ordered(id):
+    part = Part.query.get_or_404(id)
+    part.on_order = False
+    part.ordered_by = None
+    part.ordered_at = None
+    db.session.commit()
+    flash(f"'{part.name}' order status cleared.", "success")
+    return redirect(request.referrer or url_for("parts.index"))
+

@@ -1,5 +1,155 @@
 {% extends "base.html" %}
-{% block title %}Parts Inventory{% endblock %}
+{% block title %}Parts Inventory
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+window.sectionsData = {{ sections_json|default([])|tojson|safe }};
+window.sublocationsData = {{ sublocations_json|default([])|tojson|safe }};
+
+function fillSectionsForRow() {
+    const rowSel = document.getElementById('loc-row');
+    const secSel = document.getElementById('loc-section');
+    if (!rowSel || !secSel) return;
+    const opt = rowSel.options[rowSel.selectedIndex];
+    const rowId = opt ? opt.getAttribute('data-id') : null;
+    secSel.innerHTML = '<option value="">Section</option>';
+    if (!rowId) { updateLocationPreview(); return; }
+    (window.sectionsData || []).filter(s => String(s.row_id) === String(rowId)).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.code;
+        o.textContent = s.code;
+        secSel.appendChild(o);
+    });
+    updateLocationPreview();
+}
+
+function fillSublocations() {
+    const mainSel = document.getElementById('main-location');
+    const subSel = document.getElementById('sublocation-select');
+    if (!mainSel || !subSel) return;
+    const mainName = mainSel.value;
+    subSel.innerHTML = '<option value="">— Select —</option>';
+    if (!mainName) {
+        subSel.innerHTML = '<option value="">— Select main location first —</option>';
+        return;
+    }
+    (window.sublocationsData || []).filter(s => s.location_name === mainName).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.name;
+        o.textContent = s.name;
+        subSel.appendChild(o);
+    });
+}
+
+function updateLocationPreview() {
+    const row = document.getElementById('loc-row')?.value || '';
+    const sec = document.getElementById('loc-section')?.value || '';
+    const shelf = document.getElementById('loc-shelf')?.value || '';
+    const slot = document.getElementById('loc-slot')?.value || '';
+    const bin = (row && sec && shelf && slot) ? `${row}-${sec}-${shelf}-${slot}` : '';
+    const locFull = document.getElementById('location-full');
+    if (locFull) locFull.value = bin;
+    const preview = document.getElementById('location-preview');
+    if (preview) preview.textContent = bin ? ('Bin: ' + bin) : 'Bin code will appear here when Row/Section/Shelf/Slot are selected';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('loc-row')?.addEventListener('change', fillSectionsForRow);
+    document.getElementById('main-location')?.addEventListener('change', fillSublocations);
+    ['loc-section','loc-shelf','loc-slot'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateLocationPreview);
+    });
+});
+
+function applyLocationToDropdowns(locStr, subStr) {
+    if (!locStr) return;
+    const parts = locStr.split('-');
+    if (parts.length >= 4) {
+        const [row, sec, shelf, slot] = parts;
+        const rowSel = document.getElementById('loc-row');
+        if (rowSel) {
+            rowSel.value = row;
+            fillSectionsForRow();
+            setTimeout(() => {
+                const s = document.getElementById('loc-section');
+                const h = document.getElementById('loc-shelf');
+                const p = document.getElementById('loc-slot');
+                if (s) s.value = sec;
+                if (h) h.value = shelf;
+                if (p) p.value = slot;
+                updateLocationPreview();
+            }, 50);
+        }
+    }
+}
+</script>
+
+
+
+
+
+
+
+
+<script>
+// Order button: prompt for name, then POST
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest(".order-btn");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  var id = btn.getAttribute("data-id");
+  var name = btn.getAttribute("data-name") || "";
+  var who = prompt("Mark \"" + name + "\" ON ORDER.\n\nOrdered by:", "{{ current_user.username }}");
+  if (who === null) return;
+  who = (who || "").trim() || "{{ current_user.username }}";
+  var form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/parts/mark_ordered/" + id;
+  var input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "ordered_by";
+  input.value = who;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+});
+console.log("Order button handler loaded");
+</script>
+
+
+
+
+
+<script>
+function markPartOrdered(id, name) {
+  var who = prompt('Ordered by:', "{{ current_user.username }}");
+  if (who === null) return;
+  who = (who || "").trim() || "{{ current_user.username }}";
+  var form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/parts/mark_ordered/" + id;
+  var input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "ordered_by";
+  input.value = who;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+
+{% endblock %}
 {% block content %}
 <style>
     .table-responsive {
@@ -57,6 +207,63 @@ text-align: center;
 .btn-show-all-stock { background-color: #D3D3D3; color: black !important; font-weight: bold; border-radius: 10px; }
     .btn-show-all-stock:hover { background-color: #737270; color: white !important; }
     .btn-outline-success:hover { background-color: #737270; color: white !important; }
+
+.on-order-badge {
+    background-color: #1a4f96 !important;
+    color: #fff !important;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    font-size: 0.8rem;
+}
+.parts-row-on-order td { background-color: #3d6ea8 !important; color: #fff !important; box-shadow: inset 6px 0 0 #1a3a66; }
+
+
+/* On Order visuals */
+.on-order-badge {
+    background-color: #1a4f96 !important;
+    color: #fff !important;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+.parts-row-on-order td {
+    background-color: #3d6ea8 !important;
+    color: #fff !important;
+    border-left: 6px solid #1a3a66 !important;
+}
+.parts-card-on-order {
+    background-color: #3d6ea8 !important;
+    color: #fff !important;
+    border: 2px solid #1a3a66 !important;
+}
+.legend-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 10px 0 16px;
+    font-size: 0.9rem;
+}
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.legend-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: inline-block;
+    border: 1px solid #999;
+}
+.legend-swatch.low { background: #ff0000; }
+.legend-swatch.order { background: #3d6ea8; }
+
 </style>
 <h2 id="parts-page-title" class="mb-4 center-text">Parts Inventory Page</h2>
 
@@ -85,7 +292,8 @@ text-align: center;
 </div>
     {% if items %}
         <h3>Current Stock ({{ items|length }} parts)</h3>
-        <!-- Table View (default on desktop) -->
+
+        <!-- Table View (desktop) -->
         <div id="table-view" class="table-responsive">
             <table id="parts-table" class="table table-striped table-hover">
                 <thead class="table-light">
@@ -99,7 +307,8 @@ text-align: center;
                         <th class="center-text">Location</th>
                         <th class="center-text">Sublocation</th>
                         {% if current_user.is_admin() %}
-<th class="center-text">Actions</th>{% endif %}
+                        <th class="center-text">Actions</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -107,8 +316,13 @@ text-align: center;
                         {% set qty_val = item.qty | int(default=0) %}
                         {% set min_val = item.min_stock | int(default=0) %}
                         {% set row_class = 'parts-row-warning' if qty_val <= min_val else 'parts-row-secondary' %}
-                        <tr class="{{ row_class }}">
-                            <td data-label="Part Name">{{ item.name|default('N/A') }}</td>
+                        <tr class="{{ row_class }}{% if item.on_order %} parts-row-on-order{% endif %}">
+                            <td data-label="Part Name">
+                                {{ item.name|default('N/A') }}
+                                {% if item.on_order %}
+                                <div class="on-order-badge">📦 ON ORDER{% if item.ordered_by %} · {{ item.ordered_by }}{% endif %}{% if item.ordered_at %} · {{ item.ordered_at }}{% endif %}</div>
+                                {% endif %}
+                            </td>
                             <td data-label="Barcode">{{ item.barcode|default('N/A') }}</td>
                             <td data-label="Part Number">{{ item.part_number|default('N/A') }}</td>
                             <td class="center-text" data-label="Quantity">{{ qty_val }}</td>
@@ -118,9 +332,15 @@ text-align: center;
                             <td class="center-text" data-label="Sublocation">{{ item.sublocation|default('N/A') }}</td>
                             {% if current_user.is_admin() %}
                             <td class="center-text" data-label="Actions">
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPartPDF({{ item.id }})">📄</button>
+                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
+                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
+                                {% if not item.on_order %}
+<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirm('Mark this part ON ORDER as {{ current_user.username }}?');">
+                                    <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
+                                </form>
+{% endif %}
+                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="exportPartPDF({{ item.id }})">📄</button>
                             </td>
                             {% endif %}
                         </tr>
@@ -128,32 +348,41 @@ text-align: center;
                 </tbody>
             </table>
         </div>
-        <!-- Card View (hidden by default on desktop) -->
+
+        <!-- Card View (mobile) -->
         <div id="card-view" style="display: none;">
             <div class="row g-3">
                 {% for idx, item in items %}
+                    {% set qty_val = item.qty | default(0) | int %}
+                    {% set min_val = item.min_stock | default(0) | int %}
+                    {% set card_class = 'parts-card-warning' if qty_val <= min_val else 'parts-card-secondary' %}
                     <div class="col-12 col-md-6 col-lg-4">
-{% set qty_val = item.qty | default(0) | int %}
-{% set min_val = item.min_stock | default(0) | int %}
-{% set card_class = 'parts-card-warning' if qty_val <= min_val else 'parts-card-secondary' %}
-<div class="card h-100 {{ card_class }}">
+                        <div class="card h-100 {{ card_class }}{% if item.on_order %} parts-card-on-order{% endif %}">
                             <div class="card-body">
                                 <h5 class="card-title">{{ item.name|default('N/A') }}</h5>
+                                {% if item.on_order %}
+                                <div class="on-order-badge mb-2">📦 ON ORDER{% if item.ordered_by %} · {{ item.ordered_by }}{% endif %}{% if item.ordered_at %} · {{ item.ordered_at }}{% endif %}</div>
+                                {% endif %}
                                 <p class="mb-1"><strong>Barcode:</strong> {{ item.barcode|default('N/A') }}</p>
-                                <p class="mb-1"><strong>Part Number:</strong> {{ item.part_number|default('N/A') }}</p>
-                                <p class="mb-1"><strong>Quantity:</strong> {{ qty_val }}</p>
-                                <p class="mb-1"><strong>Min Stock:</strong> {{ item.min_stock|default('0') }}</p>
-                                <p class="mb-1"><strong>Max Stock:</strong> {{ item.max_stock|default('999') }}</p>
+                                <p class="mb-1"><strong>Part #:</strong> {{ item.part_number|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Qty:</strong> {{ qty_val }}</p>
+                                <p class="mb-1"><strong>Min:</strong> {{ item.min_stock|default('0') }} | <strong>Max:</strong> {{ item.max_stock|default('999') }}</p>
                                 <p class="mb-1"><strong>Location:</strong> {{ item.location|default('N/A') }}</p>
                                 <p class="mb-1"><strong>Sublocation:</strong> {{ item.sublocation|default('N/A') }}</p>
+                                {% if current_user.is_admin() %}
+                                <div class="mt-2 d-flex flex-wrap gap-1">
+                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
+                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
+                                    {% if not item.on_order %}
+<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirm('Mark this part ON ORDER as {{ current_user.username }}?');">
+                                    <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
+                                </form>
+{% endif %}
+                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="exportPartPDF({{ item.id }})">📄 PDF</button>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% if current_user.is_admin() %}
-                            <div class="card-footer border-0 d-flex flex-wrap gap-2">
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPartPDF({{ item.id }})">📄 PDF</button>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -163,6 +392,7 @@ text-align: center;
         <p>No parts found. Try a broader search or add a new part.</p>
     {% endif %}
 </div>
+
 <!-- ADD / EDIT TAB -->
 {% if current_user.is_admin() %}
 <div id="tab-1" class="tab-content">
@@ -207,35 +437,62 @@ text-align: center;
             <input type="number" name="max_stock" class="form-control" min="0" value="999">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Location</label>
-            <select name="location" class="form-select">
-                <option value="">— Pick —</option>
-                {% for loc in locations %}
-                <option value="{{ loc.name }}">{{ loc.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Sublocation</label>
-            <select name="sublocation" class="form-select">
-                <option value="">— Pick —</option>
-                {% set ns = namespace(current_group=None) %}
-                {% for sub in sublocations %}
-                    {% if sub.group_label != ns.current_group %}
-                        {% if ns.current_group is not none %}
-                </optgroup>
-                        {% endif %}
-                        {% set ns.current_group = sub.group_label %}
-                        {% if sub.group_label %}
-                <optgroup label="{{ sub.group_label }}">
-                        {% endif %}
-                    {% endif %}
-                <option value="{{ sub.name }}">{{ sub.name }}</option>
-                {% endfor %}
-                {% if ns.current_group %}
-                </optgroup>
-                {% endif %}
-            </select>
+            <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Main Location</label>
+                        <select name="main_location" id="main-location" class="form-select">
+                            <option value="">— Select —</option>
+                            {% for loc in locations %}
+                            <option value="{{ loc.name }}">{{ loc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Sublocation</label>
+                        <select name="sublocation" id="sublocation-select" class="form-select">
+                            <option value="">— Select main location first —</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="form-label">Bin Location (Row / Section / Shelf / Slot)</label>
+                <div class="row g-2 mb-2">
+                    <div class="col-6 col-md-3">
+                        <select name="loc_row" id="loc-row" class="form-select">
+                            <option value="">Row</option>
+                            {% for r in rows %}
+                            <option value="{{ r.code }}" data-id="{{ r.id }}">{{ r.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select name="loc_section" id="loc-section" class="form-select">
+                            <option value="">Section</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select name="loc_shelf" id="loc-shelf" class="form-select">
+                            <option value="">Shelf</option>
+                            {% for s in shelves %}
+                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <select name="loc_slot" id="loc-slot" class="form-select">
+                            <option value="">Slot</option>
+                            {% for s in slots %}
+                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <input type="hidden" name="location" id="location-full" value="">
+                <small class="text-muted d-block mb-2" id="location-preview">Bin code will appear here when Row/Section/Shelf/Slot are selected</small>
+
+
+                <!-- sublocation kept for compatibility; auto-filled with shelf-slot -->
+                <input type="hidden" name="sublocation" id="sublocation-full" value="">
         </div>
         <div class="col-12">
             <img id="barcode-image" class="img-fluid border rounded mt-3" style="max-height: 150px; display: none;" alt="Generated Barcode">
@@ -389,8 +646,9 @@ text-align: center;
 		document.querySelector('[name="min_stock"]').value = part.min_stock != null ? part.min_stock : '0';
 		document.querySelector('[name="max_stock"]').value = part.max_stock != null ? part.max_stock : '999';
 		
-		document.querySelector('[name="location"]').value = part.location || '';
-		document.querySelector('[name="sublocation"]').value = part.sublocation || '';
+		if (typeof applyLocationToDropdowns === 'function') applyLocationToDropdowns(part.location || '');
+        document.getElementById('location-full').value = part.location || '';
+		document.getElementById('sublocation-full').value = part.sublocation || '';
 
 		// Show barcode image if exists
 		if (part.barcode) {
@@ -442,4 +700,99 @@ text-align: center;
         }
     }
 </script>
+
+
+
+
+
+
+
+
+
+
+<script>
+window.sectionsData = {{ sections_json|default([])|tojson|safe }};
+window.sublocationsData = {{ sublocations_json|default([])|tojson|safe }};
+
+function fillSectionsForRow() {
+    const rowSel = document.getElementById('loc-row');
+    const secSel = document.getElementById('loc-section');
+    if (!rowSel || !secSel) return;
+    const opt = rowSel.options[rowSel.selectedIndex];
+    const rowId = opt ? opt.getAttribute('data-id') : null;
+    secSel.innerHTML = '<option value="">Section</option>';
+    if (!rowId) { updateLocationPreview(); return; }
+    (window.sectionsData || []).filter(s => String(s.row_id) === String(rowId)).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.code;
+        o.textContent = s.code;
+        secSel.appendChild(o);
+    });
+    updateLocationPreview();
+}
+
+function fillSublocations() {
+    const mainSel = document.getElementById('main-location');
+    const subSel = document.getElementById('sublocation-select');
+    if (!mainSel || !subSel) return;
+    const mainName = mainSel.value;
+    subSel.innerHTML = '<option value="">— Select —</option>';
+    if (!mainName) {
+        subSel.innerHTML = '<option value="">— Select main location first —</option>';
+        return;
+    }
+    (window.sublocationsData || []).filter(s => s.location_name === mainName).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.name;
+        o.textContent = s.name;
+        subSel.appendChild(o);
+    });
+}
+
+function updateLocationPreview() {
+    const row = document.getElementById('loc-row')?.value || '';
+    const sec = document.getElementById('loc-section')?.value || '';
+    const shelf = document.getElementById('loc-shelf')?.value || '';
+    const slot = document.getElementById('loc-slot')?.value || '';
+    const bin = (row && sec && shelf && slot) ? `${row}-${sec}-${shelf}-${slot}` : '';
+    const locFull = document.getElementById('location-full');
+    if (locFull) locFull.value = bin;
+    const preview = document.getElementById('location-preview');
+    if (preview) preview.textContent = bin ? ('Bin: ' + bin) : 'Bin code will appear here when Row/Section/Shelf/Slot are selected';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('loc-row')?.addEventListener('change', fillSectionsForRow);
+    document.getElementById('main-location')?.addEventListener('change', fillSublocations);
+    ['loc-section','loc-shelf','loc-slot'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateLocationPreview);
+    });
+});
+
+function applyLocationToDropdowns(locStr, subStr) {
+    if (!locStr) return;
+    const parts = locStr.split('-');
+    if (parts.length >= 4) {
+        const [row, sec, shelf, slot] = parts;
+        const rowSel = document.getElementById('loc-row');
+        if (rowSel) {
+            rowSel.value = row;
+            fillSectionsForRow();
+            setTimeout(() => {
+                const s = document.getElementById('loc-section');
+                const h = document.getElementById('loc-shelf');
+                const p = document.getElementById('loc-slot');
+                if (s) s.value = sec;
+                if (h) h.value = shelf;
+                if (p) p.value = slot;
+                updateLocationPreview();
+            }, 50);
+        }
+    }
+}
+</script>
+
+
+
+
 {% endblock %}
