@@ -391,38 +391,24 @@ text-align: center;
             <input type="number" name="max_stock" class="form-control" min="0" value="999">
         </div>
         <div class="col-md-6">
-            <!-- Main Location + Sublocation -->
             <div class="row g-2 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Main Location</label>
-                    <select name="main_location" id="main-location" class="form-select">
-                        <option value="">— Select —</option>
-                        {% for loc in locations %}
-                        <option value="{{ loc.name }}">{{ loc.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="col-md-6">
+                        <label class="form-label">Main Location</label>
+                        <select name="main_location" id="main-location" class="form-select">
+                            <option value="">— Select —</option>
+                            {% for loc in locations %}
+                            <option value="{{ loc.name }}">{{ loc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Sublocation</label>
+                        <select name="sublocation" id="sublocation-select" class="form-select">
+                            <option value="">— Select main location first —</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Sublocation</label>
-                    <select name="sublocation" id="sublocation-select" class="form-select">
-                        <option value="">— Select main location first —</option>
-                    </select>
-                </div>
-            </div>
 
-            <!-- Storage Type -->
-            <div class="mb-3">
-                <label class="form-label">Storage Type</label>
-                <select name="storage_type" id="storage-type" class="form-select">
-                    <option value="">— Select —</option>
-                    <option value="rack">Rack</option>
-                    <option value="cabinet">Cabinet</option>
-                    <option value="chest">Chest</option>
-                </select>
-            </div>
-
-            <!-- RACK group -->
-            <div id="group-rack" class="storage-group" style="display:none;">
                 <label class="form-label">Bin Location (Row / Section / Shelf / Slot)</label>
                 <div class="row g-2 mb-2">
                     <div class="col-6 col-md-3">
@@ -455,61 +441,12 @@ text-align: center;
                         </select>
                     </div>
                 </div>
-            </div>
+                <input type="hidden" name="location" id="location-full" value="">
+                <small class="text-muted d-block mb-2" id="location-preview">Bin code will appear here when Row/Section/Shelf/Slot are selected</small>
 
-            <!-- CABINET group -->
-            <div id="group-cabinet" class="storage-group" style="display:none;">
-                <label class="form-label">Bin Location (Cabinet / Shelf / Position)</label>
-                <div class="row g-2 mb-2">
-                    <div class="col-md-4">
-                        <select name="loc_cabinet" id="loc-cabinet" class="form-select">
-                            <option value="">Cabinet</option>
-                            {% for c in cabinets %}
-                            <option value="{{ c.code }}" data-id="{{ c.id }}">{{ c.code }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="loc_cabinet_shelf" id="loc-cabinet-shelf" class="form-select">
-                            <option value="">Shelf</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="loc_cabinet_pos" id="loc-cabinet-pos" class="form-select">
-                            <option value="">Position</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
 
-            <!-- CHEST group -->
-            <div id="group-chest" class="storage-group" style="display:none;">
-                <label class="form-label">Bin Location (Chest / Drawer / Position)</label>
-                <div class="row g-2 mb-2">
-                    <div class="col-md-4">
-                        <select name="loc_chest" id="loc-chest" class="form-select">
-                            <option value="">Chest</option>
-                            {% for c in chests %}
-                            <option value="{{ c.code }}" data-id="{{ c.id }}">{{ c.code }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="loc_drawer" id="loc-drawer" class="form-select">
-                            <option value="">Drawer</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <select name="loc_drawer_pos" id="loc-drawer-pos" class="form-select">
-                            <option value="">Position</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <input type="hidden" name="location" id="location-full" value="">
-            <small class="text-muted d-block mb-2" id="location-preview">Bin code will appear here when location is selected</small>
-            <input type="hidden" name="sublocation" id="sublocation-full" value="">
+                <!-- sublocation kept for compatibility; auto-filled with shelf-slot -->
+                <input type="hidden" name="sublocation" id="sublocation-full" value="">
         </div>
         <div class="col-12">
             <img id="barcode-image" class="img-fluid border rounded mt-3" style="max-height: 150px; display: none;" alt="Generated Barcode">
@@ -757,91 +694,30 @@ function editPart(idx) {
         // Hidden main location field
         var locFull = document.getElementById('location-full');
         if (locFull) locFull.value = part.location || '';
-        // Restore Storage Type + Bin Location
+        // Part Location bin pieces: R01-S01-S01-P02 -> row/section/shelf/slot
         var bin = (part.bin_location || '').trim();
-        var pieces = bin ? bin.split('-') : [];
-        var storageType = '';
-
-        if (pieces.length === 4) {
-            storageType = 'rack';
-        } else if (pieces.length === 3) {
-            // Heuristic: cabinets usually start with CAB, chests with CH
-            var first = (pieces[0] || '').toUpperCase();
-            if (first.startsWith('CAB') || first.startsWith('C')) {
-                storageType = 'cabinet';
-            } else {
-                storageType = 'chest';
-            }
-        }
-
-        var typeSel = document.getElementById('storage-type');
-        if (typeSel && storageType) {
-            typeSel.value = storageType;
-            typeSel.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        // Give the cascade a moment to build options, then fill values
-        setTimeout(function () {
-            if (storageType === 'rack' && pieces.length === 4) {
-                var map = {
-                    'loc-row': pieces[0],
-                    'loc-section': pieces[1],
-                    'loc-shelf': pieces[2],
-                    'loc-slot': pieces[3]
-                };
-                Object.keys(map).forEach(function (id) {
-                    var el = document.getElementById(id);
-                    if (!el) return;
-                    el.value = map[id];
-                    if (el.value !== map[id]) {
-                        for (var i = 0; i < el.options.length; i++) {
-                            if ((el.options[i].value || el.options[i].textContent || '').trim() === map[id]) {
-                                el.selectedIndex = i;
-                                break;
-                            }
-                        }
+        var parts = bin ? bin.split('-') : [];
+        var map = {
+            'loc-row': parts[0] || '',
+            'loc-section': parts[1] || '',
+            'loc-shelf': parts[2] || '',
+            'loc-slot': parts[3] || ''
+        };
+        Object.keys(map).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = map[id];
+            // if exact value missing, try match by option text
+            if (map[id] && el.value !== map[id]) {
+                for (var i = 0; i < el.options.length; i++) {
+                    if ((el.options[i].value || el.options[i].textContent || '').trim() === map[id]) {
+                        el.selectedIndex = i;
+                        break;
                     }
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-            } else if (storageType === 'cabinet' && pieces.length === 3) {
-                var cab = document.getElementById('loc-cabinet');
-                if (cab) {
-                    cab.value = pieces[0];
-                    cab.dispatchEvent(new Event('change', { bubbles: true }));
-                    setTimeout(function () {
-                        var shelf = document.getElementById('loc-cabinet-shelf');
-                        if (shelf) {
-                            shelf.value = pieces[1];
-                            shelf.dispatchEvent(new Event('change', { bubbles: true }));
-                            setTimeout(function () {
-                                var pos = document.getElementById('loc-cabinet-pos');
-                                if (pos) pos.value = pieces[2];
-                                updateLocationPreview();
-                            }, 80);
-                        }
-                    }, 80);
-                }
-            } else if (storageType === 'chest' && pieces.length === 3) {
-                var chest = document.getElementById('loc-chest');
-                if (chest) {
-                    chest.value = pieces[0];
-                    chest.dispatchEvent(new Event('change', { bubbles: true }));
-                    setTimeout(function () {
-                        var drawer = document.getElementById('loc-drawer');
-                        if (drawer) {
-                            drawer.value = pieces[1];
-                            drawer.dispatchEvent(new Event('change', { bubbles: true }));
-                            setTimeout(function () {
-                                var pos = document.getElementById('loc-drawer-pos');
-                                if (pos) pos.value = pieces[2];
-                                updateLocationPreview();
-                            }, 80);
-                        }
-                    }, 80);
                 }
             }
-            updateLocationPreview();
-        }, 150);
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
 
 
 		// Show barcode image if exists
@@ -1002,19 +878,6 @@ function showDeleteConfirm(idx) {
 <script>
 window.sectionsData = {{ sections_json|default([])|tojson|safe }};
 window.sublocationsData = {{ sublocations_json|default([])|tojson|safe }};
-window.cabinetShelvesData = {{ cabinet_shelves_json|default([])|tojson|safe }};
-window.cabinetPositionsData = {{ cabinet_positions_json|default([])|tojson|safe }};
-window.drawersData = {{ drawers_json|default([])|tojson|safe }};
-window.drawerPositionsData = {{ drawer_positions_json|default([])|tojson|safe }};
-
-function showStorageGroup() {
-    const type = document.getElementById('storage-type')?.value || '';
-    document.querySelectorAll('.storage-group').forEach(el => el.style.display = 'none');
-    if (type === 'rack') document.getElementById('group-rack').style.display = 'block';
-    if (type === 'cabinet') document.getElementById('group-cabinet').style.display = 'block';
-    if (type === 'chest') document.getElementById('group-chest').style.display = 'block';
-    updateLocationPreview();
-}
 
 function fillSectionsForRow() {
     const rowSel = document.getElementById('loc-row');
@@ -1029,80 +892,6 @@ function fillSectionsForRow() {
         o.value = s.code;
         o.textContent = s.code;
         secSel.appendChild(o);
-    });
-    updateLocationPreview();
-}
-
-function fillCabinetShelves() {
-    const cabSel = document.getElementById('loc-cabinet');
-    const shelfSel = document.getElementById('loc-cabinet-shelf');
-    const posSel = document.getElementById('loc-cabinet-pos');
-    if (!cabSel || !shelfSel) return;
-    const opt = cabSel.options[cabSel.selectedIndex];
-    const cabId = opt ? opt.getAttribute('data-id') : null;
-    shelfSel.innerHTML = '<option value="">Shelf</option>';
-    if (posSel) posSel.innerHTML = '<option value="">Position</option>';
-    if (!cabId) { updateLocationPreview(); return; }
-    (window.cabinetShelvesData || []).filter(s => String(s.cabinet_id) === String(cabId)).forEach(s => {
-        const o = document.createElement('option');
-        o.value = s.code;
-        o.setAttribute('data-id', s.id);
-        o.textContent = s.code;
-        shelfSel.appendChild(o);
-    });
-    updateLocationPreview();
-}
-
-function fillCabinetPositions() {
-    const shelfSel = document.getElementById('loc-cabinet-shelf');
-    const posSel = document.getElementById('loc-cabinet-pos');
-    if (!shelfSel || !posSel) return;
-    const opt = shelfSel.options[shelfSel.selectedIndex];
-    const shelfId = opt ? opt.getAttribute('data-id') : null;
-    posSel.innerHTML = '<option value="">Position</option>';
-    if (!shelfId) { updateLocationPreview(); return; }
-    (window.cabinetPositionsData || []).filter(p => String(p.cabinet_shelf_id) === String(shelfId)).forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.code;
-        o.textContent = p.code;
-        posSel.appendChild(o);
-    });
-    updateLocationPreview();
-}
-
-function fillDrawers() {
-    const chestSel = document.getElementById('loc-chest');
-    const drawerSel = document.getElementById('loc-drawer');
-    const posSel = document.getElementById('loc-drawer-pos');
-    if (!chestSel || !drawerSel) return;
-    const opt = chestSel.options[chestSel.selectedIndex];
-    const chestId = opt ? opt.getAttribute('data-id') : null;
-    drawerSel.innerHTML = '<option value="">Drawer</option>';
-    if (posSel) posSel.innerHTML = '<option value="">Position</option>';
-    if (!chestId) { updateLocationPreview(); return; }
-    (window.drawersData || []).filter(d => String(d.chest_id) === String(chestId)).forEach(d => {
-        const o = document.createElement('option');
-        o.value = d.code;
-        o.setAttribute('data-id', d.id);
-        o.textContent = d.code;
-        drawerSel.appendChild(o);
-    });
-    updateLocationPreview();
-}
-
-function fillDrawerPositions() {
-    const drawerSel = document.getElementById('loc-drawer');
-    const posSel = document.getElementById('loc-drawer-pos');
-    if (!drawerSel || !posSel) return;
-    const opt = drawerSel.options[drawerSel.selectedIndex];
-    const drawerId = opt ? opt.getAttribute('data-id') : null;
-    posSel.innerHTML = '<option value="">Position</option>';
-    if (!drawerId) { updateLocationPreview(); return; }
-    (window.drawerPositionsData || []).filter(p => String(p.drawer_id) === String(drawerId)).forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.code;
-        o.textContent = p.code;
-        posSel.appendChild(o);
     });
     updateLocationPreview();
 }
@@ -1126,43 +915,21 @@ function fillSublocations() {
 }
 
 function updateLocationPreview() {
-    const type = document.getElementById('storage-type')?.value || '';
-    let bin = '';
-    if (type === 'rack') {
-        const row = document.getElementById('loc-row')?.value || '';
-        const sec = document.getElementById('loc-section')?.value || '';
-        const shelf = document.getElementById('loc-shelf')?.value || '';
-        const slot = document.getElementById('loc-slot')?.value || '';
-        if (row && sec && shelf && slot) bin = `${row}-${sec}-${shelf}-${slot}`;
-    } else if (type === 'cabinet') {
-        const c = document.getElementById('loc-cabinet')?.value || '';
-        const cs = document.getElementById('loc-cabinet-shelf')?.value || '';
-        const cp = document.getElementById('loc-cabinet-pos')?.value || '';
-        if (c && cs && cp) bin = `${c}-${cs}-${cp}`;
-    } else if (type === 'chest') {
-        const ch = document.getElementById('loc-chest')?.value || '';
-        const d = document.getElementById('loc-drawer')?.value || '';
-        const dp = document.getElementById('loc-drawer-pos')?.value || '';
-        if (ch && d && dp) bin = `${ch}-${d}-${dp}`;
-    }
+    const row = document.getElementById('loc-row')?.value || '';
+    const sec = document.getElementById('loc-section')?.value || '';
+    const shelf = document.getElementById('loc-shelf')?.value || '';
+    const slot = document.getElementById('loc-slot')?.value || '';
+    const bin = (row && sec && shelf && slot) ? `${row}-${sec}-${shelf}-${slot}` : '';
     const locFull = document.getElementById('location-full');
     if (locFull) locFull.value = bin;
     const preview = document.getElementById('location-preview');
-    if (preview) preview.textContent = bin ? ('Bin: ' + bin) : 'Bin code will appear here when location is selected';
+    if (preview) preview.textContent = bin ? ('Bin: ' + bin) : 'Bin code will appear here when Row/Section/Shelf/Slot are selected';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('storage-type')?.addEventListener('change', showStorageGroup);
     document.getElementById('loc-row')?.addEventListener('change', fillSectionsForRow);
     document.getElementById('main-location')?.addEventListener('change', fillSublocations);
-
-    document.getElementById('loc-cabinet')?.addEventListener('change', fillCabinetShelves);
-    document.getElementById('loc-cabinet-shelf')?.addEventListener('change', fillCabinetPositions);
-
-    document.getElementById('loc-chest')?.addEventListener('change', fillDrawers);
-    document.getElementById('loc-drawer')?.addEventListener('change', fillDrawerPositions);
-
-    ['loc-section','loc-shelf','loc-slot','loc-cabinet-pos','loc-drawer-pos'].forEach(id => {
+    ['loc-section','loc-shelf','loc-slot'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', updateLocationPreview);
     });
 });

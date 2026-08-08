@@ -7,12 +7,7 @@ from flask_login import login_required, current_user
 from app import db
 from sqlalchemy import cast, Integer
 from app.models.part import Part
-from app.models.settings import (
-    PartLocation, PartSublocation,
-    PartRow, PartSection, PartShelf, PartSlot,
-    PartCabinet, PartCabinetShelf, PartCabinetPosition,
-    PartChest, PartDrawer, PartDrawerPosition
-)
+from app.models.settings import PartLocation, PartSublocation, PartRow, PartSection, PartShelf, PartSlot
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -115,30 +110,6 @@ def index():
                 flash("Part deleted successfully.", "success")
             return redirect(url_for("parts.index"))
 
-        # ---------- helper to build bin_location from form ----------
-        def _build_bin_location():
-            storage_type = request.form.get("storage_type", "").strip()
-            if storage_type == "rack":
-                r = request.form.get("loc_row", "").strip()
-                s = request.form.get("loc_section", "").strip()
-                h = request.form.get("loc_shelf", "").strip()
-                p = request.form.get("loc_slot", "").strip()
-                if r and s and h and p:
-                    return f"{r}-{s}-{h}-{p}"
-            elif storage_type == "cabinet":
-                c = request.form.get("loc_cabinet", "").strip()
-                cs = request.form.get("loc_cabinet_shelf", "").strip()
-                cp = request.form.get("loc_cabinet_pos", "").strip()
-                if c and cs and cp:
-                    return f"{c}-{cs}-{cp}"
-            elif storage_type == "chest":
-                ch = request.form.get("loc_chest", "").strip()
-                d = request.form.get("loc_drawer", "").strip()
-                dp = request.form.get("loc_drawer_pos", "").strip()
-                if ch and d and dp:
-                    return f"{ch}-{d}-{dp}"
-            return None
-
         # EDIT / UPDATE
         index = request.form.get("index")
         if index:
@@ -153,14 +124,20 @@ def index():
                     _maybe_clear_on_order(part)
                     part.min_stock = int(request.form.get("min_stock", 0))
                     part.max_stock = int(request.form.get("max_stock", 999))
+                    loc_row = request.form.get("loc_row", "").strip()
+                    loc_section = request.form.get("loc_section", "").strip()
+                    loc_shelf = request.form.get("loc_shelf", "").strip()
+                    loc_slot = request.form.get("loc_slot", "").strip()
+                    if loc_row and loc_section and loc_shelf and loc_slot:
+                        part.bin_location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                        part.location = (request.form.get("main_location") or request.form.get("location") or "").strip() or part.location
+                        part.sublocation = request.form.get("sublocation", "").strip() or None
+                    else:
+                        part.location = (request.form.get("main_location") or request.form.get("location") or "").strip()
 
-                    part.location = (request.form.get("main_location") or request.form.get("location") or "").strip() or part.location
-                    part.sublocation = request.form.get("sublocation", "").strip() or None
+                        part.sublocation = request.form.get("sublocation", "").strip() or None
 
-                    new_bin = _build_bin_location()
-                    if new_bin is not None:
-                        part.bin_location = new_bin
-
+                        # keep existing bin_location unless new bin pieces provided
                     db.session.commit()
                     flash("Part updated successfully!", "success")
                 else:
@@ -169,15 +146,23 @@ def index():
                 db.session.rollback()
                 flash(f"Error updating part: {str(e)}", "danger")
             return redirect(url_for("parts.index"))
-
         # ADD NEW PART
         name = request.form.get("name", "").strip()
         if name:
             try:
-                location = (request.form.get("main_location") or request.form.get("location") or "").strip()
-                sublocation = request.form.get("sublocation", "").strip() or None
-                bin_location = _build_bin_location()
+                loc_row = request.form.get("loc_row", "").strip()
+                loc_section = request.form.get("loc_section", "").strip()
+                loc_shelf = request.form.get("loc_shelf", "").strip()
+                loc_slot = request.form.get("loc_slot", "").strip()
+                if loc_row and loc_section and loc_shelf and loc_slot:
+                    bin_location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                    location = (request.form.get("main_location") or request.form.get("location") or "").strip()
+                    sublocation = request.form.get("sublocation", "").strip()
+                else:
+                    location = (request.form.get("main_location") or request.form.get("location") or "").strip()
 
+                    bin_location = None
+                    sublocation = request.form.get("sublocation", "").strip()
                 new_part = Part(
                     barcode=request.form.get("barcode", "").strip() or None,
                     name=name,
@@ -186,20 +171,46 @@ def index():
                     min_stock=int(request.form.get("min_stock", 0)),
                     max_stock=int(request.form.get("max_stock", 999)),
                     location=location,
-                    bin_location=bin_location,
+            bin_location=bin_location if "bin_location" in dir() else None,
                     sublocation=sublocation,
                 )
                 db.session.add(new_part)
-                _save_main_location_if_new(request.form.get("main_location"))
+                _save_main_location_if_new(request.form.get("main_location") or request.form.get("sublocation"))
                 db.session.commit()
                 flash("Part added successfully!", "success")
             except Exception as e:
                 db.session.rollback()
                 flash(f"Error adding part: {str(e)}", "danger")
             return redirect(url_for("parts.index"))
+
+
+        # ADD NEW PART
+        name = request.form.get("name", "").strip()
+        if name:
+            try:
+                new_part = Part(
+                    barcode=request.form.get("barcode", "").strip() or None,
+                    name=name,
+                    part_number=request.form.get("part_number", "").strip(),
+                    qty=int(request.form.get("qty", 0)),
+                    min_stock=int(request.form.get("min_stock", 0)),
+                    max_stock=int(request.form.get("max_stock", 999)),
+                    location=(
+                (request.form.get("main_location") or request.form.get("location") or "").strip()
+            ),
+                    sublocation=request.form.get("sublocation", "").strip(),
+                )
+                db.session.add(new_part)
+                _save_main_location_if_new(request.form.get("main_location") or request.form.get("sublocation"))
+                db.session.commit()
+                flash("Part added successfully!", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error adding part: {str(e)}", "danger")
         else:
             flash("Name is required to add a part.", "danger")
-            return redirect(url_for("parts.index"))
+
+        return redirect(url_for("parts.index"))
 
     # ====================== GET + SEARCH ======================
     search = request.args.get("search", "").strip().lower()
@@ -255,14 +266,6 @@ def index():
     slots = PartSlot.query.order_by(PartSlot.code).all()
     locations = PartLocation.query.order_by(PartLocation.name).all()
     sublocations = PartSublocation.query.order_by(PartSublocation.name).all()
-
-    cabinets = PartCabinet.query.order_by(PartCabinet.code).all()
-    cabinet_shelves = PartCabinetShelf.query.order_by(PartCabinetShelf.code).all()
-    cabinet_positions = PartCabinetPosition.query.order_by(PartCabinetPosition.code).all()
-    chests = PartChest.query.order_by(PartChest.code).all()
-    drawers = PartDrawer.query.order_by(PartDrawer.code).all()
-    drawer_positions = PartDrawerPosition.query.order_by(PartDrawerPosition.code).all()
-
     sections_json = [{"id": s.id, "code": s.code, "row_id": s.row_id} for s in sections]
     sublocations_json = [
         {
@@ -273,11 +276,6 @@ def index():
         }
         for s in sublocations
     ]
-    cabinet_shelves_json = [{"id": s.id, "code": s.code, "cabinet_id": s.cabinet_id} for s in cabinet_shelves]
-    cabinet_positions_json = [{"id": p.id, "code": p.code, "cabinet_shelf_id": p.cabinet_shelf_id} for p in cabinet_positions]
-    drawers_json = [{"id": d.id, "code": d.code, "chest_id": d.chest_id} for d in drawers]
-    drawer_positions_json = [{"id": p.id, "code": p.code, "drawer_id": p.drawer_id} for p in drawer_positions]
-
     return render_template(
         "parts.html",
         items=items,
@@ -288,17 +286,7 @@ def index():
         locations=locations,
         sublocations=sublocations,
         sections_json=sections_json,
-        sublocations_json=sublocations_json,
-        cabinets=cabinets,
-        cabinet_shelves=cabinet_shelves,
-        cabinet_positions=cabinet_positions,
-        chests=chests,
-        drawers=drawers,
-        drawer_positions=drawer_positions,
-        cabinet_shelves_json=cabinet_shelves_json,
-        cabinet_positions_json=cabinet_positions_json,
-        drawers_json=drawers_json,
-        drawer_positions_json=drawer_positions_json,
+        sublocations_json=sublocations_json
     )
 
 
