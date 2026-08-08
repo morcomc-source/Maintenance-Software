@@ -26,8 +26,9 @@ def _save_main_location_if_new(name):
 
 
 
+
 def _maybe_clear_on_order(part):
-    """Clear on-order when qty is above min stock."""
+    """Clear on-order when qty is above min stock (restocked)."""
     try:
         q = int(part.qty if part.qty is not None else 0)
         m = int(part.min_stock if part.min_stock is not None else 0)
@@ -39,6 +40,7 @@ def _maybe_clear_on_order(part):
         part.ordered_at = None
         return True
     return False
+
 
 
 bp = Blueprint("parts", __name__)
@@ -119,6 +121,7 @@ def index():
                     part.name = request.form.get("name", "").strip()
                     part.part_number = request.form.get("part_number", "").strip()
                     part.qty = int(request.form.get("qty", 0))
+                    _maybe_clear_on_order(part)
                     part.min_stock = int(request.form.get("min_stock", 0))
                     part.max_stock = int(request.form.get("max_stock", 999))
                     loc_row = request.form.get("loc_row", "").strip()
@@ -126,11 +129,15 @@ def index():
                     loc_shelf = request.form.get("loc_shelf", "").strip()
                     loc_slot = request.form.get("loc_slot", "").strip()
                     if loc_row and loc_section and loc_shelf and loc_slot:
-                        part.location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
-                        part.sublocation = request.form.get("sublocation", "").strip()
+                        part.bin_location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                        part.location = (request.form.get("main_location") or request.form.get("location") or "").strip() or part.location
+                        part.sublocation = request.form.get("sublocation", "").strip() or None
                     else:
-                        part.location = request.form.get("location", "").strip()
-                        part.sublocation = request.form.get("sublocation", "").strip()
+                        part.location = (request.form.get("main_location") or request.form.get("location") or "").strip()
+
+                        part.sublocation = request.form.get("sublocation", "").strip() or None
+
+                        # keep existing bin_location unless new bin pieces provided
                     db.session.commit()
                     flash("Part updated successfully!", "success")
                 else:
@@ -148,10 +155,13 @@ def index():
                 loc_shelf = request.form.get("loc_shelf", "").strip()
                 loc_slot = request.form.get("loc_slot", "").strip()
                 if loc_row and loc_section and loc_shelf and loc_slot:
-                    location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                    bin_location = f"{loc_row}-{loc_section}-{loc_shelf}-{loc_slot}"
+                    location = (request.form.get("main_location") or request.form.get("location") or "").strip()
                     sublocation = request.form.get("sublocation", "").strip()
                 else:
-                    location = request.form.get("location", "").strip()
+                    location = (request.form.get("main_location") or request.form.get("location") or "").strip()
+
+                    bin_location = None
                     sublocation = request.form.get("sublocation", "").strip()
                 new_part = Part(
                     barcode=request.form.get("barcode", "").strip() or None,
@@ -161,6 +171,7 @@ def index():
                     min_stock=int(request.form.get("min_stock", 0)),
                     max_stock=int(request.form.get("max_stock", 999)),
                     location=location,
+            bin_location=bin_location if "bin_location" in dir() else None,
                     sublocation=sublocation,
                 )
                 db.session.add(new_part)
@@ -185,13 +196,7 @@ def index():
                     min_stock=int(request.form.get("min_stock", 0)),
                     max_stock=int(request.form.get("max_stock", 999)),
                     location=(
-                f"{request.form.get('loc_row','').strip()}-{request.form.get('loc_section','').strip()}-{request.form.get('loc_shelf','').strip()}-{request.form.get('loc_slot','').strip()}"
-                if all([
-                    request.form.get('loc_row', '').strip(),
-                    request.form.get('loc_section', '').strip(),
-                    request.form.get('loc_shelf', '').strip(),
-                    request.form.get('loc_slot', '').strip()
-                ]) else request.form.get("location", "").strip()
+                (request.form.get("main_location") or request.form.get("location") or "").strip()
             ),
                     sublocation=request.form.get("sublocation", "").strip(),
                 )
@@ -229,8 +234,8 @@ def index():
     # Auto-clear ON ORDER when qty > min_stock
     changed = False
     for _p in list(parts):
-        if _maybe_clear_on_order(_p):
-            changed = True
+        if False and _maybe_clear_on_order(_p):
+                changed = True  # disabled auto-clear on page load
     if changed:
         db.session.commit()
         print(f"✅ Cleared on-order for restocked parts")
@@ -248,6 +253,7 @@ def index():
                 "min_stock": part.min_stock,
                 "max_stock": part.max_stock,
                 "location": part.location,
+                    "bin_location": getattr(part, "bin_location", None),
                 "sublocation": part.sublocation,
                 "on_order": bool(getattr(part, "on_order", False) or False),
                 "ordered_by": getattr(part, "ordered_by", None),

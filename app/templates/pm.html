@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Preventative Maintenance{% endblock %}
 {% block content %}
+
+<div class="mb-3">
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+</div>
 <style>
     .table-responsive {
         overflow-x: auto;
@@ -125,7 +129,7 @@
                                 {% endif %}
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="startPM({{ item.id }})">Start</button>
+                                <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
 								<button class="btn btn-sm btn-info" onclick="viewHistory({{ item.id }})">📋 History</button>
 								</td>
                         </tr>
@@ -167,7 +171,7 @@
                                 {% endif %}
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁 View</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="startPM({{ item.id }})">Start PM</button>
+                                <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
                             </div>
                         </div>
                     </div>
@@ -359,6 +363,10 @@
         row.innerHTML = `
             <input type="hidden" name="checklist_type[]" value="task">
             <input type="text" name="checklist_item[]" class="form-control" placeholder="Task description">
+            <select name="checklist_input_type[]" class="form-select" style="max-width:150px">
+                <option value="checkbox">Check only</option>
+                <option value="number">Check + number</option>
+            </select>
             <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
         `;
         container.appendChild(row);
@@ -369,6 +377,7 @@
         row.className = "input-group mb-2";
         row.innerHTML = `
             <input type="hidden" name="checklist_type[]" value="title">
+            <input type="hidden" name="checklist_input_type[]" value="">
             <input type="text" name="checklist_item[]" class="form-control fw-bold" placeholder="Section title (e.g. Daily Checks)">
             <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
         `;
@@ -405,6 +414,7 @@ function editPM(id) {
                 <div class="input-group mb-2">
                     <input type="hidden" name="checklist_type[]" value="${type}">
                     <input type="text" name="checklist_item[]" class="form-control ${fw}" value="${item.item || ''}">
+                    ${type === 'task' ? `<select name="checklist_input_type[]" class="form-select" style="max-width:150px"><option value="checkbox" ${(item.input_type||'checkbox')==='checkbox'?'selected':''}>Check only</option><option value="number" ${item.input_type==='number'?'selected':''}>Check + number</option></select>` : `<input type="hidden" name="checklist_input_type[]" value="">`}
                     <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
                 </div>`;
         });
@@ -480,11 +490,12 @@ function editPM(id) {
                 if (item.type === "title") {
                     html += `<h6 class="mt-4 mb-2 border-bottom pb-2 fw-bold">${item.item}</h6>`;
                 } else {
-                    const checked = item.completed ? "checked" : "";
+                    const needsNum = item.input_type === "number";
                     html += `
-                        <div class="form-check mb-3 ms-3">
-                            <input class="form-check-input" type="checkbox" id="comp_task_${i}" ${checked}>
+                        <div class="form-check mb-3 ms-3 d-flex align-items-center flex-wrap gap-2">
+                            <input class="form-check-input" type="checkbox" id="comp_task_${i}">
                             <label class="form-check-label fs-5" for="comp_task_${i}">${item.item}</label>
+                            ${needsNum ? `<input type="number" step="any" class="form-control form-control-sm comp-num" style="max-width:120px" placeholder="Value">` : `<input type="hidden" class="comp-num" value="">`}
                         </div>`;
                 }
             });
@@ -505,7 +516,10 @@ function editPM(id) {
     fetch(`/pm/complete_pm/${currentPMIndex}`, { // ← ADDED /pm/ here
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: completedTasks })
+        body: JSON.stringify({
+            completed: completedTasks,
+            values: Array.from(document.querySelectorAll("#completion-content .comp-num")).map(el => el.value)
+        })
     })
     .then(response => {
         if (!response.ok) {

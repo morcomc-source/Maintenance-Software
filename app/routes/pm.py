@@ -65,6 +65,7 @@ def index():
         checklist = []
         item_list = request.form.getlist("checklist_item[]")
         type_list = request.form.getlist("checklist_type[]")
+        input_type_list = request.form.getlist("checklist_input_type[]")
         for i in range(len(item_list)):
             text = item_list[i].strip()
             if text:
@@ -72,7 +73,16 @@ def index():
                 if item_type == "title":
                     checklist.append({"type": "title", "item": text})
                 else:
-                    checklist.append({"type": "task", "item": text, "completed": False})
+                    it = input_type_list[i] if i < len(input_type_list) else "checkbox"
+                    if it not in ("checkbox", "number"):
+                        it = "checkbox"
+                    checklist.append({
+                        "type": "task",
+                        "item": text,
+                        "input_type": it,
+                        "value": None,
+                        "completed": False,
+                    })
 
         assigned_user_id = request.form.get('assigned_user')
 
@@ -112,7 +122,7 @@ def index():
 
     # GET - show all PMs
     search = request.args.get('search')
-    query = PM.query.outerjoin(User)
+    query = PM.query.outerjoin(User, User.id == PM.assigned_user_id)
     if search:
         query = query.filter(
             or_(
@@ -173,6 +183,84 @@ def index():
 
 
 # ====================== COMPLETE PM (with Full History) ======================
+
+
+# ====================== DETAILS PAGE (like Work Orders) ======================
+@bp.route("/details/<int:id>")
+@login_required
+def details(id):
+    pm = PM.query.get_or_404(id)
+    if current_user.role == "technician" and pm.assigned_user_id != current_user.id:
+        flash("You can only view PMs assigned to you.", "danger")
+        return redirect(url_for("pm.index"))
+    return render_template("pm/details.html", pm=pm, today=datetime.now().date())
+
+
+@bp.route("/in_progress/<int:id>", methods=["POST"])
+@login_required
+def mark_in_progress(id):
+    pm = PM.query.get_or_404(id)
+    if current_user.role == "technician" and pm.assigned_user_id != current_user.id:
+        return jsonify({"success": False, "error": "Not assigned"}), 403
+
+    now = datetime.utcnow()
+    was_completed = (pm.status or "") == "Completed"
+
+    # New cycle: clear live completion data (history already saved)
+    if was_completed:
+        if pm.checklist:
+            checklist = list(pm.checklist)
+            for item in checklist:
+                if item.get("type") == "task":
+                    item["completed"] = False
+                    item["value"] = None
+            pm.checklist = checklist
+        pm.completion_notes = None
+        pm.parts_used = None
+        pm.completed_at = None
+        pm.completed_by_id = None
+        pm.total_work_seconds = 0
+        pm.started_at = now
+        pm.resumed_at = None
+        pm.paused_at = None
+        pm.pause_reason = None
+    else:
+        # Resume / first start of current cycle
+        if not pm.started_at:
+            pm.started_at = now
+        else:
+            pm.resumed_at = now
+        pm.paused_at = None
+        pm.pause_reason = None
+
+    pm.status = "In Progress"
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/pause/<int:id>", methods=["POST"])
+@login_required
+def pause(id):
+    pm = PM.query.get_or_404(id)
+    if current_user.role == "technician" and pm.assigned_user_id != current_user.id:
+        return jsonify({"success": False, "error": "Not assigned"}), 403
+    data = request.get_json(silent=True) or {}
+    reason = (data.get("reason") or data.get("pause_reason") or "").strip()
+    if not reason:
+        return jsonify({"success": False, "error": "Pause reason is required"}), 400
+    now = datetime.utcnow()
+    last_start = pm.resumed_at or pm.started_at
+    if last_start and (pm.paused_at is None or (pm.resumed_at and pm.paused_at and pm.resumed_at >= pm.paused_at)):
+        delta = int((now - last_start).total_seconds())
+        if delta > 0:
+            pm.total_work_seconds = (pm.total_work_seconds or 0) + delta
+    pm.status = "On Hold"
+    pm.paused_at = now
+    pm.pause_reason = reason
+    db.session.commit()
+    return jsonify({"success": True})
+
+
 @bp.route("/complete_pm/<int:id>", methods=["POST"])
 @login_required
 def complete_pm(id):
@@ -183,6 +271,8 @@ def complete_pm(id):
 
     data = request.get_json()
     completed_tasks = data.get('completed', [])
+    notes = data.get('notes', '') or data.get('completion_notes', '')
+    parts_used = data.get('parts_used', [])
     notes = data.get('notes', '')
 
     # Re-build checklist
@@ -192,14 +282,76 @@ def complete_pm(id):
         if item.get('type') == 'task':
             if task_idx < len(completed_tasks):
                 item['completed'] = bool(completed_tasks[task_idx])
+                if item.get('input_type') == 'number':
+                    vals = data.get('values') or []
+                    if task_idx < len(vals) and vals[task_idx] not in (None, ''):
+                        try:
+                            item['value'] = float(vals[task_idx])
+                        except (TypeError, ValueError):
+                            item['value'] = vals[task_idx]
+                    else:
+                        item['value'] = None
                 task_idx += 1
 
     # === SAVE FULL HISTORY ===
+    
+    # Deduct parts (same idea as work orders)
+    try:
+        from app.models.part import Part
+        for pu in parts_used or []:
+            part_name = pu.get("name")
+            qty = int(pu.get("quantity") or 0)
+            if not part_name or qty <= 0:
+                continue
+            part = Part.query.filter(Part.name.ilike(part_name)).first()
+            if part:
+                part.qty = max(0, int(part.qty or 0) - qty)
+    except Exception as part_err:
+        print("Part deduct warning:", part_err)
+
+    now = datetime.utcnow()
+    last_start = getattr(pm, "resumed_at", None) or getattr(pm, "started_at", None)
+    if last_start:
+        paused_at = getattr(pm, "paused_at", None)
+        resumed_at = getattr(pm, "resumed_at", None)
+        if paused_at is None or (resumed_at and paused_at and resumed_at >= paused_at):
+            delta = int((now - last_start).total_seconds())
+            if delta > 0:
+                pm.total_work_seconds = (pm.total_work_seconds or 0) + delta
+
+    pm.status = "Completed"
+    pm.completed_at = now
+    pm.completed_by_id = current_user.id
+    pm.completion_notes = notes.strip() if notes else None
+    pm.parts_used = parts_used if parts_used else pm.parts_used
+    pm.pause_reason = None
+    today = now.date()
+    pm.last_done = today
+    if pm.frequency:
+        from dateutil.relativedelta import relativedelta
+        delta_map = {
+            "Daily": relativedelta(days=1),
+            "Weekly": relativedelta(weeks=1),
+            "Bi-Weekly": relativedelta(weeks=2),
+            "Monthly": relativedelta(months=1),
+            "Quarterly": relativedelta(months=3),
+            "Bi-Annually": relativedelta(months=6),
+            "Annually": relativedelta(years=1),
+        }
+        dlt = delta_map.get(pm.frequency)
+        if dlt:
+            pm.next_due = today + dlt
+
+    
     completion = PMCompletion(
         pm_id=pm.id,
         completed_by_id=current_user.id,
         notes=notes.strip() if notes else None,
-        checklist_results=checklist
+        checklist_results=checklist,
+        parts_used=parts_used if parts_used else None,
+        started_at=getattr(pm, "started_at", None),
+        paused_at=getattr(pm, "paused_at", None),
+        total_work_seconds=getattr(pm, "total_work_seconds", None) or 0,
     )
     db.session.add(completion)
 
@@ -373,6 +525,23 @@ def manage_users():
    
     return render_template('users.html', users=users, users_json=users_list)
 
+# ====================== HISTORY DETAIL ======================
+@bp.route("/history/detail/<int:completion_id>")
+@login_required
+def history_detail(completion_id):
+    completion = PMCompletion.query.get_or_404(completion_id)
+    pm = completion.pm or PM.query.get_or_404(completion.pm_id)
+    if current_user.role == "technician" and current_user.id != pm.assigned_user_id:
+        flash("You can only view history for PMs assigned to you.", "danger")
+        return redirect(url_for("pm.index"))
+    return render_template(
+        "pm_history_detail.html",
+        pm=pm,
+        completion=completion,
+        title=f"PM History Detail — {pm.main_equipment or ''}",
+    )
+
+
 # ====================== DELETE PM HISTORY RECORD (Admin Only) ======================
 @bp.route('/history/delete/<int:completion_id>', methods=['POST'])
 @login_required
@@ -380,7 +549,6 @@ def delete_history(completion_id):
     if current_user.role != 'admin':
         flash("Only admins can delete history records.", "danger")
         return redirect(url_for('pm.index'))
-
     completion = PMCompletion.query.get_or_404(completion_id)
     pm_id = completion.pm_id
     db.session.delete(completion)

@@ -1,10 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Parts Locations{% endblock %}
+{% block title %}Parts Locations
+
+
+{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-2 text-center">Parts Locations</h2>
     <p class="text-center text-muted mb-4">
-        Main Location &amp; Sublocation + bin codes (Row → Section → Shelf → Slot)
+        Main Location &amp; Sublocation + Rack → Shelf → Position + Cabinets &amp; Chests
     </p>
     <a href="{{ url_for('settings.index') }}" class="btn btn-secondary mb-4">← Back to System Setup</a>
 
@@ -71,22 +74,27 @@
         </div>
     </div>
 
-    <h5 class="mb-3">Bin location codes</h5>
-    <div class="row g-4">
-        <div class="col-md-6 col-lg-3">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <strong>Racks</strong>
+            <span class="ms-2 small opacity-75">Rack → Shelf → Position</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+        <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header bg-primary text-white"><strong>Rows</strong></div>
+                <div class="card-header bg-primary text-white"><strong>Racks</strong></div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('settings.add_row') }}" class="mb-3">
                         <input type="text" name="code" class="form-control mb-2" placeholder="R01" required>
                         <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
-                        <button type="submit" class="btn btn-success w-100">Add Row</button>
+                        <button type="submit" class="btn btn-success w-100">Add Rack</button>
                     </form>
                     <ul class="list-group" style="max-height:260px;overflow-y:auto;">
                         {% for r in rows %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong>{{ r.code }}</strong>
-                            <form method="POST" action="{{ url_for('settings.delete_row', id=r.id) }}" onsubmit="return confirm('Delete row and its sections?');">
+                            <form method="POST" action="{{ url_for('settings.delete_row', id=r.id) }}" onsubmit="return confirm('Delete rack and its shelves?');">
                                 <button class="btn btn-sm btn-outline-danger">Del</button>
                             </form>
                         </li>
@@ -95,43 +103,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white"><strong>Sections</strong></div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('settings.add_section') }}" class="mb-3">
-                        <select name="row_id" class="form-select mb-2" required>
-                            <option value="">— Row —</option>
-                            {% for r in rows %}<option value="{{ r.id }}">{{ r.code }}</option>{% endfor %}
-                        </select>
-                        <input type="text" name="code" class="form-control mb-2" placeholder="S01" required>
-                        <button type="submit" class="btn btn-success w-100">Add Section</button>
-                    </form>
-                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
-                        {% for s in sections %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><strong>{{ s.row.code if s.row else '?' }}-{{ s.code }}</strong></span>
-                            <form method="POST" action="{{ url_for('settings.delete_section', id=s.id) }}" onsubmit="return confirm('Delete?');">
-                                <button class="btn btn-sm btn-outline-danger">Del</button>
-                            </form>
-                        </li>
-                        {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white"><strong>Shelves</strong></div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('settings.add_shelf') }}" class="mb-3">
-                        <input type="text" name="code" class="form-control mb-2" placeholder="H01" required>
+                        <select name="row_id" class="form-select mb-2" required>
+                            <option value="">— Rack —</option>
+                            {% for r in rows %}<option value="{{ r.id }}">{{ r.code }}</option>{% endfor %}
+                        </select>
+                        <input type="text" name="code" class="form-control mb-2" placeholder="S01" required>
                         <button type="submit" class="btn btn-success w-100">Add Shelf</button>
                     </form>
                     <ul class="list-group" style="max-height:260px;overflow-y:auto;">
                         {% for h in shelves %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong>{{ h.code }}</strong>
+                            <span>
+                              <small class="text-muted">{{ h.row.code if h.row else '—' }}</small>
+                              → <strong>{{ h.code }}</strong>
+                            </span>
                             <form method="POST" action="{{ url_for('settings.delete_shelf', id=h.id) }}" onsubmit="return confirm('Delete?');">
                                 <button class="btn btn-sm btn-outline-danger">Del</button>
                             </form>
@@ -141,18 +131,27 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header bg-primary text-white"><strong>Slots</strong></div>
+                <div class="card-header bg-primary text-white"><strong>Positions</strong></div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('settings.add_slot') }}" class="mb-3">
+                        <select name="shelf_id" class="form-select mb-2" required>
+                            <option value="">— Shelf —</option>
+                            {% for h in shelves %}
+                            <option value="{{ h.id }}">{% if h.row %}{{ h.row.code }}-{% endif %}{{ h.code }}</option>
+                            {% endfor %}
+                        </select>
                         <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
-                        <button type="submit" class="btn btn-success w-100">Add Slot</button>
+                        <button type="submit" class="btn btn-success w-100">Add Position</button>
                     </form>
                     <ul class="list-group" style="max-height:260px;overflow-y:auto;">
                         {% for p in slots %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong>{{ p.code }}</strong>
+                            <span>
+                              <small class="text-muted">{{ p.shelf.code if p.shelf else '—' }}</small>
+                              → <strong>{{ p.code }}</strong>
+                            </span>
                             <form method="POST" action="{{ url_for('settings.delete_slot', id=p.id) }}" onsubmit="return confirm('Delete?');">
                                 <button class="btn btn-sm btn-outline-danger">Del</button>
                             </form>
@@ -163,5 +162,183 @@
             </div>
         </div>
     </div>
+
+        </div>
+    </div>
 </div>
+
+    <hr class="my-4">
+    
+{# ========== CABINETS: Cabinet — Shelf — Position (same layout as Racks) ========== #}
+<h5 class="mt-4 mb-2">Cabinets — Shelf — Position</h5>
+<div class="row g-3 mb-4">
+  {# --- Cabinets --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Cabinets</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_cabinet') }}" class="mb-3">
+          <input type="text" name="code" class="form-control mb-2" placeholder="CAB01" required>
+          <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
+          <button type="submit" class="btn btn-success w-100">Add Cabinet</button>
+        </form>
+        {% for c in cabinets %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
+          <form method="POST" action="{{ url_for('settings.delete_cabinet', id=c.id) }}" onsubmit="return confirm('Delete cabinet {{ c.code }}?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No cabinets yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# --- Cabinet Shelves --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Shelves</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_cabinet_shelf') }}" class="mb-3">
+          <select name="cabinet_id" class="form-select mb-2" required>
+            <option value="">— Cabinet —</option>
+            {% for c in cabinets %}
+            <option value="{{ c.id }}">{{ c.code }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="code" class="form-control mb-2" placeholder="SH1" required>
+          <button type="submit" class="btn btn-success w-100">Add Shelf</button>
+        </form>
+        {% for s in cabinet_shelves %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span><strong>{{ s.cabinet.code if s.cabinet else '?' }}</strong> — {{ s.code }}</span>
+          <form method="POST" action="{{ url_for('settings.delete_cabinet_shelf', id=s.id) }}" onsubmit="return confirm('Delete shelf?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No shelves yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# --- Cabinet Positions --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Positions</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_cabinet_position') }}" class="mb-3">
+          <select name="cabinet_shelf_id" class="form-select mb-2" required>
+            <option value="">— Shelf —</option>
+            {% for s in cabinet_shelves %}
+            <option value="{{ s.id }}">{{ s.cabinet.code if s.cabinet else '?' }} / {{ s.code }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
+          <button type="submit" class="btn btn-success w-100">Add Position</button>
+        </form>
+        {% for p in cabinet_positions %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span>{{ p.cabinet_shelf.cabinet.code if p.cabinet_shelf and p.cabinet_shelf.cabinet else '?' }} / {{ p.cabinet_shelf.code if p.cabinet_shelf else '?' }} — <strong>{{ p.code }}</strong></span>
+          <form method="POST" action="{{ url_for('settings.delete_cabinet_position', id=p.id) }}" onsubmit="return confirm('Delete {{ p.code }}?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No positions yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ========== CHESTS: Chest — Drawer — Position (same layout as Racks) ========== #}
+<h5 class="mt-2 mb-2">Chests — Drawer — Position</h5>
+<div class="row g-3 mb-4">
+  {# --- Chests --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Chests</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_chest') }}" class="mb-3">
+          <input type="text" name="code" class="form-control mb-2" placeholder="CH01" required>
+          <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
+          <button type="submit" class="btn btn-success w-100">Add Chest</button>
+        </form>
+        {% for c in chests %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
+          <form method="POST" action="{{ url_for('settings.delete_chest', id=c.id) }}" onsubmit="return confirm('Delete chest {{ c.code }}?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No chests yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# --- Drawers --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Drawers</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_drawer') }}" class="mb-3">
+          <select name="chest_id" class="form-select mb-2" required>
+            <option value="">— Chest —</option>
+            {% for c in chests %}
+            <option value="{{ c.id }}">{{ c.code }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="code" class="form-control mb-2" placeholder="D01" required>
+          <button type="submit" class="btn btn-success w-100">Add Drawer</button>
+        </form>
+        {% for d in drawers %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span><strong>{{ d.chest.code if d.chest else '?' }}</strong> — {{ d.code }}</span>
+          <form method="POST" action="{{ url_for('settings.delete_drawer', id=d.id) }}" onsubmit="return confirm('Delete drawer?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No drawers yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# --- Drawer Positions --- #}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-header bg-primary text-white py-2"><strong>Positions</strong></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('settings.add_drawer_position') }}" class="mb-3">
+          <select name="drawer_id" class="form-select mb-2" required>
+            <option value="">— Drawer —</option>
+            {% for d in drawers %}
+            <option value="{{ d.id }}">{{ d.chest.code if d.chest else '?' }} / {{ d.code }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
+          <button type="submit" class="btn btn-success w-100">Add Position</button>
+        </form>
+        {% for p in drawer_positions %}
+        <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
+          <span>{{ p.drawer.chest.code if p.drawer and p.drawer.chest else '?' }} / {{ p.drawer.code if p.drawer else '?' }} — <strong>{{ p.code }}</strong></span>
+          <form method="POST" action="{{ url_for('settings.delete_drawer_position', id=p.id) }}" onsubmit="return confirm('Delete {{ p.code }}?');">
+            <button class="btn btn-sm btn-outline-danger">Del</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No positions yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

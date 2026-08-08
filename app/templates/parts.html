@@ -1,156 +1,114 @@
 {% extends "base.html" %}
 {% block title %}Parts Inventory
+<div class="modal fade" id="confirm-update-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Update</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Please verify your changes before saving. This will update the part in inventory.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirm-update-yes">Yes, Update Part</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
-
-
-
-
-
-
-
-
-
-
-<script>
-window.sectionsData = {{ sections_json|default([])|tojson|safe }};
-window.sublocationsData = {{ sublocations_json|default([])|tojson|safe }};
-
-function fillSectionsForRow() {
-    const rowSel = document.getElementById('loc-row');
-    const secSel = document.getElementById('loc-section');
-    if (!rowSel || !secSel) return;
-    const opt = rowSel.options[rowSel.selectedIndex];
-    const rowId = opt ? opt.getAttribute('data-id') : null;
-    secSel.innerHTML = '<option value="">Section</option>';
-    if (!rowId) { updateLocationPreview(); return; }
-    (window.sectionsData || []).filter(s => String(s.row_id) === String(rowId)).forEach(s => {
-        const o = document.createElement('option');
-        o.value = s.code;
-        o.textContent = s.code;
-        secSel.appendChild(o);
-    });
-    updateLocationPreview();
-}
-
-function fillSublocations() {
-    const mainSel = document.getElementById('main-location');
-    const subSel = document.getElementById('sublocation-select');
-    if (!mainSel || !subSel) return;
-    const mainName = mainSel.value;
-    subSel.innerHTML = '<option value="">— Select —</option>';
-    if (!mainName) {
-        subSel.innerHTML = '<option value="">— Select main location first —</option>';
-        return;
-    }
-    (window.sublocationsData || []).filter(s => s.location_name === mainName).forEach(s => {
-        const o = document.createElement('option');
-        o.value = s.name;
-        o.textContent = s.name;
-        subSel.appendChild(o);
-    });
-}
-
-function updateLocationPreview() {
-    const row = document.getElementById('loc-row')?.value || '';
-    const sec = document.getElementById('loc-section')?.value || '';
-    const shelf = document.getElementById('loc-shelf')?.value || '';
-    const slot = document.getElementById('loc-slot')?.value || '';
-    const bin = (row && sec && shelf && slot) ? `${row}-${sec}-${shelf}-${slot}` : '';
-    const locFull = document.getElementById('location-full');
-    if (locFull) locFull.value = bin;
-    const preview = document.getElementById('location-preview');
-    if (preview) preview.textContent = bin ? ('Bin: ' + bin) : 'Bin code will appear here when Row/Section/Shelf/Slot are selected';
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('loc-row')?.addEventListener('change', fillSectionsForRow);
-    document.getElementById('main-location')?.addEventListener('change', fillSublocations);
-    ['loc-section','loc-shelf','loc-slot'].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', updateLocationPreview);
-    });
-});
-
-function applyLocationToDropdowns(locStr, subStr) {
-    if (!locStr) return;
-    const parts = locStr.split('-');
-    if (parts.length >= 4) {
-        const [row, sec, shelf, slot] = parts;
-        const rowSel = document.getElementById('loc-row');
-        if (rowSel) {
-            rowSel.value = row;
-            fillSectionsForRow();
-            setTimeout(() => {
-                const s = document.getElementById('loc-section');
-                const h = document.getElementById('loc-shelf');
-                const p = document.getElementById('loc-slot');
-                if (s) s.value = sec;
-                if (h) h.value = shelf;
-                if (p) p.value = slot;
-                updateLocationPreview();
-            }, 50);
-        }
-    }
-}
-</script>
-
-
-
-
-
-
-
-
-<script>
-// Order button: prompt for name, then POST
-document.addEventListener("click", function (e) {
-  var btn = e.target.closest(".order-btn");
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  var id = btn.getAttribute("data-id");
-  var name = btn.getAttribute("data-name") || "";
-  var who = prompt("Mark \"" + name + "\" ON ORDER.\n\nOrdered by:", "{{ current_user.username }}");
-  if (who === null) return;
-  who = (who || "").trim() || "{{ current_user.username }}";
-  var form = document.createElement("form");
-  form.method = "POST";
-  form.action = "/parts/mark_ordered/" + id;
-  var input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "ordered_by";
-  input.value = who;
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-});
-console.log("Order button handler loaded");
-</script>
-
-
-
-
-
-<script>
-function markPartOrdered(id, name) {
-  var who = prompt('Ordered by:', "{{ current_user.username }}");
-  if (who === null) return;
-  who = (who || "").trim() || "{{ current_user.username }}";
-  var form = document.createElement("form");
-  form.method = "POST";
-  form.action = "/parts/mark_ordered/" + id;
-  var input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "ordered_by";
-  input.value = who;
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-}
-</script>
+<div class="modal fade" id="confirm-order-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm On Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Mark this part as <strong>ON ORDER</strong>? This records the order under your account.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-order-yes">Yes, Mark On Order</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 {% block content %}
+
+<style>
+.mm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.mm-overlay.show { display: flex; }
+.mm-dialog {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.mm-header {
+  padding: 18px 20px 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.mm-body {
+  padding: 8px 20px 16px;
+  color: #333;
+}
+.mm-body .muted {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+.mm-footer {
+  padding: 12px 20px 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.mm-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mm-btn-cancel { background: #e9ecef; color: #333; }
+.mm-btn-ok-update { background: #198754; color: #fff; }
+.mm-btn-ok-order { background: #0d6efd; color: #fff; }
+
+.parts-row-on-order td {
+    background-color: #3d6ea8 !important;
+    color: #fff !important;
+    border-left: none !important;
+    box-shadow: none !important;
+}
+.parts-row-on-order td:first-child {
+    box-shadow: inset 3px 0 0 #1a3a66 !important;
+}
+.parts-card-on-order {
+    background-color: #3d6ea8 !important;
+    color: #fff !important;
+    border: 1px solid #1a3a66 !important;
+    box-shadow: inset 3px 0 0 #1a3a66 !important;
+}
+
+</style>
+
 <style>
     .table-responsive {
         overflow-x: auto;
@@ -217,7 +175,7 @@ text-align: center;
     display: inline-block;
     font-size: 0.8rem;
 }
-.parts-row-on-order td { background-color: #3d6ea8 !important; color: #fff !important; box-shadow: inset 6px 0 0 #1a3a66; }
+
 
 
 /* On Order visuals */
@@ -231,16 +189,8 @@ text-align: center;
     font-size: 0.85rem;
     margin-top: 4px;
 }
-.parts-row-on-order td {
-    background-color: #3d6ea8 !important;
-    color: #fff !important;
-    border-left: 6px solid #1a3a66 !important;
-}
-.parts-card-on-order {
-    background-color: #3d6ea8 !important;
-    color: #fff !important;
-    border: 2px solid #1a3a66 !important;
-}
+
+
 .legend-box {
     display: flex;
     flex-wrap: wrap;
@@ -271,7 +221,7 @@ text-align: center;
 <div id="tab-0" class="tab-content active">
 {% if current_user.is_admin() %}
 <div class="d-flex gap-2 mb-4">
-    <button class="btn btn-outline-primary" onclick="openTab(1)">Add New Part</button>
+    <button class="btn btn-outline-primary" onclick="clearPartForm(); openTab(1)" onclick="clearPartForm(); openTab(1)">Add New Part</button>
 </div>
 {% endif %}
 
@@ -304,10 +254,12 @@ text-align: center;
                         <th class="center-text">Quantity</th>
                         <th class="center-text">Min Stock</th>
                         <th class="center-text">Max Stock</th>
-                        <th class="center-text">Location</th>
-                        <th class="center-text">Sublocation</th>
                         {% if current_user.is_admin() %}
-                        <th class="center-text">Actions</th>
+                        
+                    <th class="center-text">Main Location</th>
+                    <th class="center-text">Sublocation</th>
+                    <th class="center-text">Part Location</th>
+                    <th class="center-text">Actions</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -328,14 +280,15 @@ text-align: center;
                             <td class="center-text" data-label="Quantity">{{ qty_val }}</td>
                             <td class="center-text" data-label="Min Stock">{{ item.min_stock|default('0') }}</td>
                             <td class="center-text" data-label="Max Stock">{{ item.max_stock|default('999') }}</td>
-                            <td class="center-text" data-label="Location">{{ item.location|default('N/A') }}</td>
-                            <td class="center-text" data-label="Sublocation">{{ item.sublocation|default('N/A') }}</td>
                             {% if current_user.is_admin() %}
+                            <td class="center-text" data-label="Main Location">{{ item.location or "—" }}</td>
+                            <td class="center-text" data-label="Sublocation">{{ item.sublocation or "—" }}</td>
+                            <td class="center-text" data-label="Part Location">{{ item.bin_location or "—" }}</td>
                             <td class="center-text" data-label="Actions">
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
                                 {% if not item.on_order %}
-<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirm('Mark this part ON ORDER as {{ current_user.username }}?');">
+<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
                                 </form>
@@ -374,7 +327,7 @@ text-align: center;
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                     {% if not item.on_order %}
-<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirm('Mark this part ON ORDER as {{ current_user.username }}?');">
+<form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
                                 </form>
@@ -406,8 +359,9 @@ text-align: center;
     
     <div class="card">
         <div class="card-body">
-    <form method="post" id="add-edit-form" class="row g-3">
-        <input type="hidden" name="index" id="form-index">
+    
+        <form method="post" id="add-edit-form" class="row g-3">
+<input type="hidden" name="index" id="form-index">
         <div class="col-md-6">
             <label class="form-label">Barcode</label>
             <div class="input-group">
@@ -498,7 +452,7 @@ text-align: center;
             <img id="barcode-image" class="img-fluid border rounded mt-3" style="max-height: 150px; display: none;" alt="Generated Barcode">
         </div>
         <div class="col-12">
-            <button type="submit" id="submit-btn" class="btn btn-success me-2">Add Part</button>
+            <button type="submit" id="submit-btn" class="btn btn-success me-2" onclick="return showUpdateConfirm(event);">Add Part</button>
             <button type="button" id="export-pdf" class="btn btn-outline-primary" style="display: none;">Parts Export</button>
         </div>
     </form>
@@ -624,7 +578,82 @@ text-align: center;
             if (e.key === 'Enter') e.target.form.submit();
         });
     });
-    function editPart(idx) {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function clearPartForm() {
+    var formIndex = document.getElementById('form-index');
+    if (formIndex) formIndex.value = '';
+
+    var barcode = document.getElementById('barcode-input');
+    if (barcode) barcode.value = '';
+
+    var nameEl = document.querySelector('[name="name"]');
+    if (nameEl) nameEl.value = '';
+
+    var partNum = document.getElementById('part-number-input');
+    if (partNum) partNum.value = '';
+
+    var qty = document.querySelector('[name="qty"]');
+    if (qty) qty.value = '0';
+
+    var minStock = document.querySelector('[name="min_stock"]');
+    if (minStock) minStock.value = '0';
+
+    var maxStock = document.querySelector('[name="max_stock"]');
+    if (maxStock) maxStock.value = '999';
+
+    // Main / sub
+    var mainSel = document.getElementById('main-location');
+    if (mainSel) {
+        mainSel.value = '';
+        mainSel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    var subSel = document.getElementById('sublocation-select');
+    if (subSel) subSel.value = '';
+
+    var locFull = document.getElementById('location-full');
+    if (locFull) locFull.value = '';
+    var subFull = document.getElementById('sublocation-full');
+    if (subFull) subFull.value = '';
+
+    // Bin pieces
+    ['loc-row', 'loc-section', 'loc-shelf', 'loc-slot'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    var img = document.getElementById('barcode-image');
+    if (img) {
+        img.src = '';
+        img.style.display = 'none';
+    }
+    var exportBtn = document.getElementById('export-pdf');
+    if (exportBtn) exportBtn.style.display = 'none';
+
+    var submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.innerText = 'Add Part';
+}
+
+function editPart(idx) {
 		const part = partsData[idx][1];   // This should be the data object
 		
 		if (!part) {
@@ -646,9 +675,50 @@ text-align: center;
 		document.querySelector('[name="min_stock"]').value = part.min_stock != null ? part.min_stock : '0';
 		document.querySelector('[name="max_stock"]').value = part.max_stock != null ? part.max_stock : '999';
 		
-		if (typeof applyLocationToDropdowns === 'function') applyLocationToDropdowns(part.location || '');
-        document.getElementById('location-full').value = part.location || '';
-		document.getElementById('sublocation-full').value = part.sublocation || '';
+		// Main Location (named place, e.g. Facility Maintenance)
+        var mainSel = document.getElementById('main-location');
+        if (mainSel) {
+            mainSel.value = part.location || '';
+            mainSel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // Sublocation after cascade options load
+        setTimeout(function () {
+            var subSel = document.getElementById('sublocation-select');
+            if (subSel) {
+                subSel.value = part.sublocation || '';
+                subSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            var subFull = document.getElementById('sublocation-full');
+            if (subFull) subFull.value = part.sublocation || '';
+        }, 100);
+        // Hidden main location field
+        var locFull = document.getElementById('location-full');
+        if (locFull) locFull.value = part.location || '';
+        // Part Location bin pieces: R01-S01-S01-P02 -> row/section/shelf/slot
+        var bin = (part.bin_location || '').trim();
+        var parts = bin ? bin.split('-') : [];
+        var map = {
+            'loc-row': parts[0] || '',
+            'loc-section': parts[1] || '',
+            'loc-shelf': parts[2] || '',
+            'loc-slot': parts[3] || ''
+        };
+        Object.keys(map).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = map[id];
+            // if exact value missing, try match by option text
+            if (map[id] && el.value !== map[id]) {
+                for (var i = 0; i < el.options.length; i++) {
+                    if ((el.options[i].value || el.options[i].textContent || '').trim() === map[id]) {
+                        el.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
 
 		// Show barcode image if exists
 		if (part.barcode) {
@@ -663,7 +733,102 @@ text-align: center;
 		
 		openTab(1);   // Switch to the Add/Edit tab
 	}
-    function showDeleteConfirm(idx) {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function showUpdateConfirm(e) {
+    if (e) e.preventDefault();
+    var idx = document.getElementById('form-index');
+    var form = document.getElementById('add-edit-form');
+    if (!form) {
+        var btn = document.getElementById('submit-btn');
+        form = btn ? btn.closest('form') : null;
+    }
+    // Add Part: no modal
+    if (!idx || String(idx.value || '').trim() === '') {
+        if (form) form.submit();
+        return false;
+    }
+    var yesBtn = document.getElementById('confirm-update-yes');
+    var modalEl = document.getElementById('confirm-update-modal');
+    if (!yesBtn || !modalEl) {
+        if (confirm('Update this part?\\n\\nPlease verify your changes before saving.')) {
+            if (form) form.submit();
+        }
+        return false;
+    }
+    var fresh = yesBtn.cloneNode(true);
+    yesBtn.parentNode.replaceChild(fresh, yesBtn);
+    fresh.addEventListener('click', function () {
+        var inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+        form.submit();
+    });
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    return false;
+}
+function confirmUpdatePart(e) { return showUpdateConfirm(e); }
+
+
+function confirmMarkOnOrder(e, form) {
+    if (e) e.preventDefault();
+    form = form || (e && e.target);
+    if (!form) return false;
+
+    var modalEl = document.getElementById('confirm-order-modal');
+    var yesBtn = document.getElementById('confirm-order-yes');
+
+    function doSubmit() {
+        // ensure ordered_by is present
+        var inp = form.querySelector('input[name="ordered_by"]');
+        if (!inp) {
+            inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'ordered_by';
+            form.appendChild(inp);
+        }
+        if (!(inp.value || '').trim()) {
+            inp.value = (document.body.getAttribute('data-username') || 'admin');
+        }
+        form.submit();
+    }
+
+    if (modalEl && yesBtn && typeof bootstrap !== 'undefined') {
+        var fresh = yesBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(fresh, yesBtn);
+        fresh.addEventListener('click', function () {
+            var inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+            doSubmit();
+        });
+        new bootstrap.Modal(modalEl).show();
+        return false;
+    }
+
+    if (confirm('Mark this part ON ORDER?')) doSubmit();
+    return false;
+}
+
+function showDeleteConfirm(idx) {
         const part = partsData[idx][1];
         document.getElementById('delete-index').value = part.id;
         const modal = new bootstrap.Modal(document.getElementById('delete-modal'));

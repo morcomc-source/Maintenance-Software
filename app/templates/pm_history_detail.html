@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Completion Detail</h2>
+    <div>
+      <a href="{{ url_for('pm.history', pm_id=pm.id) }}" class="btn btn-secondary btn-sm">← Back to History</a>
+      <a href="{{ url_for('pm.details', id=pm.id) }}" class="btn btn-outline-primary btn-sm">PM Details</a>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+      PM #{{ pm.id }} — {{ pm.main_equipment }}{% if pm.sub_equipment %} / {{ pm.sub_equipment }}{% endif %}
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Completed:</strong> {{ completion.completed_date.strftime('%Y-%m-%d %H:%M') if completion.completed_date else '—' }}</p>
+          <p><strong>Completed By:</strong> {{ completion.completed_by.username if completion.completed_by else 'Unknown' }}</p>
+          <p><strong>Frequency:</strong> {{ pm.frequency or '—' }}</p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Started:</strong> {{ completion.started_at.strftime('%Y-%m-%d %H:%M') if completion.started_at else '—' }}</p>
+          <p><strong>Paused:</strong> {{ completion.paused_at.strftime('%Y-%m-%d %H:%M') if completion.paused_at else '—' }}</p>
+          <p><strong>Active work time:</strong>
+            {% if completion.total_work_seconds %}
+              {{ completion.total_work_seconds // 3600 }}h {{ (completion.total_work_seconds % 3600) // 60 }}m {{ completion.total_work_seconds % 60 }}s
+            {% else %}—{% endif %}
+          </p>
+        </div>
+      </div>
+
+      {% if completion.notes %}
+      <div class="mt-3 p-3 bg-light border rounded">
+        <strong>Completion Notes:</strong><br>{{ completion.notes }}
+      </div>
+      {% endif %}
+
+      {% if completion.parts_used %}
+      <div class="mt-3 p-3 bg-light border rounded">
+        <strong>Parts Used:</strong>
+        <ul class="mb-0">
+          {% for part in completion.parts_used %}
+          <li>{{ part.name }} × {{ part.quantity }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <hr>
+      <h5>Checklist Results</h5>
+      {% if completion.checklist_results %}
+      <ul class="list-group">
+        {% for item in completion.checklist_results %}
+          {% if item.type == 'title' %}
+            <li class="list-group-item fw-bold bg-light">{{ item.item }}</li>
+          {% else %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>
+                {{ item.item }}
+                {% if item.value is defined and item.value is not none %}
+                  <span class="badge bg-info text-dark ms-2">{{ item.value }}</span>
+                {% endif %}
+              </span>
+              <span class="badge bg-{{ 'success' if item.completed else 'secondary' }}">
+                {{ '✅ Completed' if item.completed else '⭕ Not Done' }}
+              </span>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted">No checklist data stored for this completion.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -56,24 +56,67 @@ class PartSection(db.Model):
 class PartShelf(db.Model):
     __tablename__ = 'part_shelves'
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(20), unique=True, nullable=False)  # e.g. H01
+    code = db.Column(db.String(20), unique=True, nullable=False)  # e.g. S01
     name = db.Column(db.String(100), nullable=True)
+    row_id = db.Column(db.Integer, db.ForeignKey('part_rows.id'), nullable=True)
+    row = db.relationship('PartRow', backref='shelves')
     created_at = db.Column(db.DateTime, default=datetime.now)
-
     def __repr__(self):
         return f'<PartShelf {self.code}>'
-
 
 class PartSlot(db.Model):
     __tablename__ = 'part_slots'
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(20), unique=True, nullable=False)  # e.g. P01
+    code = db.Column(db.String(20), unique=True, nullable=False)  # e.g. P01 (position)
     name = db.Column(db.String(100), nullable=True)
+    shelf_id = db.Column(db.Integer, db.ForeignKey('part_shelves.id'), nullable=True)
+    shelf = db.relationship('PartShelf', backref='slots')
     created_at = db.Column(db.DateTime, default=datetime.now)
-
     def __repr__(self):
         return f'<PartSlot {self.code}>'
 
+
+# ----- Cabinet → Shelf  |  Chest → Drawer -----
+class PartCabinet(db.Model):
+    __tablename__ = 'part_cabinets'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartCabinet {self.code}>'
+
+class PartCabinetShelf(db.Model):
+    """Shelf inside a cabinet (separate from rack shelves)."""
+    __tablename__ = 'part_cabinet_shelves'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    cabinet_id = db.Column(db.Integer, db.ForeignKey('part_cabinets.id'), nullable=False)
+    cabinet = db.relationship('PartCabinet', backref='shelves')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartCabinetShelf {self.code}>'
+
+class PartChest(db.Model):
+    __tablename__ = 'part_chests'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartChest {self.code}>'
+
+class PartDrawer(db.Model):
+    __tablename__ = 'part_drawers'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    chest_id = db.Column(db.Integer, db.ForeignKey('part_chests.id'), nullable=False)
+    chest = db.relationship('PartChest', backref='drawers')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartDrawer {self.code}>'
 
 # PM setup lists
 class PMMainEquipment(db.Model):
@@ -106,3 +149,27 @@ class PMFrequency(db.Model):
 
     def __repr__(self):
         return f'<PMFrequency {self.name}>'
+
+class PartCabinetPosition(db.Model):
+    """Position on a cabinet shelf (P01, P02, ...)."""
+    __tablename__ = 'part_cabinet_positions'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    cabinet_shelf_id = db.Column(db.Integer, db.ForeignKey('part_cabinet_shelves.id'), nullable=False)
+    cabinet_shelf = db.relationship('PartCabinetShelf', backref='positions')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartCabinetPosition {self.code}>'
+
+class PartDrawerPosition(db.Model):
+    """Position in a chest drawer (P01, P02, ...)."""
+    __tablename__ = 'part_drawer_positions'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    drawer_id = db.Column(db.Integer, db.ForeignKey('part_drawers.id'), nullable=False)
+    drawer = db.relationship('PartDrawer', backref='positions')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    def __repr__(self):
+        return f'<PartDrawerPosition {self.code}>'

@@ -9,6 +9,7 @@ class Part(db.Model):
     part_number = db.Column(db.String(100), nullable=True)
     qty = db.Column(db.Integer, nullable=False, default=0)
     location = db.Column(db.String(100), nullable=True)
+    bin_location = db.Column(db.String(120), nullable=True)
     sublocation = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     min_stock = db.Column(db.String(50), default='0')  # ← Add this

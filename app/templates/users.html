@@ -3,6 +3,8 @@
 {% extends "base.html" %}
 {% block title %}Manage Users{% endblock %}
 {% block content %}
+<a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+
 <h2>Manage Users</h2>
 <!-- Add User Form -->
 <form method="post" class="mb-4">

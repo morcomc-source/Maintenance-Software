@@ -1,4 +1,4 @@
-const CACHE_NAME = 'inventory-v1';
+const CACHE_NAME = 'inventory-v3';
 
 self.addEventListener('install', event => {
   event.waitUntil(
