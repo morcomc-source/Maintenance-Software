@@ -1,41 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Parts Inventory
-<div class="modal fade" id="confirm-update-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirm Update</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Please verify your changes before saving. This will update the part in inventory.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-success" id="confirm-update-yes">Yes, Update Part</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 
-<div class="modal fade" id="confirm-order-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirm On Order</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Mark this part as <strong>ON ORDER</strong>? This records the order under your account.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirm-order-yes">Yes, Mark On Order</button>
-      </div>
-    </div>
-  </div>
-</div>
+
+
 
 {% endblock %}
 {% block content %}
@@ -542,6 +510,44 @@ text-align: center;
         </div>
     </div>
 </div>
+
+<!-- Order confirmation modal (same style as Delete) -->
+<div class="modal fade" id="confirm-order-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to mark this part as <strong>ON ORDER</strong>? This will record the order under your account.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-order-yes">Yes, Mark On Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Update confirmation modal (same style as Delete) -->
+<div class="modal fade" id="confirm-update-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Update</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to update this part? Please verify your changes before saving.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirm-update-yes">Yes, Update Part</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Html5Qrcode CDN -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Reverted to specific version 2.3.8 for stability -->
 <script>
@@ -887,36 +893,29 @@ function editPart(idx) {
 
 function showUpdateConfirm(e) {
     if (e) e.preventDefault();
-    var idx = document.getElementById('form-index');
     var form = document.getElementById('add-edit-form');
-    if (!form) {
-        var btn = document.getElementById('submit-btn');
-        form = btn ? btn.closest('form') : null;
-    }
-    // Add Part: no modal
-    if (!idx || String(idx.value || '').trim() === '') {
-        if (form) form.submit();
-        return false;
-    }
-    var yesBtn = document.getElementById('confirm-update-yes');
     var modalEl = document.getElementById('confirm-update-modal');
-    if (!yesBtn || !modalEl) {
-        if (confirm('Update this part?\\n\\nPlease verify your changes before saving.')) {
-            if (form) form.submit();
-        }
+    var yesBtn = document.getElementById('confirm-update-yes');
+
+    if (modalEl && yesBtn && typeof bootstrap !== 'undefined') {
+        var fresh = yesBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(fresh, yesBtn);
+        fresh.addEventListener('click', function () {
+            var inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+            // temporarily remove the onclick so it submits normally
+            var btn = document.getElementById('submit-btn');
+            if (btn) btn.onclick = null;
+            form.requestSubmit ? form.requestSubmit() : form.submit();
+        });
+        new bootstrap.Modal(modalEl).show();
         return false;
     }
-    var fresh = yesBtn.cloneNode(true);
-    yesBtn.parentNode.replaceChild(fresh, yesBtn);
-    fresh.addEventListener('click', function () {
-        var inst = bootstrap.Modal.getInstance(modalEl);
-        if (inst) inst.hide();
-        form.submit();
-    });
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
-    return false;
+    // fallback
+    return confirm('Are you sure you want to update this part?');
 }
+
+
 function confirmUpdatePart(e) { return showUpdateConfirm(e); }
 
 
