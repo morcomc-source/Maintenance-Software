@@ -1,6 +1,4 @@
 from datetime import datetime
-import reportlab.rl_config as rl_config
-rl_config.renderPMBackend = 'rlPyCairo'
 
 from flask import Blueprint, render_template, request, redirect, flash, url_for, send_file, jsonify
 from flask_login import login_required, current_user
@@ -56,9 +54,12 @@ def generate_barcode():
     code = request.args.get('code', '')
     if not code:
         return "No code provided", 400
-    d = code128.Code128(code, barHeight=20*mm, barWidth=0.3*mm, humanReadable=True)
+    import barcode
+    from barcode.writer import ImageWriter
+    from io import BytesIO
     buffer = BytesIO()
-    renderPM.drawToFile(d, buffer, fmt="PNG")
+    code128 = barcode.get_barcode_class('code128')
+    code128(code, writer=ImageWriter()).write(buffer)
     buffer.seek(0)
     return send_file(buffer, mimetype='image/png')
 
