@@ -4,6 +4,20 @@
 
 {% endblock %}
 {% block content %}
+
+<style>
+  .loc-scroll {
+    height: 220px;          /* fixed height so all sections match */
+    overflow-y: auto;
+  }
+  .loc-section > .card-body > .row > [class*="col-"] > .card {
+    height: 100%;
+  }
+  .loc-section > .card-body {
+    min-height: 380px;
+  }
+</style>
+
 <div class="container mt-4">
     <h2 class="mb-2 text-center">Parts Locations</h2>
     <p class="text-center text-muted mb-4">
@@ -23,7 +37,7 @@
                             <button type="submit" class="btn btn-success">Add</button>
                         </div>
                     </form>
-                    <ul class="list-group" style="max-height:280px;overflow-y:auto;">
+                    <ul class="list-group loc-scroll">
                         {% for loc in locations %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             {{ loc.name }}
@@ -54,7 +68,7 @@
                             <button type="submit" class="btn btn-success">Add</button>
                         </div>
                     </form>
-                    <ul class="list-group" style="max-height:280px;overflow-y:auto;">
+                    <ul class="list-group loc-scroll">
                         {% for sub in sublocations %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
@@ -74,7 +88,7 @@
         </div>
     </div>
 
-    <div class="card mb-4 shadow-sm">
+    <div class="card mb-4 shadow-sm loc-section">
         <div class="card-header bg-primary text-white">
             <strong>Racks</strong>
             <span class="ms-2 small opacity-75">Rack → Shelf → Position</span>
@@ -90,7 +104,7 @@
                         <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
                         <button type="submit" class="btn btn-success w-100">Add Rack</button>
                     </form>
-                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                    <ul class="list-group loc-scroll">
                         {% for r in rows %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong>{{ r.code }}</strong>
@@ -115,7 +129,7 @@
                         <input type="text" name="code" class="form-control mb-2" placeholder="S01" required>
                         <button type="submit" class="btn btn-success w-100">Add Shelf</button>
                     </form>
-                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                    <ul class="list-group loc-scroll">
                         {% for h in shelves %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
@@ -145,7 +159,7 @@
                         <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
                         <button type="submit" class="btn btn-success w-100">Add Position</button>
                     </form>
-                    <ul class="list-group" style="max-height:260px;overflow-y:auto;">
+                    <ul class="list-group loc-scroll">
                         {% for p in slots %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
@@ -161,17 +175,17 @@
                 </div>
             </div>
         </div>
-    </div>
+            </div><!-- end row -->
+        </div><!-- end card-body -->
+    </div><!-- end Racks outer card -->
 
+    <div class="card mb-4 shadow-sm loc-section">
+        <div class="card-header bg-primary text-white">
+            <strong>Cabinets</strong>
+            <span class="ms-2 small opacity-75">Cabinet → Shelf → Position</span>
         </div>
-    </div>
-</div>
-
-    <hr class="my-4">
-    
-{# ========== CABINETS: Cabinet — Shelf — Position (same layout as Racks) ========== #}
-<h5 class="mt-4 mb-2">Cabinets — Shelf — Position</h5>
-<div class="row g-3 mb-4">
+        <div class="card-body">
+            <div class="row g-4">
   {# --- Cabinets --- #}
   <div class="col-md-4">
     <div class="card h-100 shadow-sm">
@@ -182,7 +196,7 @@
           <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
           <button type="submit" class="btn btn-success w-100">Add Cabinet</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for c in cabinets %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
@@ -213,7 +227,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="SH1" required>
           <button type="submit" class="btn btn-success w-100">Add Shelf</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for s in cabinet_shelves %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ s.cabinet.code if s.cabinet else '?' }}</strong> — {{ s.code }}</span>
@@ -244,7 +258,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
           <button type="submit" class="btn btn-success w-100">Add Position</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for p in cabinet_positions %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span>{{ p.cabinet_shelf.cabinet.code if p.cabinet_shelf and p.cabinet_shelf.cabinet else '?' }} / {{ p.cabinet_shelf.code if p.cabinet_shelf else '?' }} — <strong>{{ p.code }}</strong></span>
@@ -260,10 +274,16 @@
     </div>
   </div>
 </div>
+        </div><!-- /card-body Cabinets -->
+    </div><!-- /card Cabinets -->
 
-{# ========== CHESTS: Chest — Drawer — Position (same layout as Racks) ========== #}
-<h5 class="mt-2 mb-2">Chests — Drawer — Position</h5>
-<div class="row g-3 mb-4">
+    <div class="card mb-4 shadow-sm loc-section">
+        <div class="card-header bg-primary text-white">
+            <strong>Chests</strong>
+            <span class="ms-2 small opacity-75">Chest → Drawer → Position</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
   {# --- Chests --- #}
   <div class="col-md-4">
     <div class="card h-100 shadow-sm">
@@ -274,7 +294,7 @@
           <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
           <button type="submit" class="btn btn-success w-100">Add Chest</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for c in chests %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
@@ -305,7 +325,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="D01" required>
           <button type="submit" class="btn btn-success w-100">Add Drawer</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for d in drawers %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ d.chest.code if d.chest else '?' }}</strong> — {{ d.code }}</span>
@@ -336,7 +356,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
           <button type="submit" class="btn btn-success w-100">Add Position</button>
         </form>
-        <div style="max-height:220px;overflow-y:auto;">
+        <div class="loc-scroll">
         {% for p in drawer_positions %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span>{{ p.drawer.chest.code if p.drawer and p.drawer.chest else '?' }} / {{ p.drawer.code if p.drawer else '?' }} — <strong>{{ p.code }}</strong></span>
