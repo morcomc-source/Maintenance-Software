@@ -182,6 +182,7 @@
           <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
           <button type="submit" class="btn btn-success w-100">Add Cabinet</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for c in cabinets %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
@@ -192,6 +193,7 @@
         {% else %}
         <p class="text-muted small mb-0">No cabinets yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -211,6 +213,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="SH1" required>
           <button type="submit" class="btn btn-success w-100">Add Shelf</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for s in cabinet_shelves %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ s.cabinet.code if s.cabinet else '?' }}</strong> — {{ s.code }}</span>
@@ -221,6 +224,7 @@
         {% else %}
         <p class="text-muted small mb-0">No shelves yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -240,6 +244,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
           <button type="submit" class="btn btn-success w-100">Add Position</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for p in cabinet_positions %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span>{{ p.cabinet_shelf.cabinet.code if p.cabinet_shelf and p.cabinet_shelf.cabinet else '?' }} / {{ p.cabinet_shelf.code if p.cabinet_shelf else '?' }} — <strong>{{ p.code }}</strong></span>
@@ -250,6 +255,7 @@
         {% else %}
         <p class="text-muted small mb-0">No positions yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -268,6 +274,7 @@
           <input type="text" name="name" class="form-control mb-2" placeholder="Optional name">
           <button type="submit" class="btn btn-success w-100">Add Chest</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for c in chests %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ c.code }}</strong>{% if c.name %} <small class="text-muted">{{ c.name }}</small>{% endif %}</span>
@@ -278,6 +285,7 @@
         {% else %}
         <p class="text-muted small mb-0">No chests yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -297,6 +305,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="D01" required>
           <button type="submit" class="btn btn-success w-100">Add Drawer</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for d in drawers %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span><strong>{{ d.chest.code if d.chest else '?' }}</strong> — {{ d.code }}</span>
@@ -307,6 +316,7 @@
         {% else %}
         <p class="text-muted small mb-0">No drawers yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -326,6 +336,7 @@
           <input type="text" name="code" class="form-control mb-2" placeholder="P01" required>
           <button type="submit" class="btn btn-success w-100">Add Position</button>
         </form>
+        <div style="max-height:220px;overflow-y:auto;">
         {% for p in drawer_positions %}
         <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1">
           <span>{{ p.drawer.chest.code if p.drawer and p.drawer.chest else '?' }} / {{ p.drawer.code if p.drawer else '?' }} — <strong>{{ p.code }}</strong></span>
@@ -336,6 +347,7 @@
         {% else %}
         <p class="text-muted small mb-0">No positions yet.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
   </div>
