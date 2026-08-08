@@ -255,7 +255,7 @@ text-align: center;
                             <td class="center-text" data-label="Actions">
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
-                                {% if not item.on_order %}
+                                {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
@@ -294,7 +294,7 @@ text-align: center;
                                 <div class="mt-2 d-flex flex-wrap gap-1">
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
-                                    {% if not item.on_order %}
+                                    {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
