@@ -423,32 +423,27 @@ text-align: center;
 
             <!-- RACK group -->
             <div id="group-rack" class="storage-group" style="display:none;">
-                <label class="form-label">Bin Location (Row / Section / Shelf / Slot)</label>
+                <label class="form-label">Bin Location (Rack / Shelf / Position)</label>
                 <div class="row g-2 mb-2">
-                    <div class="col-6 col-md-3">
+                    <div class="col-md-4">
                         <select name="loc_row" id="loc-row" class="form-select">
-                            <option value="">Row</option>
+                            <option value="">Rack</option>
                             {% for r in rows %}
                             <option value="{{ r.code }}" data-id="{{ r.id }}">{{ r.code }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <select name="loc_section" id="loc-section" class="form-select">
-                            <option value="">Section</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-md-4">
                         <select name="loc_shelf" id="loc-shelf" class="form-select">
                             <option value="">Shelf</option>
                             {% for s in shelves %}
-                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            <option value="{{ s.code }}" data-id="{{ s.id }}">{{ s.code }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-md-4">
                         <select name="loc_slot" id="loc-slot" class="form-select">
-                            <option value="">Slot</option>
+                            <option value="">Position</option>
                             {% for s in slots %}
                             <option value="{{ s.code }}">{{ s.code }}</option>
                             {% endfor %}
@@ -762,16 +757,18 @@ function editPart(idx) {
         var pieces = bin ? bin.split('-') : [];
         var storageType = '';
 
-        if (pieces.length === 4) {
-            storageType = 'rack';
-        } else if (pieces.length === 3) {
-            // Heuristic: cabinets usually start with CAB, chests with CH
+        if (pieces.length === 3) {
             var first = (pieces[0] || '').toUpperCase();
-            if (first.startsWith('CAB') || first.startsWith('C')) {
+            if (first.startsWith('CAB')) {
                 storageType = 'cabinet';
-            } else {
+            } else if (first.startsWith('CH')) {
                 storageType = 'chest';
+            } else {
+                storageType = 'rack';
             }
+        } else if (pieces.length === 4) {
+            // old 4-part rack codes
+            storageType = 'rack';
         }
 
         var typeSel = document.getElementById('storage-type');
@@ -782,12 +779,22 @@ function editPart(idx) {
 
         // Give the cascade a moment to build options, then fill values
         setTimeout(function () {
-            if (storageType === 'rack' && pieces.length === 4) {
+            if (storageType === 'rack') {
+                // Support both old 4-part (row-section-shelf-slot) and new 3-part (row-shelf-slot)
+                var rowVal, shelfVal, slotVal;
+                if (pieces.length === 4) {
+                    rowVal = pieces[0];
+                    shelfVal = pieces[2];
+                    slotVal = pieces[3];
+                } else {
+                    rowVal = pieces[0];
+                    shelfVal = pieces[1];
+                    slotVal = pieces[2];
+                }
                 var map = {
-                    'loc-row': pieces[0],
-                    'loc-section': pieces[1],
-                    'loc-shelf': pieces[2],
-                    'loc-slot': pieces[3]
+                    'loc-row': rowVal,
+                    'loc-shelf': shelfVal,
+                    'loc-slot': slotVal
                 };
                 Object.keys(map).forEach(function (id) {
                     var el = document.getElementById(id);
@@ -1130,10 +1137,9 @@ function updateLocationPreview() {
     let bin = '';
     if (type === 'rack') {
         const row = document.getElementById('loc-row')?.value || '';
-        const sec = document.getElementById('loc-section')?.value || '';
         const shelf = document.getElementById('loc-shelf')?.value || '';
         const slot = document.getElementById('loc-slot')?.value || '';
-        if (row && sec && shelf && slot) bin = `${row}-${sec}-${shelf}-${slot}`;
+        if (row && shelf && slot) bin = `${row}-${shelf}-${slot}`;
     } else if (type === 'cabinet') {
         const c = document.getElementById('loc-cabinet')?.value || '';
         const cs = document.getElementById('loc-cabinet-shelf')?.value || '';

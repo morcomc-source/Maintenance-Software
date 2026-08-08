@@ -120,11 +120,10 @@ def index():
             storage_type = request.form.get("storage_type", "").strip()
             if storage_type == "rack":
                 r = request.form.get("loc_row", "").strip()
-                s = request.form.get("loc_section", "").strip()
                 h = request.form.get("loc_shelf", "").strip()
                 p = request.form.get("loc_slot", "").strip()
-                if r and s and h and p:
-                    return f"{r}-{s}-{h}-{p}"
+                if r and h and p:
+                    return f"{r}-{h}-{p}"
             elif storage_type == "cabinet":
                 c = request.form.get("loc_cabinet", "").strip()
                 cs = request.form.get("loc_cabinet_shelf", "").strip()
