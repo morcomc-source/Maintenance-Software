@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from app import db
 from sqlalchemy import cast, Integer
 from app.models.part import Part
+from app.models.part_transaction import PartTransaction
 from app.models.settings import (
     PartLocation, PartSublocation,
     PartRow, PartSection, PartShelf, PartSlot,
@@ -354,3 +355,79 @@ def clear_ordered(id):
     flash(f"'{part.name}' order status cleared.", "success")
     return redirect(request.referrer or url_for("parts.index"))
 
+
+# ====================== TAKE PART ======================
+@bp.route("/take", methods=["GET", "POST"])
+@login_required
+def take_part():
+    """Scan/search a part and deduct quantity. Logs the transaction."""
+    if request.method == "POST":
+        part_id = request.form.get("part_id")
+        qty_raw = request.form.get("quantity", "1").strip()
+        notes = (request.form.get("notes") or "").strip() or None
+
+        try:
+            qty = int(qty_raw)
+        except ValueError:
+            flash("Quantity must be a number.", "danger")
+            return redirect(url_for("parts.take_part"))
+
+        if qty <= 0:
+            flash("Quantity must be greater than zero.", "danger")
+            return redirect(url_for("parts.take_part"))
+
+        part = Part.query.get(part_id) if part_id else None
+        if not part:
+            flash("Part not found.", "danger")
+            return redirect(url_for("parts.take_part"))
+
+        current_qty = int(part.qty or 0)
+        if qty > current_qty:
+            flash(f"Not enough stock. Only {current_qty} available.", "danger")
+            return redirect(url_for("parts.take_part"))
+
+        # Deduct
+        part.qty = current_qty - qty
+
+        # Log transaction
+        txn = PartTransaction(
+            part_id=part.id,
+            transaction_type="take",
+            quantity=qty,
+            user_id=current_user.id,
+            username=current_user.username,
+            notes=notes,
+        )
+        db.session.add(txn)
+        db.session.commit()
+
+        flash(f"Took {qty} of '{part.name}'. New qty: {part.qty}", "success")
+        return redirect(url_for("parts.take_part"))
+
+    return render_template("parts/take.html")
+
+
+@bp.route("/take/search")
+@login_required
+def take_search():
+    """JSON search for the Take Part page (barcode / name / part number)."""
+    query = request.args.get("q", "").strip()
+    if not query or len(query) < 1:
+        return jsonify([])
+
+    parts = Part.query.filter(
+        (Part.name.ilike(f"%{query}%")) |
+        (Part.barcode.ilike(f"%{query}%")) |
+        (Part.part_number.ilike(f"%{query}%"))
+    ).limit(15).all()
+
+    results = [{
+        "id": p.id,
+        "name": p.name,
+        "barcode": p.barcode or "",
+        "part_number": p.part_number or "",
+        "qty": p.qty,
+        "location": p.location or "",
+        "bin_location": p.bin_location or "",
+    } for p in parts]
+    return jsonify(results)

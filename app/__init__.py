@@ -33,6 +33,7 @@ def create_app():
     from .models.user import User
     from .models.pm import PM
     from .models.part import Part
+    from .models.part_transaction import PartTransaction
     from .models.equipment import Equipment
     from .models.settings import PartLocation, PartSublocation
   

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Take Part{% endblock %}
+
+{% block content %}
+<style>
+#scanner-preview {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+#scanner-preview video {
+    max-width: 90%;
+    max-height: 90%;
+}
+</style>
+
+<div class="container mt-4" style="max-width: 640px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Take Part</h2>
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">← Dashboard</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST" id="take-form">
+                <input type="hidden" name="part_id" id="part-id" value="">
+
+                <div class="mb-3">
+                    <label class="form-label">Scan or search part</label>
+                    <div class="input-group">
+                        <input type="text" id="part-search" class="form-control form-control-lg"
+                               placeholder="Scan barcode or type name / part number" autocomplete="off" autofocus>
+                        <button type="button" id="scan-btn" class="btn btn-outline-secondary btn-lg">Scan</button>
+                    </div>
+                    <div id="search-results" class="list-group mt-2" style="display:none; max-height:240px; overflow-y:auto;"></div>
+                </div>
+
+                <div id="selected-part" class="alert alert-info" style="display:none;">
+                    <strong id="sel-name"></strong><br>
+                    <small>
+                        Barcode: <span id="sel-barcode"></span> ·
+                        Part #: <span id="sel-partnum"></span> ·
+                        On hand: <span id="sel-qty" class="fw-bold"></span>
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity taken</label>
+                    <input type="number" name="quantity" id="quantity" class="form-control form-control-lg"
+                           value="1" min="1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+                    <input type="text" name="notes" class="form-control" placeholder="e.g. for WO-123">
+                </div>
+
+                <button type="submit" class="btn btn-danger btn-lg w-100" id="submit-btn" disabled>
+                    Confirm Take
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scanner overlay -->
+<div id="scanner-preview"></div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+(function () {
+    const searchInput = document.getElementById('part-search');
+    const resultsDiv = document.getElementById('search-results');
+    const partIdInput = document.getElementById('part-id');
+    const selectedDiv = document.getElementById('selected-part');
+    const submitBtn = document.getElementById('submit-btn');
+    let debounce = null;
+    let scannerActive = false;
+    let html5QrcodeScanner = null;
+
+    function selectPart(p) {
+        partIdInput.value = p.id;
+        document.getElementById('sel-name').textContent = p.name;
+        document.getElementById('sel-barcode').textContent = p.barcode || '—';
+        document.getElementById('sel-partnum').textContent = p.part_number || '—';
+        document.getElementById('sel-qty').textContent = p.qty;
+        selectedDiv.style.display = 'block';
+        resultsDiv.style.display = 'none';
+        searchInput.value = p.name + (p.barcode ? ' (' + p.barcode + ')' : '');
+        submitBtn.disabled = false;
+        document.getElementById('quantity').focus();
+    }
+
+    function doSearch(q) {
+        if (!q || q.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+        fetch('{{ url_for("parts.take_search") }}?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(items => {
+                if (!items.length) {
+                    resultsDiv.innerHTML = '<div class="list-group-item text-muted">No matches</div>';
+                    resultsDiv.style.display = 'block';
+                    return;
+                }
+                // If exact barcode match and only one result, auto-select
+                if (items.length === 1 && items[0].barcode && items[0].barcode.toLowerCase() === q.toLowerCase()) {
+                    selectPart(items[0]);
+                    return;
+                }
+                resultsDiv.innerHTML = items.map(p =>
+                    `<button type="button" class="list-group-item list-group-item-action"
+                        data-id="${p.id}" data-name="${p.name}" data-barcode="${p.barcode || ''}"
+                        data-partnum="${p.part_number || ''}" data-qty="${p.qty}">
+                        <strong>${p.name}</strong>
+                        <small class="d-block text-muted">
+                            ${p.barcode || ''} ${p.part_number ? '· ' + p.part_number : ''} · Qty: ${p.qty}
+                        </small>
+                    </button>`
+                ).join('');
+                resultsDiv.style.display = 'block';
+                resultsDiv.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        selectPart({
+                            id: this.dataset.id,
+                            name: this.dataset.name,
+                            barcode: this.dataset.barcode,
+                            part_number: this.dataset.partnum,
+                            qty: this.dataset.qty
+                        });
+                    });
+                });
+            });
+    }
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounce);
+        const q = this.value.trim();
+        debounce = setTimeout(() => doSearch(q), 200);
+    });
+
+    searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const first = resultsDiv.querySelector('button');
+            if (first) first.click();
+        }
+    });
+
+    // ---- Camera scanner (same style as Parts page) ----
+    function stopScanning() {
+        if (!scannerActive) return;
+        html5QrcodeScanner.stop().then(() => {
+            scannerActive = false;
+            document.getElementById('scanner-preview').style.display = 'none';
+        }).catch(() => {
+            scannerActive = false;
+            document.getElementById('scanner-preview').style.display = 'none';
+        });
+    }
+
+    function startScanning() {
+        if (typeof Html5Qrcode === 'undefined') {
+            alert('Scanner library not loaded. Check your connection.');
+            return;
+        }
+        if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5Qrcode('scanner-preview');
+        }
+        const config = {
+            fps: 20,
+            qrbox: { width: 600, height: 100 },
+            formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
+        };
+        document.getElementById('scanner-preview').style.display = 'flex';
+        scannerActive = true;
+        html5QrcodeScanner.start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => {
+                searchInput.value = decodedText;
+                stopScanning();
+                doSearch(decodedText);
+            },
+            () => {}
+        ).catch(err => {
+            console.error('Scan failed:', err);
+            alert('Could not start camera: ' + (err.message || err));
+            stopScanning();
+        });
+    }
+
+    document.getElementById('scan-btn').addEventListener('click', startScanning);
+
+    // Tap outside scanner to close
+    document.getElementById('scanner-preview').addEventListener('click', function (e) {
+        if (e.target === this) stopScanning();
+    });
+})();
+</script>
+{% endblock %}
