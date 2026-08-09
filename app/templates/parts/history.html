@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Parts Movement History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Parts Movement History</h2>
+        <div>
+            <a href="{{ url_for('parts.index') }}" class="btn btn-outline-primary me-2">Parts List</a>
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">← Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Type</label>
+                    <select name="type" class="form-select">
+                        <option value="">All</option>
+                        <option value="take" {% if filters.type == 'take' %}selected{% endif %}>Take</option>
+                        <option value="receive" {% if filters.type == 'receive' %}selected{% endif %}>Receive</option>
+                        <option value="wo_use" {% if filters.type == 'wo_use' %}selected{% endif %}>Work Order</option>
+                        <option value="pm_use" {% if filters.type == 'pm_use' %}selected{% endif %}>PM</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">User</label>
+                    <select name="user" class="form-select">
+                        <option value="">All users</option>
+                        {% for u in usernames %}
+                        <option value="{{ u }}" {% if filters.user == u %}selected{% endif %}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Part search</label>
+                    <input type="text" name="q" class="form-control" value="{{ filters.q }}"
+                           placeholder="Name, barcode, part #">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From</label>
+                    <input type="date" name="from" class="form-control" value="{{ filters.from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">To</label>
+                    <input type="date" name="to" class="form-control" value="{{ filters.to }}">
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Transactions</strong>
+            <span class="text-muted">{{ transactions|length }} shown (max 500)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date / Time</th>
+                        <th>Type</th>
+                        <th>Part</th>
+                        <th class="text-center">Qty</th>
+                        <th>User</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in transactions %}
+                    <tr>
+                        <td>
+                            {% if t.created_at %}
+                                {{ t.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if t.transaction_type == 'take' %}
+                                <span class="badge bg-danger">Take</span>
+                            {% elif t.transaction_type == 'receive' %}
+                                <span class="badge bg-success">Receive</span>
+                            {% elif t.transaction_type == 'wo_use' %}
+                                <span class="badge bg-primary">Work Order</span>
+                            {% elif t.transaction_type == 'pm_use' %}
+                                <span class="badge bg-info text-dark">PM</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ t.transaction_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.part %}
+                                <strong>{{ t.part.name }}</strong>
+                                <small class="d-block text-muted">
+                                    {{ t.part.barcode or '' }}
+                                    {% if t.part.part_number %} · {{ t.part.part_number }}{% endif %}
+                                </small>
+                            {% else %}
+                                <span class="text-muted">Part #{{ t.part_id }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold">
+                            {% if t.transaction_type in ('take', 'wo_use', 'pm_use') %}
+                                <span class="text-danger">−{{ t.quantity }}</span>
+                            {% else %}
+                                <span class="text-success">+{{ t.quantity }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ t.username or '—' }}</td>
+                        <td>{{ t.notes or t.reference or '—' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No transactions found</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

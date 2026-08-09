@@ -503,3 +503,67 @@ def receive_parts():
         return redirect(url_for("parts.receive_parts"))
 
     return render_template("parts/receive.html")
+
+
+# ====================== PARTS MOVEMENT HISTORY ======================
+@bp.route("/history")
+@login_required
+def history():
+    """Parts movement log: takes, receives, (later WO/PM)."""
+    from datetime import datetime, timedelta
+
+    # Filters
+    txn_type = request.args.get("type", "").strip()          # take / receive / all
+    username = request.args.get("user", "").strip()
+    q = request.args.get("q", "").strip()                    # part name/barcode/number
+    date_from = request.args.get("from", "").strip()
+    date_to = request.args.get("to", "").strip()
+
+    query = PartTransaction.query
+
+    if txn_type in ("take", "receive", "wo_use", "pm_use"):
+        query = query.filter(PartTransaction.transaction_type == txn_type)
+
+    if username:
+        query = query.filter(PartTransaction.username.ilike(f"%{username}%"))
+
+    if q:
+        # Join part for name/barcode/part_number search
+        query = query.join(Part).filter(
+            (Part.name.ilike(f"%{q}%")) |
+            (Part.barcode.ilike(f"%{q}%")) |
+            (Part.part_number.ilike(f"%{q}%"))
+        )
+
+    if date_from:
+        try:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(PartTransaction.created_at >= dt_from)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(PartTransaction.created_at < dt_to)
+        except ValueError:
+            pass
+
+    transactions = query.order_by(PartTransaction.created_at.desc()).limit(500).all()
+
+    # Distinct usernames for filter dropdown
+    users = db.session.query(PartTransaction.username).distinct().order_by(PartTransaction.username).all()
+    usernames = [u[0] for u in users if u[0]]
+
+    return render_template(
+        "parts/history.html",
+        transactions=transactions,
+        usernames=usernames,
+        filters={
+            "type": txn_type,
+            "user": username,
+            "q": q,
+            "from": date_from,
+            "to": date_to,
+        }
+    )
