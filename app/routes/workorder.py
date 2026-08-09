@@ -233,9 +233,10 @@ def complete(wo_id):
     parts_used = data.get('parts_used', [])
 
     try:
-        # Deduct parts if Part model available
+        # Deduct parts if Part model available + log transaction
         try:
             from app.models.part import Part
+            from app.models.part_transaction import PartTransaction
             for pu in parts_used or []:
                 part_name = pu.get('name')
                 qty = int(pu.get('quantity') or 0)
@@ -244,6 +245,15 @@ def complete(wo_id):
                 part = Part.query.filter(Part.name.ilike(part_name)).first()
                 if part:
                     part.qty = max(0, int(part.qty or 0) - qty)
+                    db.session.add(PartTransaction(
+                        part_id=part.id,
+                        transaction_type='wo_use',
+                        quantity=qty,
+                        user_id=current_user.id,
+                        username=current_user.username,
+                        reference=f'WO-{wo.id}',
+                        notes=None,
+                    ))
         except Exception as part_err:
             print("Part deduct warning:", part_err)
 
