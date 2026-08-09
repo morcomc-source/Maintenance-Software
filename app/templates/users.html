@@ -16,6 +16,7 @@
         <div class="col-md-2">
             <select name="role" class="form-select">
                 <option value="technician">Technician</option>
+                <option value="department">Department</option>
                 <option value="admin">Admin</option>
             </select>
         </div>
@@ -36,6 +37,7 @@
                     <input type="hidden" name="user_id" value="{{ user.id }}">
                     <select name="new_role" onchange="this.form.submit()">
                         <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>Technician</option>
+                        <option value="department" {% if user.role == 'department' %}selected{% endif %}>Department</option>
                         <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
                     </select>
                 </form>
@@ -81,6 +83,7 @@
                         <label class="form-label">Role</label>
                         <select name="role" id="edit-role" class="form-select">
                             <option value="technician">Technician</option>
+                            <option value="department">Department</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
