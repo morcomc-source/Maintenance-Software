@@ -431,3 +431,75 @@ def take_search():
         "bin_location": p.bin_location or "",
     } for p in parts]
     return jsonify(results)
+
+
+# ====================== RECEIVE PARTS ======================
+@bp.route("/receive", methods=["GET", "POST"])
+@login_required
+def receive_parts():
+    """Receive one or more parts (increase stock, clear on-order, log)."""
+    if not current_user.is_admin():
+        flash("Only admins can receive parts.", "danger")
+        return redirect(url_for("dashboard.index"))
+
+    if request.method == "POST":
+        # Expect JSON list from the form: items = [{part_id, quantity}, ...]
+        import json
+        raw = request.form.get("items_json", "[]")
+        try:
+            items = json.loads(raw)
+        except Exception:
+            flash("Invalid receive data.", "danger")
+            return redirect(url_for("parts.receive_parts"))
+
+        if not items:
+            flash("No parts to receive.", "warning")
+            return redirect(url_for("parts.receive_parts"))
+
+        received = []
+        errors = []
+        for item in items:
+            try:
+                part_id = int(item.get("part_id"))
+                qty = int(item.get("quantity", 0))
+            except (TypeError, ValueError):
+                errors.append("Invalid item data")
+                continue
+            if qty <= 0:
+                continue
+            part = Part.query.get(part_id)
+            if not part:
+                errors.append(f"Part id {part_id} not found")
+                continue
+
+            part.qty = int(part.qty or 0) + qty
+            # Clear on-order when received
+            if getattr(part, "on_order", False):
+                part.on_order = False
+                part.ordered_by = None
+                part.ordered_at = None
+
+            txn = PartTransaction(
+                part_id=part.id,
+                transaction_type="receive",
+                quantity=qty,
+                user_id=current_user.id,
+                username=current_user.username,
+                notes=item.get("notes") or None,
+            )
+            db.session.add(txn)
+            received.append(f"{part.name} (+{qty})")
+
+        try:
+            db.session.commit()
+            if received:
+                flash("Received: " + "; ".join(received), "success")
+            if errors:
+                flash("Some issues: " + "; ".join(errors), "warning")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error saving: {e}", "danger")
+
+        return redirect(url_for("parts.receive_parts"))
+
+    return render_template("parts/receive.html")
