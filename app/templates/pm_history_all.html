@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}PM History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-3">← Dashboard</a>
+        <h2 class="mb-0 text-center">PM History</h2>
+        <p class="text-center text-muted mb-0">All completed preventative maintenance</p>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Equipment</label>
+                    <input type="text" name="q" class="form-control" value="{{ filters.q }}"
+                           placeholder="Main or sub equipment">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Completed by</label>
+                    <select name="user" class="form-select">
+                        <option value="">All users</option>
+                        {% for u in usernames %}
+                        <option value="{{ u }}" {% if filters.user == u %}selected{% endif %}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From</label>
+                    <input type="date" name="from" class="form-control" value="{{ filters.from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To</label>
+                    <input type="date" name="to" class="form-control" value="{{ filters.to }}">
+                </div>
+                <div class="col-12">
+                    <div class="d-flex gap-2" style="max-width: 320px;">
+                        <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+                        <a href="{{ url_for('pm.history_all') }}" class="btn btn-outline-secondary flex-fill">Reset</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Completions</strong>
+            <span class="text-muted">{{ completions|length }} shown (max 500)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Completed</th>
+                        <th>Equipment</th>
+                        <th>Frequency</th>
+                        <th>By</th>
+                        <th>Notes</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in completions %}
+                    <tr>
+                        <td>
+                            {% if c.completed_date %}
+                                {{ c.completed_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if c.pm %}
+                                <strong>{{ c.pm.main_equipment or '—' }}</strong>
+                                {% if c.pm.sub_equipment %}
+                                <small class="d-block text-muted">{{ c.pm.sub_equipment }}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">PM #{{ c.pm_id }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ c.pm.frequency if c.pm else '—' }}</td>
+                        <td>{{ c.completed_by.username if c.completed_by else '—' }}</td>
+                        <td class="text-muted">
+                            {% if c.notes %}
+                                {{ c.notes[:60] }}{% if c.notes|length > 60 %}…{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="{{ url_for('pm.history_detail', completion_id=c.id) }}">View</a>
+                            {% if c.pm %}
+                            <a class="btn btn-sm btn-outline-info"
+                               href="{{ url_for('pm.history', pm_id=c.pm_id) }}">PM History</a>
+                            {% endif %}
+                            {% if current_user.role == 'admin' %}
+                            <form method="POST" action="{{ url_for('pm.delete_history', completion_id=c.id) }}"
+                                  class="d-inline" onsubmit="return confirm('Delete this history record?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No completion history found</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -133,11 +133,9 @@
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️</button>
                                 {% endif %}
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
+<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
                                 <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
-								<button class="btn btn-sm btn-info" onclick="viewHistory({{ item.id }})">📋 History</button>
-								</td>
+</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -176,8 +174,7 @@
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                                 {% endif %}
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="viewPM({{ item.id }})">👁 View</button>
-                                <button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>
+<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>
                                 <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
                             </div>
                         </div>

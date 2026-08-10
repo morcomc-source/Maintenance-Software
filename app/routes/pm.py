@@ -388,6 +388,71 @@ def complete_pm(id):
     return jsonify({'success': True})
 
 
+
+# ====================== ALL PM HISTORY ======================
+@bp.route("/history")
+@login_required
+def history_all():
+    """Global list of all PM completions (filterable)."""
+    from datetime import datetime, timedelta
+    from sqlalchemy.orm import joinedload
+
+    q = (request.args.get("q") or "").strip()
+    user = (request.args.get("user") or "").strip()
+    date_from = (request.args.get("from") or "").strip()
+    date_to = (request.args.get("to") or "").strip()
+
+    query = PMCompletion.query.options(
+        joinedload(PMCompletion.pm),
+        joinedload(PMCompletion.completed_by),
+    )
+
+    # Technicians: only their completions (or PMs assigned to them)
+    if current_user.role == "technician":
+        query = query.filter(PMCompletion.completed_by_id == current_user.id)
+
+    if user:
+        query = query.join(User, PMCompletion.completed_by_id == User.id).filter(
+            User.username.ilike(f"%{user}%")
+        )
+
+    if q:
+        query = query.join(PM, PMCompletion.pm_id == PM.id).filter(
+            (PM.main_equipment.ilike(f"%{q}%")) |
+            (PM.sub_equipment.ilike(f"%{q}%"))
+        )
+
+    if date_from:
+        try:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(PMCompletion.completed_date >= dt_from)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(PMCompletion.completed_date < dt_to)
+        except ValueError:
+            pass
+
+    completions = query.order_by(PMCompletion.completed_date.desc()).limit(500).all()
+
+    usernames = [
+        u[0] for u in db.session.query(User.username)
+        .join(PMCompletion, PMCompletion.completed_by_id == User.id)
+        .distinct().order_by(User.username).all()
+        if u[0]
+    ]
+
+    return render_template(
+        "pm_history_all.html",
+        completions=completions,
+        usernames=usernames,
+        filters={"q": q, "user": user, "from": date_from, "to": date_to},
+    )
+
+
 # ====================== PM HISTORY ======================
 @bp.route('/history/<int:pm_id>')
 @login_required
