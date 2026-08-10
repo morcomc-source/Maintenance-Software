@@ -56,9 +56,7 @@
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
 {% if current_user.role == 'admin' or current_user.is_admin() %}
-<div class="d-flex gap-2 mb-4">
-    <button class="btn btn-outline-primary" onclick="openTab(1)">Add New PM</button>
-</div>
+
 {% endif %}
 
     <form method="get" action="/pm" class="row g-3 mb-4">
@@ -77,10 +75,18 @@
             <div class="flex-grow-1"></div>
         
             <div class="d-flex gap-3 flex-wrap">
+<div class="btn-group me-3" role="group">
+                <button type="button" class="btn btn-primary fw-bold" id="pm-btn-attention" onclick="setPMFilter('attention')">Needs Attention</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-upcoming" onclick="setPMFilter('upcoming')">Upcoming</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-completed" onclick="setPMFilter('completed')">Completed</button>
+                {% if current_user.role == 'admin' %}
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-all" onclick="setPMFilter('all')">Show All</button>
+                {% endif %}
+            </div>
 <span class="pm-overdue-legion px-3 py-2">Overdue</span>
 <span class="pm-due-soon-legion text-dark px-3 py-2">Due Today</span>
 <span class="pm-complete-legion px-3 py-2">Completed</span>
-<span class="pm-secondary-legion px-3 py-2">Normal / Future</span>
+<span class="pm-secondary-legion px-3 py-2">Upcoming</span>
 </div>
         
             <div class="flex-grow-1"></div>
@@ -108,7 +114,7 @@
                         {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
                             'pm-row-due-soon' if next_due_str == today else
                             'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
-                        <tr class="{{ row_class }}">
+                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed{% elif next_due_str == today or (next_due_str and next_due_str < today) %}attention{% else %}upcoming{% endif %}">
                             <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.frequency|default('N/A') }}</td>
@@ -141,13 +147,14 @@
         <div id="card-view" style="display: none;">
             <div class="row g-3">
                 {% for item in items %}
-                    <div class="col-12 col-md-6 col-lg-4">
-                        {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
-                        {% set next_due_str = item.next_due|string if item.next_due else '' %}
-                        {% set card_class = 'pm-card-complete' if is_completed or (item.last_done|string == today) else
-                            'pm-card-due-soon' if next_due_str == today else
-                            'pm-card-overdue' if next_due_str and next_due_str < today else
-                            'pm-card-secondary' %}
+                    {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+                    {% set next_due_str = item.next_due|string if item.next_due else '' %}
+                    {% set card_class = 'pm-card-complete' if is_completed or (item.last_done|string == today) else
+                        'pm-card-due-soon' if next_due_str == today else
+                        'pm-card-overdue' if next_due_str and next_due_str < today else
+                        'pm-card-secondary' %}
+                    {% set pm_bucket = 'completed' if (is_completed or (item.last_done|string == today)) else ('attention' if (next_due_str == today or (next_due_str and next_due_str < today)) else 'upcoming') %}
+                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{{ pm_bucket }}">
                         <div class="card h-100 {{ card_class }}">
                             <div class="card-body">
                                 <h5 class="card-title">{{ item.main_equipment|default('N/A') }}</h5>
@@ -186,8 +193,7 @@
 <div id="tab-1" class="tab-content">
 <div class="container mt-2">
     <div class="mb-3">
-        <button type="button" class="btn btn-secondary" onclick="openTab(0); resetPMForm();">← Back to PM List</button>
-    </div>
+</div>
     <h2 class="mb-4 text-center">Create New PM</h2>
     <div class="card">
         <div class="card-body">
@@ -578,4 +584,48 @@ function viewHistory(id) {
     window.location.href = `/pm/history/${id}`;
 }
 </script>
+
+<script>
+let pmFilter = 'attention'; // default: Needs Attention
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1' || params.get('tab') === '1') {
+        if (typeof openTab === 'function') openTab(1);
+    }
+});
+
+function setPMFilter(mode) {
+    pmFilter = mode;
+    ['attention', 'upcoming', 'completed', 'all'].forEach(function (m) {
+        const btn = document.getElementById('pm-btn-' + m);
+        if (!btn) return;
+        if (m === mode) {
+            btn.classList.add('btn-primary');
+            btn.classList.remove('btn-outline-primary');
+        } else {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        }
+    });
+    filterPMViews();
+}
+
+function filterPMViews() {
+    document.querySelectorAll('#pm-table tbody tr').forEach(function (row) {
+        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming';
+        row.style.display = (pmFilter === 'all' || bucket === pmFilter) ? '' : 'none';
+    });
+    document.querySelectorAll('#card-view [data-pm-bucket]').forEach(function (el) {
+        const bucket = el.getAttribute('data-pm-bucket') || 'upcoming';
+        el.style.display = (pmFilter === 'all' || bucket === pmFilter) ? '' : 'none';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    filterPMViews();
+});
+</script>
+
 {% endblock %}
