@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Work Order History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-3">← Dashboard</a>
+        <h2 class="mb-0 text-center">Work Order History</h2>
+        <p class="text-center text-muted mb-0">Completed work orders</p>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="q" class="form-control" value="{{ filters.q }}"
+                           placeholder="Equipment, ID, or description">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Completed by</label>
+                    <select name="user" class="form-select">
+                        <option value="">All users</option>
+                        {% for u in usernames %}
+                        <option value="{{ u }}" {% if filters.user == u %}selected{% endif %}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From</label>
+                    <input type="date" name="from" class="form-control" value="{{ filters.from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To</label>
+                    <input type="date" name="to" class="form-control" value="{{ filters.to }}">
+                </div>
+                <div class="col-12">
+                    <div class="d-flex gap-2" style="max-width: 320px;">
+                        <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+                        <a href="{{ url_for('workorder.history') }}" class="btn btn-outline-secondary flex-fill">Reset</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Completed work orders</strong>
+            <span class="text-muted">{{ workorders|length }} shown (max 500)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Completed</th>
+                        <th>ID</th>
+                        <th>Equipment</th>
+                        <th>Description</th>
+                        <th>Completed by</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for wo in workorders %}
+                    <tr>
+                        <td>
+                            {% if wo.completed_at %}
+                                {{ wo.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td><strong>#{{ wo.id }}</strong></td>
+                        <td>
+                            {{ wo.equipment }}
+                            {% if wo.equipment_id %}
+                            <small class="d-block text-muted">{{ wo.equipment_id }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">
+                            {% if wo.description %}
+                                {{ wo.description[:70] }}{% if wo.description|length > 70 %}…{% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ wo.completed_by.username if wo.completed_by else '—' }}</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="{{ url_for('workorder.details', wo_id=wo.id) }}">View</a>
+                            {% if current_user.role == 'admin' %}
+                            <form method="POST" action="{{ url_for('workorder.delete', wo_id=wo.id) }}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Delete work order #{{ wo.id }}? This cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No completed work orders found</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

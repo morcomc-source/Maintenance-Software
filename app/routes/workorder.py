@@ -14,33 +14,23 @@ bp = Blueprint('workorder', __name__)
 def index():
     query = request.args.get('q', '').strip()
     
+    # Main list = incomplete only (completed live on Work Order History)
+    base = WorkOrder.query.filter(WorkOrder.status != 'Completed')
+
     if query:
-        # Filter work orders by equipment name, equipment_id, or barcode
-        workorders = WorkOrder.query.filter(
+        base = base.filter(
             (WorkOrder.equipment.ilike(f'%{query}%')) |
             (WorkOrder.equipment_id.ilike(f'%{query}%'))
-        ).order_by(
-            WorkOrder.status == 'Completed',
-            (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
-            WorkOrder.priority.desc(),
-            WorkOrder.created_at.desc()
-        ).all()
-    else:
-        if current_user.role == 'admin':
-            workorders = WorkOrder.query.order_by(
-                WorkOrder.status == 'Completed',
-                (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
-                WorkOrder.priority.desc(),
-                WorkOrder.created_at.desc()
-            ).all()
-        else:
-            workorders = WorkOrder.query.filter_by(assigned_to_id=current_user.id)\
-                            .order_by(
-                                WorkOrder.status == 'Completed',
-                                (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
-                                WorkOrder.priority.desc(),
-                                WorkOrder.created_at.desc()
-                            ).all()
+        )
+
+    if current_user.role != 'admin':
+        base = base.filter_by(assigned_to_id=current_user.id)
+
+    workorders = base.order_by(
+        (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
+        WorkOrder.priority.desc(),
+        WorkOrder.created_at.desc()
+    ).all()
     
     technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
     today = datetime.now().date()
@@ -325,3 +315,71 @@ def delete(wo_id):
     db.session.commit()
     flash("Work Order deleted successfully.", "success")
     return redirect(url_for('workorder.index'))
+
+
+# ====================== WORK ORDER HISTORY (completed) ======================
+@bp.route("/history")
+@login_required
+def history():
+    """List completed work orders with filters."""
+    from datetime import datetime, timedelta
+    from sqlalchemy.orm import joinedload
+
+    q = (request.args.get("q") or "").strip()
+    user = (request.args.get("user") or "").strip()
+    date_from = (request.args.get("from") or "").strip()
+    date_to = (request.args.get("to") or "").strip()
+
+    query = WorkOrder.query.options(
+        joinedload(WorkOrder.completed_by),
+        joinedload(WorkOrder.assigned_to),
+    ).filter(WorkOrder.status == "Completed")
+
+    if current_user.role == "technician":
+        query = query.filter(
+            (WorkOrder.completed_by_id == current_user.id) |
+            (WorkOrder.assigned_to_id == current_user.id)
+        )
+
+    if user:
+        query = query.join(User, WorkOrder.completed_by_id == User.id).filter(
+            User.username.ilike(f"%{user}%")
+        )
+
+    if q:
+        query = query.filter(
+            (WorkOrder.equipment.ilike(f"%{q}%")) |
+            (WorkOrder.equipment_id.ilike(f"%{q}%")) |
+            (WorkOrder.description.ilike(f"%{q}%"))
+        )
+
+    if date_from:
+        try:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(WorkOrder.completed_at >= dt_from)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(WorkOrder.completed_at < dt_to)
+        except ValueError:
+            pass
+
+    workorders = query.order_by(WorkOrder.completed_at.desc()).limit(500).all()
+
+    usernames = [
+        u[0] for u in db.session.query(User.username)
+        .join(WorkOrder, WorkOrder.completed_by_id == User.id)
+        .filter(WorkOrder.status == "Completed")
+        .distinct().order_by(User.username).all()
+        if u[0]
+    ]
+
+    return render_template(
+        "workorder/history.html",
+        workorders=workorders,
+        usernames=usernames,
+        filters={"q": q, "user": user, "from": date_from, "to": date_to},
+    )

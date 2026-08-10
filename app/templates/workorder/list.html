@@ -85,11 +85,6 @@ td:nth-child(3), th:nth-child(3) {
     <div class="mb-4">
         <div class="row g-2">
             <div class="col-6 col-md-4">
-                <button onclick="toggleIncomplete()" class="btn btn-primary w-100 fw-bold" id="incomplete-btn">
-                    Show Completed
-                </button>
-            </div>
-            <div class="col-6 col-md-4">
                 <a href="/workorder/new" class="btn btn-success w-100 fw-bold">
                     + Create New Work Order
                 </a>
@@ -248,46 +243,7 @@ function searchWorkOrders() {
 }
 
 // Your original functions
-// Default: show incomplete only (completed hidden)
-let showCompleted = false;
 
-function toggleIncomplete() {
-    showCompleted = !showCompleted;
-    const btn = document.getElementById('incomplete-btn');
-    if (showCompleted) {
-        btn.textContent = "Show Incomplete";
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-secondary');
-    } else {
-        btn.textContent = "Show Completed";
-        btn.classList.remove('btn-secondary');
-        btn.classList.add('btn-primary');
-    }
-    filterAllViews();
-}
-
-function filterAllViews() {
-    const rows = document.querySelectorAll('#workorder-table tbody tr');
-    rows.forEach(row => {
-        const statusCell = row.children[5];
-        const status = statusCell ? statusCell.textContent.trim() : '';
-        const isCompleted = status === 'Completed';
-        // showCompleted=false → hide completed; showCompleted=true → hide non-completed
-        row.style.display = (showCompleted ? !isCompleted : isCompleted) ? 'none' : '';
-    });
-    const cards = document.querySelectorAll('.workorder-card');
-    cards.forEach(card => {
-        const statusBadge = card.querySelector('.badge');
-        const status = statusBadge ? statusBadge.textContent.trim() : '';
-        const isCompleted = status === 'Completed';
-        card.style.display = (showCompleted ? !isCompleted : isCompleted) ? 'none' : 'block';
-    });
-}
-
-// Apply default filter on load
-document.addEventListener('DOMContentLoaded', function () {
-    filterAllViews();
-});
 function deleteWorkOrder(woId) {
     if (confirm("⚠️ Delete this work order permanently? This cannot be undone!")) {
         fetch(`/workorder/delete/${woId}`, { method: 'POST' })
