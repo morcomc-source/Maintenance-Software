@@ -3,22 +3,26 @@
 
 {% block content %}
 <style>
-#scanner-preview {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.8);
-    z-index: 2000;
+#scanner-overlay {
     display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.95);
+    z-index: 9999;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
 }
-#scanner-preview video {
-    max-width: 90%;
-    max-height: 90%;
+#scanner-overlay .scanner-box {
+    width: min(90vw, 480px);
+    text-align: center;
+}
+#scanner-preview {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    min-height: 240px;
 }
 </style>
 
@@ -103,9 +107,57 @@
 </div>
 
 <!-- Scanner overlay -->
-<div id="scanner-preview"></div>
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+// Global scanner (same pattern as Equipment list)
+let html5QrcodeScanner = null;
+
+function startScanning() {
+    document.getElementById("scanner-overlay").style.display = "flex";
+    if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+    }
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            const searchInput = document.getElementById('part-search');
+            if (searchInput) {
+                searchInput.value = decodedText;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        },
+        (error) => {}
+    ).catch(err => {
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+
+function stopScanning() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            document.getElementById("scanner-overlay").style.display = "none";
+        }).catch(() => {
+            document.getElementById("scanner-overlay").style.display = "none";
+        });
+    } else {
+        document.getElementById("scanner-overlay").style.display = "none";
+    }
+}
+</script>
+
 <script>
 (function () {
     const searchInput = document.getElementById('part-search');
@@ -192,50 +244,19 @@
         if (!scannerActive) return;
         html5QrcodeScanner.stop().then(() => {
             scannerActive = false;
-            document.getElementById('scanner-preview').style.display = 'none';
+            document.getElementById('scanner-overlay').style.display = 'none';
         }).catch(() => {
             scannerActive = false;
-            document.getElementById('scanner-preview').style.display = 'none';
+            document.getElementById('scanner-overlay').style.display = 'none';
         });
     }
 
-    function startScanning() {
-        if (typeof Html5Qrcode === 'undefined') {
-            alert('Scanner library not loaded. Check your connection.');
-            return;
-        }
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5Qrcode('scanner-preview');
-        }
-        const config = {
-            fps: 20,
-            qrbox: { width: 600, height: 100 },
-            formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
-        };
-        document.getElementById('scanner-preview').style.display = 'flex';
-        scannerActive = true;
-        html5QrcodeScanner.start(
-            { facingMode: 'environment' },
-            config,
-            (decodedText) => {
-                searchInput.value = decodedText;
-                stopScanning();
-                doSearch(decodedText);
-            },
-            () => {}
-        ).catch(err => {
-            console.error('Scan failed:', err);
-            alert('Could not start camera: ' + (err.message || err));
-            stopScanning();
-        });
-    }
+    // startScanning is global (equipment style)
 
     document.getElementById('scan-btn').addEventListener('click', startScanning);
 
     // Tap outside scanner to close
-    document.getElementById('scanner-preview').addEventListener('click', function (e) {
-        if (e.target === this) stopScanning();
-    });
+
 
     // Confirm Take modal
     document.getElementById('submit-btn').addEventListener('click', function () {

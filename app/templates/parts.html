@@ -102,24 +102,9 @@
         #table-view { display: none !important; }
         #card-view { display: block !important; }
     }
-    #scanner-preview {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.8);
-        z-index: 2000; /* High z-index to ensure it's on top */
-        display: none;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
+    
  
-    #scanner-preview video {
-        max-width: 90%;
-        max-height: 90%;
-    }
+    
 .center-text {
 text-align: center;
 }
@@ -488,7 +473,13 @@ text-align: center;
 </div>
 {% endif %}
 <!-- Scanner Preview -->
-<div id="scanner-preview" class="mt-4 text-center" style="display: none;"></div>
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
 <!-- Delete Modal -->
 <div class="modal fade" id="delete-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -553,7 +544,7 @@ text-align: center;
 <script>
     let partsData = {{ items | tojson | safe }};
     let scannerActive = false;
-    let html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+    let html5QrcodeScanner = null;
     // Diagnostic: Check if library is loaded properly
     if (typeof Html5QrcodeSupportedFormats === 'undefined') {
         console.error('Html5QrcodeSupportedFormats is undefined. Library may not have loaded correctly.');
@@ -586,53 +577,53 @@ text-align: center;
         }
     }
     function startScanning(fieldId) {
-        const config = {
-            fps: 20, // Increased for better detection
-            qrbox: { width: 600, height: 100 }, // Larger box for longer barcodes
-            formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128] // Strict Code128 only
-        };
-        // Simplified constraints - removed advanced to avoid compatibility issues
-        const videoConstraints = { facingMode: "environment" };
-        // Show preview before starting
-        document.getElementById("scanner-preview").style.display = "flex"; // Changed to flex for better centering
+        window._scanFieldId = fieldId;
+        document.getElementById("scanner-overlay").style.display = "flex";
+        // Create fresh scanner each time (same as Equipment)
+        html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+        const config = { fps: 20, qrbox: { width: 500, height: 100 } };
         scannerActive = true;
         html5QrcodeScanner.start(
-            videoConstraints,
+            { facingMode: "environment" },
             config,
             (decodedText) => {
-                console.log('Scan success:', decodedText);
-                document.getElementById(fieldId).value = decodedText;
                 stopScanning();
-                if (fieldId === "barcode-input") {
-                    document.getElementById('barcode-image').src = '/parts/generate_barcode?code=' + encodeURIComponent(decodedText) + '&t=' + new Date().getTime();
-                    document.getElementById('barcode-image').style.display = 'block';
-                    document.getElementById('export-pdf').style.display = 'block';
-                } else if (fieldId === "search-input") {
-                    document.getElementById(fieldId).form.submit(); // Automatically submit the search form after scanning
+                const fid = window._scanFieldId || fieldId;
+                const el = document.getElementById(fid);
+                if (el) el.value = decodedText;
+                if (fid === "barcode-input") {
+                    const img = document.getElementById('barcode-image');
+                    if (img) {
+                        img.src = '/parts/generate_barcode?code=' + encodeURIComponent(decodedText) + '&t=' + new Date().getTime();
+                        img.style.display = 'block';
+                    }
+                    const exp = document.getElementById('export-pdf');
+                    if (exp) exp.style.display = 'block';
+                } else if (fid === "search-input" && el && el.form) {
+                    el.form.submit();
                 }
             },
-            (errorMessage) => {
-                console.warn('Scan frame error:', errorMessage);
-                // No alert here to avoid spam
-            }
+            (error) => {}
         ).catch(err => {
-            console.error('Scan init failed:', err);
-            // Improved error handling for undefined or non-Error errs
-            const errorMsg = err ? (err.message || JSON.stringify(err) || 'Unknown error') : 'Undefined error';
-            alert('Scanner init error: ' + errorMsg + '. Check camera permissions, try a different browser, or restart the app.');
-            stopScanning(); // Ensure cleanup
+            console.error(err);
+            alert("Camera failed to start.");
+            stopScanning();
         });
     }
     function stopScanning() {
-        if (scannerActive) {
+        if (html5QrcodeScanner) {
             html5QrcodeScanner.stop().then(() => {
-                document.getElementById("scanner-preview").style.display = "none";
+                document.getElementById("scanner-overlay").style.display = "none";
                 scannerActive = false;
-            }).catch(err => {
-                console.error('Stop failed:', err);
+                html5QrcodeScanner = null;
+            }).catch(() => {
+                document.getElementById("scanner-overlay").style.display = "none";
+                scannerActive = false;
+                html5QrcodeScanner = null;
             });
         } else {
-            document.getElementById("scanner-preview").style.display = "none";
+            document.getElementById("scanner-overlay").style.display = "none";
+            scannerActive = false;
         }
     }
     document.addEventListener('DOMContentLoaded', () => {

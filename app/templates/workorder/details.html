@@ -94,7 +94,6 @@
                         <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
                     </div>
                     
-                    <div id="scanner-preview" style="display: none; margin: 10px 0; background:#000; padding:10px; border-radius:8px; min-height: 320px;"></div>
                     <div id="part-results" class="list-group mt-2" style="max-height: 200px; overflow-y:auto; display:none;"></div>
                     <ul id="parts-list" class="list-group mt-3"></ul>
                 </div>
@@ -140,6 +139,15 @@
   </div>
 </div>
 
+
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10050; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
+
 <script>
 let currentWOId = null;
 let partsUsed = [];
@@ -153,14 +161,18 @@ function showCompleteModal(woId) {
     new bootstrap.Modal(document.getElementById('completeModal')).show();
 }
 
-// Scanner
+// Scanner (equipment-style full overlay)
 function startScanning() {
-    document.getElementById("scanner-preview").style.display = "block";
-
+    var overlay = document.getElementById("scanner-overlay");
+    if (!overlay) {
+        alert("Scanner overlay missing");
+        return;
+    }
+    document.body.appendChild(overlay);
+    overlay.style.display = "flex";
+    overlay.style.zIndex = "20000";
     html5QrcodeScanner = new Html5Qrcode("scanner-preview");
-
-    const config = { fps: 20, qrbox: { width: 600, height: 100 } };
-
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
     html5QrcodeScanner.start(
         { facingMode: "environment" },
         config,
@@ -171,19 +183,27 @@ function startScanning() {
         },
         (error) => {}
     ).catch(err => {
+        console.error(err);
         alert("Camera failed to start.");
         stopScanning();
     });
 }
-
 function stopScanning() {
     if (html5QrcodeScanner) {
         html5QrcodeScanner.stop().then(() => {
-            document.getElementById("scanner-preview").style.display = "none";
+            var overlay = document.getElementById("scanner-overlay");
+            if (overlay) overlay.style.display = "none";
+            html5QrcodeScanner = null;
+        }).catch(() => {
+            var overlay = document.getElementById("scanner-overlay");
+            if (overlay) overlay.style.display = "none";
+            html5QrcodeScanner = null;
         });
+    } else {
+        var overlay = document.getElementById("scanner-overlay");
+        if (overlay) overlay.style.display = "none";
     }
 }
-
 // Search Parts
 function searchParts(query) {
     const resultsDiv = document.getElementById('part-results');

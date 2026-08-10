@@ -23,9 +23,12 @@
   overflow: hidden;
 }
 </style>
-<div id="pm-scanner-overlay">
-  <div id="pm-scanner-preview"></div>
-  <button type="button" class="btn btn-light mt-3" onclick="stopScanning()">Close Camera</button>
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="pm-scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="pm-scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
 </div>
 
 {% endblock %}
@@ -358,10 +361,7 @@ function startScanning() {
     html5QrcodeScanner = null;
   }
   html5QrcodeScanner = new Html5Qrcode("pm-scanner-preview");
-  const config = { fps: 15, qrbox: { width: 280, height: 160 } };
-  if (typeof Html5QrcodeSupportedFormats !== "undefined") {
-    config.formatsToSupport = [Html5QrcodeSupportedFormats.CODE_128];
-  }
+  const config = { fps: 20, qrbox: { width: 500, height: 100 } };
   html5QrcodeScanner.start(
     { facingMode: "environment" },
     config,
@@ -397,29 +397,12 @@ function stopScanning() {
 }
 </script>
 
-<style>
-#pm-scanner-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.9);
-  z-index: 10000;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-}
-#pm-scanner-preview {
-  width: min(92vw, 480px);
-  min-height: 300px;
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
-}
-</style>
-<div id="pm-scanner-overlay">
-  <div id="pm-scanner-preview"></div>
-  <button type="button" class="btn btn-light mt-3" onclick="stopScanning()">Close Camera</button>
+
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="pm-scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="pm-scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
 </div>
 {% endblock %}
