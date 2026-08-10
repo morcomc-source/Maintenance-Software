@@ -567,3 +567,18 @@ def history():
             "to": date_to,
         }
     )
+
+
+@bp.route("/history/delete/<int:txn_id>", methods=["POST"])
+@login_required
+def history_delete(txn_id):
+    """Admin only: delete a movement history record."""
+    if not current_user.is_admin():
+        flash("Only admins can delete history records.", "danger")
+        return redirect(url_for("parts.history"))
+
+    txn = PartTransaction.query.get_or_404(txn_id)
+    db.session.delete(txn)
+    db.session.commit()
+    flash("History record deleted.", "success")
+    return redirect(request.referrer or url_for("parts.history"))
