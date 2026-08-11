@@ -193,17 +193,13 @@ def delete_section(id):
 def add_shelf():
     code = (request.form.get('code') or '').strip().upper()
     name = (request.form.get('name') or '').strip() or None
-    row_id = request.form.get('row_id')
     if not code:
         flash("Shelf code is required.", "danger")
-        return redirect(url_for('settings.parts_locations'))
-    if not row_id:
-        flash("Select a Rack for this shelf.", "danger")
         return redirect(url_for('settings.parts_locations'))
     if PartShelf.query.filter_by(code=code).first():
         flash("That shelf code already exists.", "warning")
         return redirect(url_for('settings.parts_locations'))
-    db.session.add(PartShelf(code=code, name=name, row_id=int(row_id)))
+    db.session.add(PartShelf(code=code, name=name, row_id=None))
     db.session.commit()
     flash(f"Shelf '{code}' added.", "success")
     return redirect(url_for('settings.parts_locations'))
@@ -225,17 +221,13 @@ def delete_shelf(id):
 def add_slot():
     code = (request.form.get('code') or '').strip().upper()
     name = (request.form.get('name') or '').strip() or None
-    shelf_id = request.form.get('shelf_id')
     if not code:
         flash("Position code is required.", "danger")
-        return redirect(url_for('settings.parts_locations'))
-    if not shelf_id:
-        flash("Select a Shelf for this position.", "danger")
         return redirect(url_for('settings.parts_locations'))
     if PartSlot.query.filter_by(code=code).first():
         flash("That position code already exists.", "warning")
         return redirect(url_for('settings.parts_locations'))
-    db.session.add(PartSlot(code=code, name=name, shelf_id=int(shelf_id)))
+    db.session.add(PartSlot(code=code, name=name, shelf_id=None))
     db.session.commit()
     flash(f"Position '{code}' added.", "success")
     return redirect(url_for('settings.parts_locations'))
@@ -460,11 +452,13 @@ def delete_chest(id):
 @login_required
 def add_drawer():
     code = (request.form.get('code') or '').strip().upper()
-    chest_id = request.form.get('chest_id')
-    if not code or not chest_id:
-        flash("Chest and drawer code are required.", "danger")
+    if not code:
+        flash("Drawer code is required.", "danger")
         return redirect(url_for('settings.parts_locations'))
-    db.session.add(PartDrawer(code=code, chest_id=int(chest_id)))
+    if PartDrawer.query.filter_by(code=code).first():
+        flash("That drawer code already exists.", "warning")
+        return redirect(url_for('settings.parts_locations'))
+    db.session.add(PartDrawer(code=code, chest_id=None))
     db.session.commit()
     flash(f"Drawer '{code}' added.", "success")
     return redirect(url_for('settings.parts_locations'))

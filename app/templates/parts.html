@@ -421,11 +421,17 @@ text-align: center;
                     <div class="col-md-4">
                         <select name="loc_cabinet_shelf" id="loc-cabinet-shelf" class="form-select">
                             <option value="">Shelf</option>
+                            {% for s in shelves %}
+                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
                         <select name="loc_cabinet_pos" id="loc-cabinet-pos" class="form-select">
                             <option value="">Position</option>
+                            {% for s in slots %}
+                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -446,11 +452,17 @@ text-align: center;
                     <div class="col-md-4">
                         <select name="loc_drawer" id="loc-drawer" class="form-select">
                             <option value="">Drawer</option>
+                            {% for d in drawers %}
+                            <option value="{{ d.code }}">{{ d.code }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
                         <select name="loc_drawer_pos" id="loc-drawer-pos" class="form-select">
                             <option value="">Position</option>
+                            {% for s in slots %}
+                            <option value="{{ s.code }}">{{ s.code }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -1150,16 +1162,11 @@ function updateLocationPreview() {
 
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('storage-type')?.addEventListener('change', showStorageGroup);
-    document.getElementById('loc-row')?.addEventListener('change', fillSectionsForRow);
     document.getElementById('main-location')?.addEventListener('change', fillSublocations);
-
-    document.getElementById('loc-cabinet')?.addEventListener('change', fillCabinetShelves);
-    document.getElementById('loc-cabinet-shelf')?.addEventListener('change', fillCabinetPositions);
-
-    document.getElementById('loc-chest')?.addEventListener('change', fillDrawers);
-    document.getElementById('loc-drawer')?.addEventListener('change', fillDrawerPositions);
-
-    ['loc-section','loc-shelf','loc-slot','loc-cabinet-pos','loc-drawer-pos'].forEach(id => {
+    // Independent lists — any change just refreshes the bin preview
+    ['loc-row','loc-shelf','loc-slot',
+     'loc-cabinet','loc-cabinet-shelf','loc-cabinet-pos',
+     'loc-chest','loc-drawer','loc-drawer-pos'].forEach(function (id) {
         document.getElementById(id)?.addEventListener('change', updateLocationPreview);
     });
 });
