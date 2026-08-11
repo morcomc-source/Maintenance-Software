@@ -66,7 +66,7 @@
                     <tr>
                         <td>
                             {% if c.completed_date %}
-                                {{ c.completed_date.strftime('%Y-%m-%d %H:%M') }}
+                                {{ c.completed_date|localtime }}
                             {% else %}—{% endif %}
                         </td>
                         <td>

@@ -66,7 +66,7 @@
                     <tr>
                         <td>
                             {% if wo.completed_at %}
-                                {{ wo.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                                {{ wo.completed_at|localtime }}
                             {% else %}—{% endif %}
                         </td>
                         <td><strong>#{{ wo.id }}</strong></td>
