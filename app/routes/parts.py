@@ -88,9 +88,11 @@ def generate_barcode_pdf(id):
     y -= 0.25 * inch
     c.drawString(1 * inch, y, f"Max Stock: {part.max_stock}")
     y -= 0.25 * inch
-    c.drawString(1 * inch, y, f"Location: {part.location or 'N/A'}")
+    c.drawString(1 * inch, y, f"Main Location: {part.location or 'N/A'}")
     y -= 0.25 * inch
-    c.drawString(1 * inch, y, f"Sublocation: {part.sublocation or 'N/A'}")
+    c.drawString(1 * inch, y, f"Sub Location: {part.sublocation or 'N/A'}")
+    y -= 0.25 * inch
+    c.drawString(1 * inch, y, f"Part Location: {part.bin_location or 'N/A'}")
     if code:
         barcode = code128.Code128(code, barHeight=20*mm, barWidth=0.3*mm, humanReadable=True)
         barcode.drawOn(c, (width / 2 - 50*mm), 1 * inch)

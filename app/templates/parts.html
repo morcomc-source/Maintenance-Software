@@ -172,6 +172,7 @@ text-align: center;
 
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
+<a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
 {% if current_user.is_admin() %}
 <div class="d-flex gap-2 mb-4">
     <button class="btn btn-outline-primary" onclick="clearPartForm(); openTab(1)" onclick="clearPartForm(); openTab(1)">Add New Part</button>
@@ -207,12 +208,11 @@ text-align: center;
                         <th class="center-text">Quantity</th>
                         <th class="center-text">Min Stock</th>
                         <th class="center-text">Max Stock</th>
+                        <th class="center-text">Main Location</th>
+                        <th class="center-text">Sublocation</th>
+                        <th class="center-text">Part Location</th>
                         {% if current_user.is_admin() %}
-                        
-                    <th class="center-text">Main Location</th>
-                    <th class="center-text">Sublocation</th>
-                    <th class="center-text">Part Location</th>
-                    <th class="center-text">Actions</th>
+                        <th class="center-text">Actions</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -233,10 +233,10 @@ text-align: center;
                             <td class="center-text" data-label="Quantity">{{ qty_val }}</td>
                             <td class="center-text" data-label="Min Stock">{{ item.min_stock|default('0') }}</td>
                             <td class="center-text" data-label="Max Stock">{{ item.max_stock|default('999') }}</td>
-                            {% if current_user.is_admin() %}
                             <td class="center-text" data-label="Main Location">{{ item.location or "—" }}</td>
                             <td class="center-text" data-label="Sublocation">{{ item.sublocation or "—" }}</td>
                             <td class="center-text" data-label="Part Location">{{ item.bin_location or "—" }}</td>
+                            {% if current_user.is_admin() %}
                             <td class="center-text" data-label="Actions">
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
@@ -273,8 +273,9 @@ text-align: center;
                                 <p class="mb-1"><strong>Part #:</strong> {{ item.part_number|default('N/A') }}</p>
                                 <p class="mb-1"><strong>Qty:</strong> {{ qty_val }}</p>
                                 <p class="mb-1"><strong>Min:</strong> {{ item.min_stock|default('0') }} | <strong>Max:</strong> {{ item.max_stock|default('999') }}</p>
-                                <p class="mb-1"><strong>Location:</strong> {{ item.location|default('N/A') }}</p>
-                                <p class="mb-1"><strong>Sublocation:</strong> {{ item.sublocation|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Main Location:</strong> {{ item.location or "—" }}</p>
+                                <p class="mb-1"><strong>Sub Location:</strong> {{ item.sublocation or "—" }}</p>
+                                <p class="mb-1"><strong>Part Location:</strong> {{ item.bin_location or "—" }}</p>
                                 {% if current_user.is_admin() %}
                                 <div class="mt-2 d-flex flex-wrap gap-1">
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
