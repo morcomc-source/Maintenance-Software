@@ -17,13 +17,13 @@
     <div class="card-body">
       <div class="row">
         <div class="col-md-6">
-          <p><strong>Completed:</strong> {{ completion.completed_date.strftime('%Y-%m-%d %H:%M') if completion.completed_date else '—' }}</p>
+          <p><strong>Completed:</strong> {{ completion.completed_date|localtime if completion.completed_date else '—' }}</p>
           <p><strong>Completed By:</strong> {{ completion.completed_by.username if completion.completed_by else 'Unknown' }}</p>
           <p><strong>Frequency:</strong> {{ pm.frequency or '—' }}</p>
         </div>
         <div class="col-md-6">
-          <p><strong>Started:</strong> {{ completion.started_at.strftime('%Y-%m-%d %H:%M') if completion.started_at else '—' }}</p>
-          <p><strong>Paused:</strong> {{ completion.paused_at.strftime('%Y-%m-%d %H:%M') if completion.paused_at else '—' }}</p>
+          <p><strong>Started:</strong> {{ completion.started_at|localtime if completion.started_at else '—' }}</p>
+          <p><strong>Paused:</strong> {{ completion.paused_at|localtime if completion.paused_at else '—' }}</p>
           <p><strong>Active work time:</strong>
             {% if completion.total_work_seconds %}
               {{ completion.total_work_seconds // 3600 }}h {{ (completion.total_work_seconds % 3600) // 60 }}m {{ completion.total_work_seconds % 60 }}s

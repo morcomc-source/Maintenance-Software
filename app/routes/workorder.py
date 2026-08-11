@@ -309,12 +309,12 @@ def delete(wo_id):
     if current_user.role != 'admin':
         flash("Only admins can delete work orders.", "danger")
         return redirect(url_for('workorder.index'))
-   
+
     wo = WorkOrder.query.get_or_404(wo_id)
     db.session.delete(wo)
     db.session.commit()
     flash("Work Order deleted successfully.", "success")
-    return redirect(url_for('workorder.index'))
+    return redirect(request.referrer or url_for('workorder.history'))
 
 
 # ====================== WORK ORDER HISTORY (completed) ======================

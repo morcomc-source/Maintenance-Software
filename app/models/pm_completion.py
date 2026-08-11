@@ -8,7 +8,7 @@ class PMCompletion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pm_id = db.Column(db.Integer, db.ForeignKey("pm.id"), nullable=False)
 
-    completed_date = db.Column(db.DateTime, default=datetime.now)
+    completed_date = db.Column(db.DateTime, default=datetime.utcnow)
     completed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     notes = db.Column(db.Text, nullable=True)

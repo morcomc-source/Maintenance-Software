@@ -356,6 +356,7 @@ def complete_pm(id):
     completion = PMCompletion(
         pm_id=pm.id,
         completed_by_id=current_user.id,
+        completed_date=now,
         notes=notes.strip() if notes else None,
         checklist_results=checklist,
         parts_used=parts_used if parts_used else None,
@@ -625,8 +626,9 @@ def delete_history(completion_id):
         flash("Only admins can delete history records.", "danger")
         return redirect(url_for('pm.index'))
     completion = PMCompletion.query.get_or_404(completion_id)
-    pm_id = completion.pm_id
     db.session.delete(completion)
     db.session.commit()
     flash("History record deleted.", "success")
-    return redirect(url_for('pm.history', pm_id=pm_id))
+    # Stay on the page the user was on (main history, per-PM history, etc.)
+    return redirect(request.referrer or url_for('pm.history_all'))
+

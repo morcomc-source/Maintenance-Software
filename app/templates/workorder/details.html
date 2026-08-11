@@ -7,6 +7,12 @@
 {% block content %}
 
 <div class="container mt-4">
+    <div class="mb-3">
+        <a href="{{ url_for('workorder.history') if wo.status == 'Completed' else url_for('workorder.index') }}"
+           class="btn btn-secondary btn-sm">
+            ← {{ 'Back to Work Order History' if wo.status == 'Completed' else 'Back to Work Orders' }}
+        </a>
+    </div>
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">Work Order #{{ wo.id }} - {{ wo.equipment }}</h4>
@@ -73,8 +79,8 @@
 </div>
 
 <!-- Complete Modal (unchanged) -->
-<div class="modal fade" id="completeModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Complete Work Order #{{ wo.id }}</h5>
@@ -148,12 +154,105 @@
     </div>
 </div>
 
+
+<!-- Quantity used modal -->
+<div class="modal fade" id="qty-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Quantity Used</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Part: <strong id="qty-part-name"></strong></p>
+        <label class="form-label">How many were used?</label>
+        <input type="number" id="qty-input" class="form-control" min="1" value="1">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="qty-confirm-yes">Add Part</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Success modal -->
+<div class="modal fade" id="success-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="success-modal-title">Done</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="success-modal-body">Action completed.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="success-modal-ok">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Start -->
+<div class="modal fade" id="confirm-start-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Start</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Start this work order and mark it <strong>In Progress</strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="confirm-start-yes">Yes, Start</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Pause -->
+<div class="modal fade" id="confirm-pause-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Pause Work Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Why is this work order being paused?</p>
+        <textarea id="pause-reason-input" class="form-control" rows="3" placeholder="Pause reason (required)"></textarea>
+        <div id="pause-reason-error" class="text-danger small mt-2" style="display:none;">Please enter a reason before pausing.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" id="confirm-pause-yes">Yes, Pause</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let currentWOId = null;
 let partsUsed = [];
 let html5QrcodeScanner = null;
 
 // Show Modal
+
+function showSuccessModal(title, message, onOk) {
+    document.getElementById("success-modal-title").textContent = title;
+    document.getElementById("success-modal-body").textContent = message;
+    document.getElementById("success-modal-ok").onclick = function () {
+        var m = bootstrap.Modal.getInstance(document.getElementById("success-modal"));
+        if (m) m.hide();
+        if (typeof onOk === "function") onOk();
+    };
+    new bootstrap.Modal(document.getElementById("success-modal")).show();
+}
+
 function showCompleteModal(woId) {
     currentWOId = woId;
     partsUsed = [];
@@ -237,15 +336,21 @@ function searchParts(query) {
 
 // Add Part after selecting or scanning
 function addScannedPart(partName) {
-    const qty = prompt(`Part: ${partName}\n\nHow many were used?`, "1");
-    if (qty && qty.trim() !== "") {
-        const quantity = parseInt(qty);
-        if (!isNaN(quantity) && quantity > 0) {
-            partsUsed.push({ name: partName, quantity: quantity });
-            renderPartsList();
-            document.getElementById('part-search').value = '';
+    document.getElementById("qty-part-name").textContent = partName;
+    document.getElementById("qty-input").value = "1";
+    document.getElementById("qty-confirm-yes").onclick = function () {
+        var quantity = parseInt(document.getElementById("qty-input").value, 10);
+        if (isNaN(quantity) || quantity <= 0) {
+            alert("Enter a valid quantity.");
+            return;
         }
-    }
+        var modal = bootstrap.Modal.getInstance(document.getElementById("qty-modal"));
+        if (modal) modal.hide();
+        partsUsed.push({ name: partName, quantity: quantity });
+        renderPartsList();
+        document.getElementById("part-search").value = "";
+    };
+    new bootstrap.Modal(document.getElementById("qty-modal")).show();
 }
 
 function renderPartsList() {
@@ -280,8 +385,9 @@ function completeWorkOrder() {
     .then(data => {
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('completeModal')).hide();
-            alert("🎉 Work Order Completed!");
-            window.location.href = "{{ url_for('workorder.index') }}";
+            showSuccessModal("Work Order Completed", "This work order has been completed successfully.", function () {
+                window.location.href = "{{ url_for('workorder.index') }}";
+            });
         } else {
             alert("Error: " + (data.error || "Unknown error"));
         }
@@ -289,45 +395,53 @@ function completeWorkOrder() {
     .catch(() => alert("Request failed."));
 }
 function markInProgress(woId) {
-    if (confirm("Mark this work order as In Progress?")) {
-        fetch(`/workorder/in_progress/${woId}`, { 
-            method: 'POST' 
-        })
-        .then(r => r.json())
-        .then(data => {
+    document.getElementById("confirm-start-yes").onclick = function () {
+        var modal = bootstrap.Modal.getInstance(document.getElementById("confirm-start-modal"));
+        if (modal) modal.hide();
+        fetch("/workorder/in_progress/" + woId, { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
             if (data.success) {
-                alert("🚧 Marked as In Progress!");
-                window.location.href = "{{ url_for('workorder.index') }}";  // Return to main list
+                window.location.href = "{{ url_for('workorder.index') }}";
             } else {
                 alert("Error: " + (data.error || "Unknown"));
             }
         })
-        .catch(() => alert("Request failed."));
-    }
+        .catch(function () { alert("Request failed."); });
+    };
+    new bootstrap.Modal(document.getElementById("confirm-start-modal")).show();
+}
+function pauseWorkOrder(woId) {
+    var input = document.getElementById("pause-reason-input");
+    if (input) input.value = "";
+    var err = document.getElementById("pause-reason-error");
+    if (err) err.style.display = "none";
+    document.getElementById("confirm-pause-yes").onclick = function () {
+        var reason = (document.getElementById("pause-reason-input").value || "").trim();
+        if (!reason) {
+            var err = document.getElementById("pause-reason-error");
+            if (err) err.style.display = "block";
+            return;
+        }
+        var modal = bootstrap.Modal.getInstance(document.getElementById("confirm-pause-modal"));
+        if (modal) modal.hide();
+        fetch("/workorder/pause/" + woId, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                window.location.href = "{{ url_for('workorder.index') }}";
+            } else {
+                alert(data.error || "Could not pause.");
+            }
+        })
+        .catch(function () { alert("Request failed."); });
+    };
+    new bootstrap.Modal(document.getElementById("confirm-pause-modal")).show();
 }
 
-function pauseWorkOrder(woId) {
-    const reason = prompt("Why is this work order being paused?");
-    if (reason === null) return;
-    if (!reason.trim()) {
-        alert("A pause reason is required.");
-        return;
-    }
-    fetch(`/workorder/pause/${woId}`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ reason: reason.trim() })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            alert("⏸️ Work order set to On Hold.");
-            window.location.href = "{{ url_for('workorder.index') }}";
-        } else {
-            alert(data.error || "Could not pause.");
-        }
-    })
-    .catch(() => alert("Request failed."));
-}
 </script>
 {% endblock %}

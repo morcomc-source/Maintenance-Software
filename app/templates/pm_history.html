@@ -6,7 +6,7 @@
     <h2 class="mb-0">{{ title }}</h2>
     <div>
       <a href="{{ url_for('pm.details', id=pm.id) }}" class="btn btn-outline-primary btn-sm">PM Details</a>
-      <a href="{{ url_for('pm.index') }}" class="btn btn-secondary btn-sm">← Back to PM List</a>
+      <a href="{{ url_for('pm.history_all') }}" class="btn btn-secondary btn-sm">← Back to PM History</a>
     </div>
   </div>
 
@@ -30,7 +30,7 @@
             {% for c in completions %}
             <tr style="cursor:pointer" onclick="window.location='{{ url_for('pm.history_detail', completion_id=c.id) }}'">
               <td>
-                <strong>{{ c.completed_date.strftime('%Y-%m-%d %H:%M') if c.completed_date else '—' }}</strong>
+                <strong>{{ c.completed_date|localtime if c.completed_date else '—' }}</strong>
               </td>
               <td>{{ c.completed_by.username if c.completed_by else 'Unknown' }}</td>
               <td class="text-muted">
@@ -43,9 +43,7 @@
               <td class="text-end" onclick="event.stopPropagation()">
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pm.history_detail', completion_id=c.id) }}">View</a>
                 {% if current_user.role == 'admin' %}
-                <form method="POST" action="{{ url_for('pm.delete_history', completion_id=c.id) }}" class="d-inline" onsubmit="return confirm('Delete this history record?');">
-                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                </form>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="showDeleteHistoryConfirm('{{ url_for('pm.delete_history', completion_id=c.id) }}')">Delete</button>
                 {% endif %}
               </td>
             </tr>
@@ -59,4 +57,33 @@
     </div>
   </div>
 </div>
+
+<!-- Confirm Delete History -->
+<div class="modal fade" id="delete-history-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this history record? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="delete-history-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function showDeleteHistoryConfirm(url) {
+  var form = document.getElementById("delete-history-form");
+  form.action = url;
+  new bootstrap.Modal(document.getElementById("delete-history-modal")).show();
+}
+</script>
+
 {% endblock %}

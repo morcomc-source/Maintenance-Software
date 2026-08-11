@@ -86,11 +86,8 @@
                             <a class="btn btn-sm btn-outline-primary"
                                href="{{ url_for('workorder.details', wo_id=wo.id) }}">View</a>
                             {% if current_user.role == 'admin' %}
-                            <form method="POST" action="{{ url_for('workorder.delete', wo_id=wo.id) }}"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Delete work order #{{ wo.id }}? This cannot be undone.');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Del</button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="showDeleteWOConfirm('{{ url_for('workorder.delete', wo_id=wo.id) }}', {{ wo.id }})">Delete</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -104,4 +101,33 @@
         </div>
     </div>
 </div>
+
+<!-- Confirm Delete Work Order -->
+<div class="modal fade" id="delete-wo-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete work order <strong id="delete-wo-id-label"></strong>? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="delete-wo-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function showDeleteWOConfirm(url, woId) {
+  document.getElementById("delete-wo-form").action = url;
+  document.getElementById("delete-wo-id-label").textContent = "#" + woId;
+  new bootstrap.Modal(document.getElementById("delete-wo-modal")).show();
+}
+</script>
+
 {% endblock %}
