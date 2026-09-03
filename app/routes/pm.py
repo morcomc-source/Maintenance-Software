@@ -99,6 +99,11 @@ def index():
                     pm.checklist = checklist
                     pm.assigned_user_id = int(assigned_user_id) if assigned_user_id else None
                     db.session.commit()
+                    try:
+                        from app.notify import notify_pm_saved
+                        notify_pm_saved(pm, created=False)
+                    except Exception as notify_err:
+                        print("Slack notify warning:", notify_err)
                     flash("PM updated.", "success")
             except:
                 flash("Invalid ID", "danger")
@@ -115,6 +120,11 @@ def index():
                 )
                 db.session.add(new_pm)
                 db.session.commit()
+                try:
+                    from app.notify import notify_pm_saved
+                    notify_pm_saved(new_pm, created=True)
+                except Exception as notify_err:
+                    print("Slack notify warning:", notify_err)
                 flash("PM added.", "success")
             else:
                 flash("Name is required.", "danger")
@@ -386,6 +396,11 @@ def complete_pm(id):
             pm.next_due = today + delta
 
     db.session.commit()
+    try:
+        from app.notify import notify_pm_completed
+        notify_pm_completed(pm, by_name=current_user.username)
+    except Exception as notify_err:
+        print("Slack notify warning:", notify_err)
     return jsonify({'success': True})
 
 

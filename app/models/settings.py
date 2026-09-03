@@ -173,3 +173,11 @@ class PartDrawerPosition(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     def __repr__(self):
         return f'<PartDrawerPosition {self.code}>'
+
+
+class AppSetting(db.Model):
+    __tablename__ = 'app_settings'
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    def __repr__(self):
+        return f'<AppSetting {self.key}>'

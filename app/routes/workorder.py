@@ -96,6 +96,11 @@ def create():
     try:
         db.session.add(new_wo)
         db.session.commit()
+        try:
+            from app.notify import notify_workorder_created
+            notify_workorder_created(new_wo)
+        except Exception as notify_err:
+            print("Slack notify warning:", notify_err)
         flash("✅ Work Order created successfully!", "success")
         return redirect(url_for('workorder.index'))
     except Exception as e:
@@ -116,6 +121,12 @@ def assign(wo_id):
     wo.assigned_at = datetime.utcnow()
     wo.status = "Assigned" if assigned_to_id else "Open"
     db.session.commit()
+    if assigned_to_id:
+        try:
+            from app.notify import notify_workorder_assigned
+            notify_workorder_assigned(wo)
+        except Exception as notify_err:
+            print("Slack notify warning:", notify_err)
     return jsonify({'success': True})
 
 
@@ -265,6 +276,11 @@ def complete(wo_id):
         wo.pause_reason = None
 
         db.session.commit()
+        try:
+            from app.notify import notify_workorder_completed
+            notify_workorder_completed(wo, by_name=current_user.username)
+        except Exception as notify_err:
+            print("Slack notify warning:", notify_err)
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()

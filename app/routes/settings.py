@@ -5,7 +5,8 @@ from app.models.settings import (
     PartLocation, PartSublocation,
     PartRow, PartSection, PartShelf, PartSlot,
     PartCabinet, PartCabinetShelf, PartChest, PartDrawer, PartCabinetPosition, PartDrawerPosition,
-    PMMainEquipment, PMMachine, PMFrequency
+    PMMainEquipment, PMMachine, PMFrequency,
+    AppSetting,
 )
 
 bp = Blueprint('settings', __name__, url_prefix='/settings')
@@ -529,3 +530,54 @@ def delete_drawer_position(id):
     db.session.commit()
     flash('Drawer position deleted.', 'success')
     return redirect(url_for('settings.parts_locations'))
+
+
+@bp.route('/slack', methods=['GET', 'POST'])
+@login_required
+def slack():
+    if not admin_required():
+        return redirect(url_for('dashboard.index'))
+    from app.notify import get_setting, set_setting
+    if request.method == 'POST':
+        url = (request.form.get('slack_webhook_url') or '').strip()
+        token = (request.form.get('slack_bot_token') or '').strip()
+        enabled = '1' if request.form.get('slack_enabled') else '0'
+        set_setting('slack_webhook_url', url)
+        set_setting('slack_bot_token', token)
+        set_setting('slack_enabled', enabled)
+        flash('Slack settings saved.', 'success')
+        return redirect(url_for('settings.slack'))
+    webhook = get_setting('slack_webhook_url', '')
+    bot_token = get_setting('slack_bot_token', '')
+    enabled = get_setting('slack_enabled', '1') != '0'
+    return render_template('settings/slack.html', webhook=webhook, bot_token=bot_token, enabled=enabled)
+
+@bp.route('/slack/test', methods=['POST'])
+@login_required
+def slack_test():
+    if not admin_required():
+        return redirect(url_for('dashboard.index'))
+    from app.notify import send_slack, slack_ready
+    if not slack_ready():
+        flash('Save a webhook URL and leave Slack enabled first.', 'danger')
+        return redirect(url_for('settings.slack'))
+    ok = send_slack('Maintenance Desk test message. If you see this, Slack is connected.')
+    flash('Test message sent. Check the Slack channel.' if ok else 'Could not send. Check the webhook URL.', 'success' if ok else 'danger')
+    return redirect(url_for('settings.slack'))
+
+
+@bp.route('/slack/test-dm', methods=['POST'])
+@login_required
+def slack_test_dm():
+    if not admin_required():
+        return redirect(url_for('dashboard.index'))
+    from app.notify import send_dm_to_app_user, bot_ready
+    if not bot_ready():
+        flash("Save a bot token (xoxb-...) first.", "danger")
+        return redirect(url_for("settings.slack"))
+    if not (current_user.email or "").strip():
+        flash("Your user has no email. Set it in Manage Users to match your Slack email.", "danger")
+        return redirect(url_for("settings.slack"))
+    ok = send_dm_to_app_user(current_user.id, "Maintenance Desk test DM. If you see this, DMs work.")
+    flash("Test DM sent. Check Slack direct messages." if ok else "DM failed. Email must match Slack, and bot scopes must include chat:write, im:write, users:read.email.", "success" if ok else "danger")
+    return redirect(url_for("settings.slack"))

@@ -35,7 +35,7 @@ def create_app():
     from .models.part import Part
     from .models.part_transaction import PartTransaction
     from .models.equipment import Equipment
-    from .models.settings import PartLocation, PartSublocation
+    from .models.settings import PartLocation, PartSublocation, AppSetting
   
 # Register blueprints
     from .routes.pm import bp as pm_bp
