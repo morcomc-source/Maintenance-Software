@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, url_for
+from flask import Flask, flash, redirect, url_for, send_from_directory, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from .config import Config
@@ -53,6 +53,14 @@ def create_app():
     app.register_blueprint(workorder_bp, url_prefix='/workorder')
     app.register_blueprint(equipment_bp, url_prefix='/equipment')
     app.register_blueprint(settings_bp)
+
+    @app.route('/serviceworker.js')
+    def service_worker():
+        response = make_response(send_from_directory(app.static_folder, 'serviceworker.js'))
+        response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+        response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
     
     
     # Local time display (Central)
