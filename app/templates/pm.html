@@ -97,7 +97,7 @@
             <table id="pm-table" class="table table-striped table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th class="center-text">Main Equipment</th>
+                        <th class="center-text">Location</th>
                         <th class="center-text">Sub Equipment</th>
                         <th class="center-text">Frequency</th>
                         <th class="center-text">Last Done</th>
@@ -198,7 +198,7 @@
     <form method="post" id="add-edit-form" class="row g-3">
         <input type="hidden" name="index" id="form-index">
         <div class="col-md-4">
-            <label class="form-label">Main Equipment <span class="text-danger">*</span></label>
+            <label class="form-label">Location <span class="text-danger">*</span></label>
             <select name="main_equipment" id="main-equipment-select" class="form-select" required>
                     <option value="">— Pick —</option>
                     {% for m in pm_mains %}
@@ -439,7 +439,7 @@ function editPM(id) {
         console.log("Full PM object:", pm);
         console.log("Checklist array:", pm.checklist);
         let html = `
-            <p><strong>Main Equipment:</strong> ${pm.main_equipment || 'N/A'}</p>
+            <p><strong>Location:</strong> ${pm.main_equipment || 'N/A'}</p>
             <p><strong>Sub Equipment:</strong> ${pm.sub_equipment || 'N/A'}</p>
             <p><strong>Frequency:</strong> ${pm.frequency || 'N/A'}</p>
             <p><strong>Last Done:</strong> ${pm.last_done || 'N/A'}</p>
@@ -552,8 +552,8 @@ document.getElementById("main-equipment-select").addEventListener("change", () =
     const selected = document.getElementById("main-equipment-select").value;
     const subSelect = document.getElementById("sub-equipment-select");
     subSelect.innerHTML = '<option value="">— Pick —</option>';
-    const filtered = allMachines.filter(m => !m.main_name || m.main_name === selected);
-    (filtered.length ? filtered : allMachines).forEach(m => {
+    const filtered = allMachines.filter(m => m.main_name === selected);
+    filtered.forEach(m => {
         const option = document.createElement("option");
         option.value = m.name;
         option.text = m.name;
