@@ -35,6 +35,10 @@ class WorkOrder(db.Model):
    
     created_at = db.Column(db.DateTime, default=datetime.now)
     assigned_at = db.Column(db.DateTime, nullable=True)
+    location = db.Column(db.String(150), nullable=True)
+    machine_down = db.Column(db.Boolean, nullable=True)
+    contact = db.Column(db.String(120), nullable=True)
+    safety_issue = db.Column(db.Boolean, nullable=True)
    
     created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_workorders')
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id], backref='assigned_workorders')

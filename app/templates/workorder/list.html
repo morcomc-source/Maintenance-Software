@@ -168,33 +168,32 @@ td:nth-child(3), th:nth-child(3) {
 
     <!-- Mobile Card View -->
     <div class="d-md-none">
-        {% for wo in workorders %}
-        <div class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="mb-1">#{{ wo.id }} - {{ wo.equipment }}</h5>
-                    <span class="badge bg-{{ 'light text-dark' if wo.status == 'Completed' or wo.expected_completion_date and wo.expected_completion_date < today else 'primary' }}">
-                        {{ wo.status }}
-                    </span>
-                </div>
-                <p class="mb-1"><strong>Priority:</strong> {{ wo.priority or '-' }}</p>
-                <p class="mb-1"><strong>Expected:</strong> {{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '-' }}</p>
-                <p class="small mb-2">{{ wo.description[:100] }}{% if wo.description|length > 100 %}...{% endif %}</p>
-                <div class="d-flex gap-2">
-                    {% if current_user.role == 'technician' %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">📋 Details</a>
-                    {% else %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info flex-grow-1">👁️ Details</a>
-                    {% endif %}
-                    {% if current_user.role == 'admin' %}
-                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
-                        <button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
-                    {% endif %}
-                </div>
+    {% for wo in workorders %}
+    <div class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
+        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
+        <div class="card-body pb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <h5 class="mb-1">#{{ wo.id }} - {{ wo.equipment }}</h5>
+                <span class="badge bg-{{ 'light text-dark' if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) else 'primary' }}">
+                    {{ wo.status }}
+                </span>
+            </div>
+            <p class="mb-1"><strong>Priority:</strong> {{ wo.priority or '-' }}</p>
+            <p class="mb-1"><strong>Expected:</strong> {{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '-' }}</p>
+            <p class="small mb-0">{{ wo.description[:100] if wo.description else '' }}{% if wo.description and wo.description|length > 100 %}...{% endif %}</p>
+        </div>
+        </a>
+        {% if current_user.role == 'admin' %}
+        <div class="card-body pt-0">
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                <button type="button" class="btn btn-sm btn-danger" onclick="event.preventDefault(); deleteWorkOrder({{ wo.id }})">Delete</button>
             </div>
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
+    {% endfor %}
+</div>
 </div>
 
 <!-- Full Screen Scanner Overlay -->

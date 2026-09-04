@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}My Completed Requests{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-4">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-3">← Dashboard</a>
+        <h2 class="mb-0 text-center">My Completed Requests</h2>
+        <p class="text-center text-muted mb-0">Work you requested that is finished</p>
+    </div>
+
+    <div class="d-none d-md-block">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between">
+                <strong>Completed requests</strong>
+                <span class="text-muted">{{ workorders|length }} shown</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Completed</th>
+                            <th>ID</th>
+                            <th>Equipment</th>
+                            <th>Description</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for wo in workorders %}
+                        <tr>
+                            <td>{% if wo.completed_at %}{{ wo.completed_at|localtime }}{% else %}—{% endif %}</td>
+                            <td><strong>#{{ wo.id }}</strong></td>
+                            <td>{{ wo.equipment }}</td>
+                            <td class="text-muted">{% if wo.description %}{{ wo.description[:70] }}{% if wo.description|length > 70 %}…{% endif %}{% else %}—{% endif %}</td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('workorder.details', wo_id=wo.id) }}">View</a></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No completed requests</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-md-none">
+        {% for wo in workorders %}
+        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none text-dark">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <strong>#{{ wo.id }} {{ wo.equipment }}</strong>
+                    <span class="badge bg-success">Done</span>
+                </div>
+                <div class="text-muted small mt-1">{% if wo.completed_at %}{{ wo.completed_at|localtime }}{% endif %}</div>
+                <p class="mb-0 mt-2">{{ wo.description[:120] if wo.description else '—' }}{% if wo.description and wo.description|length > 120 %}…{% endif %}</p>
+            </div>
+        </div>
+        </a>
+        {% else %}
+        <p class="text-center text-muted">No completed requests</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

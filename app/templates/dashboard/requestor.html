@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Request Work{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">Request Work</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <a href="{{ url_for('workorder.index') }}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Open requests</div>
+                    <h2>{{ open_n }}</h2>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{{ url_for('workorder.history') }}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Completed</div>
+                    <h2>{{ done_n }}</h2>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
+    <div class="d-grid mb-4">
+        <a href="{{ url_for('workorder.new') }}" class="btn btn-primary btn-lg">Request work to be done</a>
+    </div>
+</div>
+{% endblock %}

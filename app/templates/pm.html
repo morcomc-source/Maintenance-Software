@@ -133,7 +133,7 @@
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️</button>
                                 {% endif %}
-<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>
+{% if current_user.role == 'admin' %}<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄</button>{% endif %}
                                 <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
 </td>
                         </tr>
@@ -154,6 +154,7 @@
                     {% set pm_bucket = 'completed' if (is_completed or (item.last_done|string == today)) else ('attention' if (next_due_str == today or (next_due_str and next_due_str < today)) else 'upcoming') %}
                     <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{{ pm_bucket }}">
                         <div class="card h-100 {{ card_class }}">
+                            <a href="{{ url_for('pm.details', id=item.id) }}" class="text-decoration-none text-reset">
                             <div class="card-body">
                                 <h5 class="card-title">{{ item.main_equipment|default('N/A') }}</h5>
                                 <h6 class="card-subtitle mb-3">{{ item.sub_equipment|default('N/A') }}</h6>
@@ -169,13 +170,13 @@
                                     {% endif %}
                                 </p>
                             </div>
+                            </a>
                             <div class="card-footer border-0 d-flex flex-wrap gap-2">
                                 {% if current_user.role == 'admin' %}
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                                 {% endif %}
-<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>
-                                <a class="btn btn-sm btn-light btn-outline-dark" href="{{ url_for('pm.details', id=item.id) }}">Details</a>
+{% if current_user.role == 'admin' %}<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>{% endif %}
                             </div>
                         </div>
                     </div>

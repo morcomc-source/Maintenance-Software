@@ -8,9 +8,9 @@
 
 <div class="container mt-4">
     <div class="mb-3">
-        <a href="{{ url_for('workorder.history') if wo.status == 'Completed' else url_for('workorder.index') }}"
+        <a href="{{ url_for('dashboard.index') if current_user.role == 'requestor' else (url_for('workorder.history') if wo.status == 'Completed' else url_for('workorder.index')) }}"
            class="btn btn-secondary btn-sm">
-            ← {{ 'Back to Work Order History' if wo.status == 'Completed' else 'Back to Work Orders' }}
+            ← {{ 'Back to Dashboard' if current_user.role == 'requestor' else ('Back to Work Order History' if wo.status == 'Completed' else 'Back to Work Orders') }}
         </a>
     </div>
     <div class="card">

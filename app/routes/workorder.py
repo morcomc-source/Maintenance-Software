@@ -23,7 +23,11 @@ def index():
             (WorkOrder.equipment_id.ilike(f'%{query}%'))
         )
 
-    if current_user.role != 'admin':
+    if current_user.role == 'admin':
+        pass
+    elif current_user.role == 'requestor':
+        base = base.filter_by(created_by_id=current_user.id)
+    else:
         base = base.filter_by(assigned_to_id=current_user.id)
 
     workorders = base.order_by(
@@ -35,7 +39,8 @@ def index():
     technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
     today = datetime.now().date()
     
-    return render_template('workorder/list.html',
+    tmpl = 'workorder/requestor_list.html' if current_user.role == 'requestor' else 'workorder/list.html'
+    return render_template(tmpl,
                          workorders=workorders,
                          technicians=technicians,
                          today=today)
@@ -57,6 +62,11 @@ def create():
     # NEW: Get Priority and Expected Date from form
     priority = request.form.get('priority')
     expected_str = request.form.get('expected_completion_date')
+    location = (request.form.get('location') or '').strip() or None
+    contact = (request.form.get('contact') or '').strip() or None
+    machine_down = True if request.form.get('machine_down') == '1' else False
+    safety_issue = True if request.form.get('safety_issue') == '1' else False
+
 
     if not equipment or not description:
         flash("Equipment and Description are required", "danger")
@@ -65,6 +75,8 @@ def create():
     try:
         assigned_to_id = int(assigned_to_id) if assigned_to_id else None
     except:
+        assigned_to_id = None
+    if current_user.role == 'requestor':
         assigned_to_id = None
 
     # Convert priority to int
@@ -90,6 +102,10 @@ def create():
         expected_completion_date=expected_completion_date,
         created_by_id=current_user.id,
         assigned_to_id=assigned_to_id,
+        location=location,
+        contact=contact,
+        machine_down=machine_down,
+        safety_issue=safety_issue,
         created_at=datetime.utcnow()
     )
    
@@ -356,6 +372,8 @@ def history():
             (WorkOrder.completed_by_id == current_user.id) |
             (WorkOrder.assigned_to_id == current_user.id)
         )
+    elif current_user.role == "requestor":
+        query = query.filter(WorkOrder.created_by_id == current_user.id)
 
     if user:
         query = query.join(User, WorkOrder.completed_by_id == User.id).filter(
@@ -394,7 +412,7 @@ def history():
     ]
 
     return render_template(
-        "workorder/history.html",
+        "workorder/requestor_history.html" if current_user.role == 'requestor' else "workorder/history.html",
         workorders=workorders,
         usernames=usernames,
         filters={"q": q, "user": user, "from": date_from, "to": date_to},

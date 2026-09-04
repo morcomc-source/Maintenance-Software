@@ -16,6 +16,12 @@ def index():
     if current_user.role == 'department':
         return render_template('dashboard/department.html')
 
+    if current_user.role == 'requestor':
+        mine = WorkOrder.query.filter_by(created_by_id=current_user.id).order_by(WorkOrder.created_at.desc()).all()
+        open_n = sum(1 for w in mine if w.status != 'Completed')
+        done_n = sum(1 for w in mine if w.status == 'Completed')
+        return render_template('dashboard/requestor.html', open_n=open_n, done_n=done_n, recent=mine[:8])
+
     if current_user.role == 'technician':
         today = datetime.now().date()
 

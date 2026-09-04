@@ -17,6 +17,7 @@
             <select name="role" class="form-select">
                 <option value="technician">Technician</option>
                 <option value="department">Department</option>
+                <option value="requestor">Requestor</option>
                 <option value="admin">Admin</option>
             </select>
         </div>
@@ -38,6 +39,7 @@
                     <select name="new_role" onchange="this.form.submit()">
                         <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>Technician</option>
                         <option value="department" {% if user.role == 'department' %}selected{% endif %}>Department</option>
+                        <option value="requestor" {% if user.role == 'requestor' %}selected{% endif %}>Requestor</option>
                         <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
                     </select>
                 </form>
@@ -84,7 +86,8 @@
                         <select name="role" id="edit-role" class="form-select">
                             <option value="technician">Technician</option>
                             <option value="department">Department</option>
-                            <option value="admin">Admin</option>
+                            <option value="requestor">Requestor</option>
+                <option value="admin">Admin</option>
                         </select>
                     </div>
                     <button type="submit" class="btn btn-success">Save Changes</button>
