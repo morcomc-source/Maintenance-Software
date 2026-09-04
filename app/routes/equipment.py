@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app import db
+from sqlalchemy import or_
 from app.models.equipment import Equipment
 
 bp = Blueprint('equipment', __name__)
@@ -78,6 +79,9 @@ def new():
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit(id):
+    if current_user.role != 'admin':
+        flash("Only admins can edit equipment.", "danger")
+        return redirect(url_for('equipment.index'))
     eq = Equipment.query.get_or_404(id)
   
     if request.method == 'POST':
@@ -139,3 +143,60 @@ def search():
         'name': eq.name,
         'barcode': eq.barcode
     } for eq in results])
+
+@bp.route('/details/<int:id>')
+@login_required
+def details(id):
+    if current_user.role != 'admin':
+        flash("Admin only.", "danger")
+        return redirect(url_for('equipment.index'))
+    from app.models.workorder import WorkOrder
+    from app.models.pm import PM
+    from app.models.pm_completion import PMCompletion
+    eq = Equipment.query.get_or_404(id)
+    wo_q = WorkOrder.query.filter(WorkOrder.status == 'Completed')
+    match = []
+    if eq.equipment_id:
+        match.append(WorkOrder.equipment_id == eq.equipment_id)
+    if eq.name:
+        match.append(WorkOrder.equipment == eq.name)
+    if match:
+        wo_q = wo_q.filter(or_(*match))
+    else:
+        wo_q = wo_q.filter(WorkOrder.id == -1)
+    workorders = wo_q.order_by(WorkOrder.completed_at.desc()).limit(200).all()
+
+    pm_q = PM.query
+    pm_match = []
+    if getattr(eq, 'equipment_id', None):
+        pm_match.append(PM.equipment_id == eq.equipment_id)
+    if eq.name:
+        pm_match.append(PM.main_equipment == eq.name)
+    pms = pm_q.filter(or_(*pm_match)).all() if pm_match else []
+    pm_ids = [pm.id for pm in pms]
+    completions = []
+    if pm_ids:
+        completions = (PMCompletion.query.filter(PMCompletion.pm_id.in_(pm_ids))
+                       .order_by(PMCompletion.completed_date.desc()).limit(200).all())
+
+    parts = []
+    def _when(dt):
+        return dt.strftime('%Y-%m-%d') if dt else '—'
+    for wo in workorders:
+        for pu in (wo.parts_used or []):
+            parts.append({
+                'when': _when(wo.completed_at),
+                'name': pu.get('name') or '—',
+                'qty': pu.get('quantity') or pu.get('qty') or '',
+                'source': f'WO-{wo.id}',
+            })
+    for row in completions:
+        for pu in (row.parts_used or []):
+            parts.append({
+                'when': _when(row.completed_date),
+                'name': pu.get('name') or '—',
+                'qty': pu.get('quantity') or pu.get('qty') or '',
+                'source': f'PM-{row.pm_id}',
+            })
+    return render_template('equipment/details.html', eq=eq, workorders=workorders,
+                           completions=completions, parts=parts)
