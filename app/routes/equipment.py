@@ -1,9 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app import db
 from app.models.equipment import Equipment
 
 bp = Blueprint('equipment', __name__)
+
+def _blank_to_none(value):
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
 
 @bp.route('/')
 @login_required
@@ -44,17 +52,23 @@ def new():
         eq = Equipment(
             equipment_id=equipment_id,
             name=request.form.get('name'),
-            serial_number=request.form.get('serial_number'),
+            serial_number=_blank_to_none(request.form.get('serial_number')),
             model=request.form.get('model'),
             manufacturer=request.form.get('manufacturer'),
             location=request.form.get('location'),
             purchase_date=purchase_date,
             status=request.form.get('status', 'Active'),
-            barcode=request.form.get('barcode'),
+            barcode=_blank_to_none(request.form.get('barcode')),
             notes=request.form.get('notes')
         )
         db.session.add(eq)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash("Could not save. Serial number or barcode may already be in use (leave them blank if you do not have them).", "danger")
+            print("Equipment save error:", e)
+            return redirect(url_for("equipment.new"))
         flash(f'Equipment {equipment_id} added successfully!', 'success')
         return redirect(url_for('equipment.index'))
   
@@ -68,12 +82,12 @@ def edit(id):
   
     if request.method == 'POST':
         eq.name = request.form.get('name')
-        eq.serial_number = request.form.get('serial_number')
+        eq.serial_number = _blank_to_none(request.form.get('serial_number'))
         eq.model = request.form.get('model')
         eq.manufacturer = request.form.get('manufacturer')
         eq.location = request.form.get('location')
         eq.status = request.form.get('status')
-        eq.barcode = request.form.get('barcode')
+        eq.barcode = _blank_to_none(request.form.get('barcode'))
         eq.notes = request.form.get('notes')
       
         purchase_date_str = request.form.get('purchase_date')
