@@ -176,7 +176,7 @@
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
                                 <button class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                                 {% endif %}
-{% if current_user.role == 'admin' %}<button class="btn btn-sm btn-light btn-outline-dark" onclick="exportPMtoPDF({{ item.id }})">📄 PDF</button>{% endif %}
+
                             </div>
                         </div>
                     </div>
