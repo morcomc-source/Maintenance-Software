@@ -162,7 +162,7 @@
                         {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
                             'pm-row-due-soon' if next_due_str == today else
                             'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
-                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed{% elif next_due_str == today or (next_due_str and next_due_str < today) %}attention{% else %}upcoming{% endif %}">
+                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
                             <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.frequency|default('N/A') }}</td>
@@ -201,7 +201,7 @@
                         'pm-card-overdue' if next_due_str and next_due_str < today else
                         'pm-card-secondary' %}
                     {% set pm_bucket = 'completed' if (is_completed or (item.last_done|string == today)) else ('attention' if (next_due_str == today or (next_due_str and next_due_str < today)) else 'upcoming') %}
-                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{{ pm_bucket }}">
+                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
                         <div class="card h-100 {{ card_class }}">
                             <a href="{{ url_for('pm.details', id=item.id) }}" class="text-decoration-none text-reset">
                             <div class="card-body">
@@ -698,12 +698,12 @@ function setPMFilter(mode) {
 
 function filterPMViews() {
     document.querySelectorAll('#pm-table tbody tr').forEach(function (row) {
-        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming';
-        row.style.display = (pmFilter === 'all' || bucket === pmFilter) ? '' : 'none';
+        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming'; const buckets = bucket.trim().split(/\s+/);
+        row.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
     });
     document.querySelectorAll('#card-view [data-pm-bucket]').forEach(function (el) {
-        const bucket = el.getAttribute('data-pm-bucket') || 'upcoming';
-        el.style.display = (pmFilter === 'all' || bucket === pmFilter) ? '' : 'none';
+        const buckets = (el.getAttribute('data-pm-bucket') || 'upcoming').trim().split(/\s+/);
+        el.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
     });
 }
 
