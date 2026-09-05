@@ -210,3 +210,22 @@ def notify_due_digest():
             "*Your work due today or overdue*\n" + "\n".join(items),
         )
     return sent
+
+
+def notify_permit_submitted(permit):
+    """DM only the submitter's Reports-to supervisor."""
+    if not permit or permit.permit_type == "loto":
+        return False
+    if not permit.reports_to_id:
+        print("Permit Slack skipped: no reports_to on submitter")
+        return False
+    label = permit.type_label() if hasattr(permit, "type_label") else permit.permit_type
+    who = permit.created_by.username if getattr(permit, "created_by", None) else "someone"
+    text = (
+        f"*{label} permit needs approval* #{permit.id}\n"
+        f"From: {who}\n"
+        f"Location: {permit.location or '—'}\n"
+        f"Equipment: {permit.equipment or '—'}\n"
+        f"<{SITE_URL}/permits/{permit.id}|Open permit>"
+    )
+    return send_dm_to_app_user(permit.reports_to_id, text)

@@ -1,5 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Permits{% endblock %}
+{% block title %}Permits
+<div class="modal fade" id="permit-delete-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete permit <strong id="permit-delete-label"></strong>? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="permit-delete-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function deletePermit(id) {
+  document.getElementById("permit-delete-label").textContent = "#" + id;
+  document.getElementById("permit-delete-form").action = "/permits/" + id + "/delete";
+  new bootstrap.Modal(document.getElementById("permit-delete-modal")).show();
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
@@ -28,7 +56,12 @@
                         <td>{{ p.location or p.equipment or '—' }}</td>
                         <td>{{ p.created_by.username if p.created_by else '—' }}</td>
                         <td><span class="badge bg-{{ 'success' if p.status=='approved' else 'danger' if p.status=='denied' else 'secondary' if p.status=='logged' else 'warning' }}">{{ p.status }}</span></td>
-                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('permits.details', pid=p.id) }}">View</a></td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('permits.details', pid=p.id) }}">View</a>
+                            {% if current_user.role == 'admin' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePermit({{ p.id }})">Delete</button>
+                            {% endif %}
+                        </td>
                     </tr>
                 {% else %}
                     <tr><td colspan="6" class="text-center text-muted py-4">No permits yet</td></tr>
@@ -38,4 +71,32 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="permit-delete-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete permit <strong id="permit-delete-label"></strong>? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="permit-delete-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function deletePermit(id) {
+  document.getElementById("permit-delete-label").textContent = "#" + id;
+  document.getElementById("permit-delete-form").action = "/permits/" + id + "/delete";
+  new bootstrap.Modal(document.getElementById("permit-delete-modal")).show();
+}
+</script>
 {% endblock %}
+

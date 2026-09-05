@@ -81,6 +81,12 @@ def new(kind):
         if saved:
             p.photos = saved
             db.session.commit()
+        if kind != "loto":
+            try:
+                from app.notify import notify_permit_submitted
+                notify_permit_submitted(p)
+            except Exception as err:
+                print("Permit Slack warning:", err)
         flash("Lockout documented." if kind == "loto" else "Submitted for approval.", "success")
         return redirect(url_for("permits.details", pid=p.id))
     return render_template("permits/new.html", kind=kind)
@@ -120,4 +126,17 @@ def decide(pid):
     p.status = "approved" if action == "approve" else "denied"
     db.session.commit()
     flash("Permit " + p.status + ".", "success")
+    return redirect(url_for("permits.index"))
+
+
+@bp.route("/<int:pid>/delete", methods=["POST"])
+@login_required
+def delete(pid):
+    if current_user.role != "admin":
+        flash("Admin only.", "danger")
+        return redirect(url_for("permits.index"))
+    p = Permit.query.get_or_404(pid)
+    db.session.delete(p)
+    db.session.commit()
+    flash("Permit deleted.", "success")
     return redirect(url_for("permits.index"))
