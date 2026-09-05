@@ -101,6 +101,34 @@
     </div>
     {% endif %}
 
+
+    {% if current_user.role == 'admin' and wo.status != 'Completed' %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong>Assign work</strong></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('workorder.dispatch', wo_id=wo.id) }}" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Assign to</label>
+                    <select name="assigned_to_id" class="form-select">
+                        <option value="">— Unassigned —</option>
+                        {% for tech in technicians %}
+                        <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Needed by</label>
+                    <input type="date" name="expected_completion_date" class="form-control"
+                           value="{{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Action Buttons -->
     <div class="mt-4">
         {% if current_user.role == 'technician' and wo.assigned_to_id == current_user.id %}

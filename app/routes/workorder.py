@@ -230,7 +230,8 @@ def details(wo_id):
         flash("You can only view your assigned work orders.", "danger")
         return redirect(url_for('workorder.index'))
    
-    return render_template('workorder/details.html', wo=wo)
+    technicians = User.query.filter_by(role='technician').order_by(User.username).all() if current_user.role == 'admin' else []
+    return render_template('workorder/details.html', wo=wo, technicians=technicians)
 
 
 # ====================== IN PROGRESS ======================
@@ -436,3 +437,40 @@ def history():
         usernames=usernames,
         filters={"q": q, "user": user, "from": date_from, "to": date_to},
     )
+
+
+@bp.route('/dispatch/<int:wo_id>', methods=['POST'])
+@login_required
+def dispatch(wo_id):
+    if current_user.role != 'admin':
+        flash("Admin only.", "danger")
+        return redirect(url_for('workorder.details', wo_id=wo_id))
+    wo = WorkOrder.query.get_or_404(wo_id)
+    assigned = request.form.get('assigned_to_id')
+    try:
+        wo.assigned_to_id = int(assigned) if assigned else None
+    except Exception:
+        wo.assigned_to_id = None
+    expected_str = request.form.get('expected_completion_date')
+    if expected_str:
+        try:
+            wo.expected_completion_date = datetime.strptime(expected_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    else:
+        wo.expected_completion_date = None
+    if wo.assigned_to_id:
+        wo.assigned_at = datetime.utcnow()
+        if wo.status in (None, 'Open'):
+            wo.status = 'Assigned'
+        try:
+            from app.notify import notify_workorder_assigned
+            notify_workorder_assigned(wo)
+        except Exception as notify_err:
+            print("Slack notify warning:", notify_err)
+    else:
+        if wo.status == 'Assigned':
+            wo.status = 'Open'
+    db.session.commit()
+    flash("Assignment updated.", "success")
+    return redirect(url_for('workorder.index'))
