@@ -116,7 +116,7 @@
         </div>
     </form>
     {% if items %}
-        <div class="d-flex align-items-center mb-4">
+        {% if items %}<div class="d-flex align-items-center mb-4">
                     
             <div class="flex-grow-1"></div>
         
@@ -138,8 +138,9 @@
             <div class="flex-grow-1"></div>
         </div>
     
+        {% endif %}
         <!-- Table View (default on desktop) -->
-        <div id="table-view" class="table-responsive">
+        <div id="table-view" class="table-responsive d-none d-md-block">
             <div class="list-table-wrap">
             <table id="pm-table" class="table table-striped table-hover">
                 <thead class="table-light">
@@ -232,7 +233,44 @@
             </div>
         </div>
     {% else %}
-        <p>No PMs found. {% if current_user.role in ['admin', 'supervisor'] %}Try a broader search or add a new PM.{% else %}No PMs assigned to you.{% endif %}</p>
+        <div class="d-md-none">
+            <div class="alert alert-light border text-center">
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                No PMs found.
+                {% else %}
+                No PMs assigned to you.
+                {% endif %}
+            </div>
+        </div>
+        <div id="table-view" class="table-responsive d-none d-md-block">
+            <div class="list-table-wrap">
+            <table id="pm-table-empty" class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Sub Equipment</th>
+                        <th>Frequency</th>
+                        <th>Last Done</th>
+                        <th>Next Due</th>
+                        <th>Assigned To</th>
+                        <th>Tasks</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            {% if current_user.role in ['admin', 'supervisor'] %}
+                            No PMs found.
+                            {% else %}
+                            No PMs assigned to you.
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
     {% endif %}
 </div>
 <!-- ADD / EDIT TAB -->

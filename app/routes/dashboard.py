@@ -136,6 +136,7 @@ def index():
 
         # WORK ORDER STATS
         assigned_wos = WorkOrder.query.filter_by(assigned_to_id=current_user.id).all()
+        open_wos = [wo for wo in assigned_wos if wo.status != 'Completed']
         total_assigned_wo = len(assigned_wos)
         completed_wo = sum(1 for wo in assigned_wos if wo.status == 'Completed')
         past_due_wo = sum(
@@ -150,7 +151,7 @@ def index():
             'due_today': due_today_pm,
             'overdue': overdue_pm,
             'upcoming': upcoming_pm,
-            'assigned_workorders': total_assigned_wo,
+            'assigned_workorders': len(open_wos),
             'completed_workorders': completed_wo,
             'past_due_workorders': past_due_wo,
         }

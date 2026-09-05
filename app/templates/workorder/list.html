@@ -243,7 +243,8 @@ td:nth-child(3), th:nth-child(3) {
             <button type="button" class="btn btn-secondary ms-2" onclick="document.getElementById('search-input').value=''; searchWorkOrders();">Reset</button>
         </div>
     </form>
-    <div class="d-flex align-items-center justify-content-center mb-4 flex-wrap gap-3">
+    {% if workorders %}
+<div class="d-flex align-items-center justify-content-center mb-4 flex-wrap gap-3">
         <div class="btn-group" role="group">
             <button type="button" class="btn btn-primary fw-bold" id="wo-btn-attention" onclick="setWOFilter('attention')">Needs Attention</button>
             <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-upcoming" onclick="setWOFilter('upcoming')">Upcoming</button>
@@ -280,10 +281,11 @@ td:nth-child(3), th:nth-child(3) {
 <style>
 #workorder-table tr.pm-row-overdue > td { color: #fff !important; }
 </style>
+{% endif %}
 <div class="list-table-wrap">
-<table class="table table-striped table-hover align-middle d-none d-md-table" 
+<table class="table table-striped table-hover align-middle d-none d-md-table" id="workorder-table" 
 <style>
-id="workorder-table">
+
         <thead >
             <tr>
                 <th class="text-center sortable">ID</th>
@@ -365,7 +367,20 @@ id="workorder-table">
 </div>
 
     <!-- Mobile Card View -->
+    
+    {% if not workorders %}
     <div class="d-md-none">
+    <div class="alert alert-light border text-center">
+        {% if current_user.role in ['admin', 'supervisor'] %}
+        No work orders found.
+        {% else %}
+        No work orders assigned to you.
+        {% endif %}
+    </div>
+    </div>
+    {% endif %}
+
+<div class="d-md-none">
     {% for wo in workorders %}
     <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif not wo.expected_completion_date or wo.expected_completion_date <= today %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
