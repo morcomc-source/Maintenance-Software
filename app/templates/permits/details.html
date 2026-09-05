@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Permit #{{ p.id }}{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 760px;">
+    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary mb-4">← Back to Permits</a>
+    <h2>{{ p.type_label() }} #{{ p.id }}</h2>
+    <p><span class="badge bg-{{ 'success' if p.status=='approved' else 'danger' if p.status=='denied' else 'secondary' if p.status=='logged' else 'warning' }}">{{ p.status }}</span></p>
+    <div class="card shadow-sm mb-3"><div class="card-body">
+        <p><strong>By:</strong> {{ p.created_by.username if p.created_by else '—' }}</p>
+        <p><strong>Approver:</strong> {{ p.reports_to.username if p.reports_to else '—' }}</p>
+        <p><strong>Location:</strong> {{ p.location or '—' }}</p>
+        <p><strong>Equipment / space:</strong> {{ p.equipment or '—' }}</p>
+        <p><strong>Work:</strong><br>{{ p.work_description or '—' }}</p>
+        {% if p.form_data %}
+        <hr>
+        {% for k,v in p.form_data.items() %}
+            {% if v and k not in ['location','equipment','work_description'] %}
+            <div><span class="text-muted">{{ k }}:</span> {{ v }}</div>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% if p.photos %}
+        <hr>
+        <strong>Photos</strong>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for fn in p.photos %}
+            <a href="{{ url_for('static', filename='uploads/permits/' + fn) }}" target="_blank">
+                <img src="{{ url_for('static', filename='uploads/permits/' + fn) }}" style="max-width:160px;max-height:160px;object-fit:cover" class="border rounded">
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if p.decided_by %}
+        <hr>
+        <p class="mb-0"><strong>Decision by:</strong> {{ p.decided_by.username }} — {{ p.decision_note or '' }}</p>
+        {% endif %}
+    </div></div>
+    {% if can_decide and p.status=='pending' %}
+    <div class="card shadow-sm"><div class="card-body">
+        <form method="post" action="{{ url_for('permits.decide', pid=p.id) }}">
+            <label class="form-label">Note</label>
+            <input class="form-control mb-3" name="decision_note">
+            <button class="btn btn-success me-2" name="action" value="approve">Approve</button>
+            <button class="btn btn-outline-danger" name="action" value="deny">Deny</button>
+        </form>
+    </div></div>
+    {% endif %}
+</div>
+{% endblock %}

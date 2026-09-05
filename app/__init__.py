@@ -45,6 +45,7 @@ def create_app():
     from .routes.workorder import bp as workorder_bp
     from .routes.equipment import bp as equipment_bp
     from .routes.settings import bp as settings_bp
+    from .routes.permits import bp as permits_bp
 
     app.register_blueprint(pm_bp, url_prefix='/pm')
     app.register_blueprint(parts_bp, url_prefix='/parts')
@@ -53,6 +54,7 @@ def create_app():
     app.register_blueprint(workorder_bp, url_prefix='/workorder')
     app.register_blueprint(equipment_bp, url_prefix='/equipment')
     app.register_blueprint(settings_bp)
+    app.register_blueprint(permits_bp)
 
     @app.route('/serviceworker.js')
     def service_worker():

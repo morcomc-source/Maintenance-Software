@@ -13,6 +13,15 @@ class User(UserMixin, db.Model):
     must_change_password = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     email = db.Column(db.String(120), unique=True, nullable=True)
+    reports_to_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+
+    reports_to = db.relationship(
+        'User',
+        remote_side='User.id',
+        foreign_keys=[reports_to_id],
+        post_update=True,
+    )
 
     def set_password(self, password, reset_flag=False, simple=False):
         """

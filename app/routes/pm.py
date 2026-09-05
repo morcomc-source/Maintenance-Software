@@ -581,6 +581,11 @@ def manage_users():
                 flash("Username already taken.", "danger")
             else:
                 new_user = User(username=username, email=email, role=role)
+                rt = request.form.get('reports_to_id')
+                try:
+                    new_user.reports_to_id = int(rt) if rt else None
+                except Exception:
+                    new_user.reports_to_id = None
                 new_user.set_password(password)
                 db.session.add(new_user)
                 db.session.commit()
@@ -594,11 +599,14 @@ def manage_users():
                 user.username = request.form.get('username')
                 user.email = request.form.get('email') or None
                 user.role = request.form.get('role')
+                rt = request.form.get('reports_to_id') or ''
+                user.reports_to_id = int(rt) if rt.strip().isdigit() else None
+                print('SAVED reports_to', user.id, user.reports_to_id)
                 password = request.form.get('password')
                 if password and password.strip():
                     user.set_password(password)
                 db.session.commit()
-                flash("User updated successfully!", "success")
+                flash("User updated. Reports to id=" + str(user.reports_to_id), "success")
 
         # Delete User
         elif request.form.get('delete_user'):
@@ -612,7 +620,7 @@ def manage_users():
                 flash("Cannot delete this user.", "danger")
 
     users = User.query.all()
-    users_list = [{'id': u.id, 'username': u.username, 'email': u.email, 'role': u.role} for u in users]
+    users_list = [{'id': u.id, 'username': u.username, 'email': u.email, 'role': u.role, 'reports_to_id': u.reports_to_id} for u in users]
    
     return render_template('users.html', users=users, users_json=users_list)
 

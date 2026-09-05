@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New permit{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary mb-4">← Back to Permits</a>
+    <h2 class="text-center mb-4">
+        {% if kind=='hot_work' %}Hot work permit
+        {% elif kind=='confined' %}Confined space permit
+        {% else %}Lockout / Tagout log{% endif %}
+    </h2>
+    <div class="card shadow-sm"><div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">Location</label>
+            <input class="form-control" name="location" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Equipment / space</label>
+            <input class="form-control" name="equipment">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">{% if kind=='loto' %}What was locked out{% else %}Work to be done{% endif %}</label>
+            <textarea class="form-control" name="work_description" rows="3" required></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" name="work_date">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Time</label>
+                <input type="time" class="form-control" name="work_time">
+            </div>
+        </div>
+
+        {% if kind=='hot_work' %}
+        <h6 class="text-muted">Hot work checks</h6>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="welding" value="1" id="c1"><label class="form-check-label" for="c1">Welding / cutting / grinding</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="combustibles_moved" value="1" id="c2"><label class="form-check-label" for="c2">Combustibles moved or covered</label></div>
+        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="extinguisher" value="1" id="c3"><label class="form-check-label" for="c3">Fire extinguisher in place</label></div>
+        <div class="mb-3"><label class="form-label">Fire watch</label><input class="form-control" name="fire_watch"></div>
+        {% elif kind=='confined' %}
+        <h6 class="text-muted">Confined space checks</h6>
+        <div class="mb-3"><label class="form-label">Attendant</label><input class="form-control" name="attendant"></div>
+        <div class="mb-3"><label class="form-label">Entrants</label><input class="form-control" name="entrants"></div>
+        <div class="row">
+            <div class="col-md-4 mb-3"><label class="form-label">O₂ %</label><input class="form-control" name="o2"></div>
+            <div class="col-md-4 mb-3"><label class="form-label">LEL %</label><input class="form-control" name="lel"></div>
+            <div class="col-md-4 mb-3"><label class="form-label">Toxics</label><input class="form-control" name="toxics"></div>
+        </div>
+        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isolated" value="1" id="c4"><label class="form-check-label" for="c4">Energy isolated / space prepared</label></div>
+        {% else %}
+        <div class="mb-3"><label class="form-label">Locks / tags applied</label><input class="form-control" name="locks"></div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label class="form-label">{% if kind=='loto' %}Photos (required for documentation){% else %}Photos (optional){% endif %}</label>
+            <input type="file" name="photos" class="form-control" accept="image/*,.pdf" multiple {% if kind=='loto' %}required{% endif %}>
+        </div>
+        <button class="btn btn-success w-100" type="submit">
+            {% if kind=='loto' %}Save lockout log{% else %}Submit for approval{% endif %}
+        </button>
+    </form>
+    </div></div>
+</div>
+{% endblock %}
