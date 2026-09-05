@@ -3,7 +3,14 @@
   </div>
 </div>
 
+
+<script>
+if (new URLSearchParams(window.location.search).get("print") === "1") {
+  window.addEventListener("load", function() { window.print(); });
+}
+</script>
 {% endblock %}
+
 {% block content %}
 
 <div class="container mt-4">
@@ -512,5 +519,11 @@ function pauseWorkOrder(woId) {
     new bootstrap.Modal(document.getElementById("confirm-pause-modal")).show();
 }
 
+</script>
+
+<script>
+if (new URLSearchParams(window.location.search).get("print") === "1") {
+  window.addEventListener("load", function() { window.print(); });
+}
 </script>
 {% endblock %}
