@@ -102,7 +102,7 @@
     {% endif %}
 
 
-    {% if current_user.role == 'admin' and wo.status != 'Completed' %}
+    {% if current_user.role in ['admin', 'supervisor'] and wo.status != 'Completed' %}
     <div class="card shadow-sm mb-4">
         <div class="card-header"><strong>Assign work</strong></div>
         <div class="card-body">

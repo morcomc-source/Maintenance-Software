@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Plant today{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+    <h2 class="text-center mb-4">Plant today</h2>
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+        <a class="btn {% if tab=='pm' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='pm') }}">PMs ({{ plant_pm|length }})</a>
+        <a class="btn {% if tab=='wo' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='wo') }}">Work orders ({{ plant_wo|length }})</a>
+        <a class="btn {% if tab=='perm' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='perm') }}">Permits ({{ plant_perm|length }})</a>
+    </div>
+    {% set rows = plant_pm if tab=='pm' else plant_perm if tab=='perm' else plant_wo %}
+    <div class="card shadow-sm">
+        <div class="list-group list-group-flush">
+            {% for item in rows %}
+            <a href="{{ item.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-{{ 'danger' if item.late else 'warning' }} me-2">{{ item.who }}</span>
+                    {{ item.title }}
+                </div>
+                <small class="text-muted">{{ item.when }}</small>
+            </a>
+            {% else %}
+            <div class="list-group-item text-muted">Nothing in this list</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

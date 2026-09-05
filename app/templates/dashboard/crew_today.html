@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Today{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+    <h2 class="text-center mb-4">Today</h2>
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+        <a class="btn {% if tab=='mine' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='mine') }}">My work ({{ today_mine|length }})</a>
+        <a class="btn {% if tab=='crew' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='crew') }}">Crew ({{ today_crew|length }})</a>
+    </div>
+    {% set rows = today_mine if tab=='mine' else today_crew %}
+    <div class="card shadow-sm">
+        <div class="list-group list-group-flush">
+            {% for item in rows %}
+            <a href="{{ item.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-{{ 'danger' if item.late else 'warning' }} me-2">{{ item.kind }}</span>
+                    {{ item.title }}
+                    {% if item.who %}<small class="text-muted ms-1">{{ item.who }}</small>{% endif %}
+                </div>
+                <small class="text-muted">{{ item.when }}</small>
+            </a>
+            {% else %}
+            <div class="list-group-item text-muted">Nothing in this list</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

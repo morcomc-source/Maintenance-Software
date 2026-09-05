@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, url_for
+from flask import flash, request, Blueprint, render_template, url_for
 from flask_login import login_required, current_user
 from datetime import datetime
 from app.models.pm import PM
@@ -192,3 +192,111 @@ def index():
         return render_template('dashboard/technician.html', stats=stats, today_items=today_items)
 
     return "Invalid role", 403
+
+
+@bp.route("/today")
+@login_required
+def plant_today():
+    if current_user.role != "admin":
+        flash("Admin only.", "danger")
+        return redirect(url_for("dashboard.index"))
+    today = datetime.now().date()
+    plant_pm, plant_wo, plant_perm = [], [], []
+    for pm in PM.query.all():
+        if not pm.next_due or pm.next_due > today:
+            continue
+        who = "Unassigned"
+        if getattr(pm, "assigned_user_id", None):
+            u = User.query.get(pm.assigned_user_id)
+            who = u.username if u else "Unassigned"
+        plant_pm.append({
+            "title": pm.main_equipment or "PM",
+            "when": pm.next_due.strftime("%Y-%m-%d"),
+            "late": pm.next_due < today,
+            "who": who,
+            "url": url_for("pm.details", id=pm.id),
+        })
+    for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
+        due = wo.expected_completion_date
+        if due is not None and due > today:
+            continue
+        plant_wo.append({
+            "title": "#{} {}".format(wo.id, wo.equipment or ""),
+            "when": due.strftime("%Y-%m-%d") if due else "Open",
+            "late": bool(due and due < today),
+            "who": wo.assigned_to.username if wo.assigned_to else "Unassigned",
+            "url": url_for("workorder.details", wo_id=wo.id),
+        })
+    try:
+        from app.models.permit import Permit
+        for perm in Permit.query.filter_by(status="pending").all():
+            plant_perm.append({
+                "title": "{} #{}".format(perm.type_label(), perm.id),
+                "when": "Pending",
+                "late": True,
+                "who": perm.created_by.username if perm.created_by else "",
+                "url": url_for("permits.details", pid=perm.id),
+            })
+    except Exception:
+        pass
+    tab = request.args.get("tab") or "wo"
+    return render_template(
+        "dashboard/plant_today.html",
+        tab=tab, plant_pm=plant_pm, plant_wo=plant_wo, plant_perm=plant_perm,
+    )
+
+
+@bp.route("/crew-today")
+@login_required
+def crew_today():
+    if current_user.role != "supervisor":
+        flash("Supervisor only.", "danger")
+        return redirect(url_for("dashboard.index"))
+    today = datetime.now().date()
+    today_mine, today_crew = [], []
+    crew = User.query.filter_by(reports_to_id=current_user.id).all()
+    crew_ids = [u.id for u in crew]
+
+    def add_row(bucket, kind, title, when, late, url, who=""):
+        bucket.append({"kind": kind, "title": title, "when": when, "late": late, "url": url, "who": who})
+
+    for pm in PM.query.all():
+        if not pm.next_due or pm.next_due > today:
+            continue
+        uid = getattr(pm, "assigned_user_id", None)
+        who = ""
+        if uid:
+            u = User.query.get(uid)
+            who = u.username if u else ""
+        args = ("PM", pm.main_equipment or "PM", pm.next_due.strftime("%Y-%m-%d"),
+                pm.next_due < today, url_for("pm.details", id=pm.id), who)
+        if uid == current_user.id:
+            add_row(today_mine, *args)
+        elif uid in crew_ids:
+            add_row(today_crew, *args)
+
+    for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
+        due = wo.expected_completion_date
+        if due is not None and due > today:
+            continue
+        who = wo.assigned_to.username if wo.assigned_to else "Unassigned"
+        args = ("WO", "#{} {}".format(wo.id, wo.equipment or ""),
+                due.strftime("%Y-%m-%d") if due else "Open",
+                bool(due and due < today),
+                url_for("workorder.details", wo_id=wo.id), who)
+        if wo.assigned_to_id == current_user.id:
+            add_row(today_mine, *args)
+        elif wo.assigned_to_id in crew_ids:
+            add_row(today_crew, *args)
+
+    try:
+        from app.models.permit import Permit
+        for perm in Permit.query.filter_by(reports_to_id=current_user.id, status="pending").all():
+            who = perm.created_by.username if perm.created_by else ""
+            add_row(today_crew if perm.created_by_id != current_user.id else today_mine,
+                    "Permit", "{} #{}".format(perm.type_label(), perm.id),
+                    "Needs approval", True, url_for("permits.details", pid=perm.id), who)
+    except Exception:
+        pass
+    tab = request.args.get("tab") or "crew"
+    return render_template("dashboard/crew_today.html", tab=tab, today_mine=today_mine, today_crew=today_crew)

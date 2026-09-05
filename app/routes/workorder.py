@@ -230,7 +230,11 @@ def details(wo_id):
         flash("You can only view your assigned work orders.", "danger")
         return redirect(url_for('workorder.index'))
    
-    technicians = User.query.filter_by(role='technician').order_by(User.username).all() if current_user.role in ('admin', 'supervisor') else []
+    technicians = (
+        User.query.filter(User.role.in_(['technician', 'supervisor']))
+        .order_by(User.username).all()
+        if current_user.role in ('admin', 'supervisor') else []
+    )
     return render_template('workorder/details.html', wo=wo, technicians=technicians)
 
 
