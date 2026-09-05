@@ -1,3 +1,4 @@
+from sqlalchemy.orm.attributes import flag_modified
 from flask import Blueprint, render_template, request, redirect, flash, url_for, jsonify, send_file
 from flask_login import login_required, current_user
 from app import db
@@ -660,3 +661,29 @@ def delete_history(completion_id):
     # Stay on the page the user was on (main history, per-PM history, etc.)
     return redirect(request.referrer or url_for('pm.history_all'))
 
+
+
+@bp.route("/save_progress/<int:id>", methods=["POST"])
+@login_required
+def save_progress(id):
+    pm = PM.query.get_or_404(id)
+    if current_user.role == "technician" and pm.assigned_user_id != current_user.id:
+        return {"ok": False, "error": "not assigned"}, 403
+    if pm.status != "In Progress":
+        return {"ok": False, "error": "not in progress"}, 400
+    data = request.get_json(silent=True) or {}
+    checks = data.get("checklist") or []
+    cl = list(pm.checklist or [])
+    ci = 0
+    for row in cl:
+        if row.get("type") == "title":
+            continue
+        if ci < len(checks):
+            row["completed"] = bool(checks[ci].get("completed"))
+            if "value" in checks[ci]:
+                row["value"] = checks[ci].get("value")
+        ci += 1
+    pm.checklist = cl
+    flag_modified(pm, 'checklist')
+    db.session.commit()
+    return {"ok": True}
