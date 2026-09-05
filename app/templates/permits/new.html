@@ -1,66 +1,228 @@
 {% extends "base.html" %}
 {% block title %}New permit{% endblock %}
 {% block content %}
-<div class="container mt-4" style="max-width: 720px;">
+<div class="container mt-4" style="max-width: 800px;">
     <a href="{{ url_for('permits.index') }}" class="btn btn-secondary mb-4">← Back to Permits</a>
-    <h2 class="text-center mb-4">
-        {% if kind=='hot_work' %}Hot work permit
-        {% elif kind=='confined' %}Confined space permit
+    <h2 class="text-center mb-1">
+        {% if kind=='hot_work' %}Hot Work Permit
+        {% elif kind=='confined' %}Confined Space Entry Permit
         {% else %}Lockout / Tagout log{% endif %}
     </h2>
+    {% if kind=='hot_work' %}
+    <p class="text-center text-muted">For hot work outside a designated shop or welding area. Expires at end of the shift issued.</p>
+    {% elif kind=='confined' %}
+    <p class="text-center text-muted">Expires at end of the shift issued. Welding/burning in the space also needs a hot work permit.</p>
+    {% endif %}
+
     <div class="card shadow-sm"><div class="card-body">
-    <form method="post" enctype="multipart/form-data">
-        <div class="mb-3">
-            <label class="form-label">Location</label>
-            <input class="form-control" name="location" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Equipment / space</label>
-            <input class="form-control" name="equipment">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">{% if kind=='loto' %}What was locked out{% else %}Work to be done{% endif %}</label>
-            <textarea class="form-control" name="work_description" rows="3" required></textarea>
-        </div>
+    <form method="post" enctype="multipart/form-data" id="permit-form">
+
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Date</label>
-                <input type="date" class="form-control" name="work_date">
+                <input type="date" class="form-control" name="work_date" required>
             </div>
             <div class="col-md-6 mb-3">
-                <label class="form-label">Time</label>
-                <input type="time" class="form-control" name="work_time">
+                <label class="form-label">Time issued</label>
+                <input type="time" class="form-control" name="time_issued" required>
             </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Exact location of work</label>
+            <input class="form-control" name="location" required>
         </div>
 
         {% if kind=='hot_work' %}
-        <h6 class="text-muted">Hot work checks</h6>
-        <div class="form-check"><input class="form-check-input" type="checkbox" name="welding" value="1" id="c1"><label class="form-check-label" for="c1">Welding / cutting / grinding</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" name="combustibles_moved" value="1" id="c2"><label class="form-check-label" for="c2">Combustibles moved or covered</label></div>
-        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="extinguisher" value="1" id="c3"><label class="form-check-label" for="c3">Fire extinguisher in place</label></div>
-        <div class="mb-3"><label class="form-label">Fire watch</label><input class="form-control" name="fire_watch"></div>
-        {% elif kind=='confined' %}
-        <h6 class="text-muted">Confined space checks</h6>
-        <div class="mb-3"><label class="form-label">Attendant</label><input class="form-control" name="attendant"></div>
-        <div class="mb-3"><label class="form-label">Entrants</label><input class="form-control" name="entrants"></div>
-        <div class="row">
-            <div class="col-md-4 mb-3"><label class="form-label">O₂ %</label><input class="form-control" name="o2"></div>
-            <div class="col-md-4 mb-3"><label class="form-label">LEL %</label><input class="form-control" name="lel"></div>
-            <div class="col-md-4 mb-3"><label class="form-label">Toxics</label><input class="form-control" name="toxics"></div>
+        <div class="mb-3">
+            <label class="form-label">Work to be performed by</label>
+            <input class="form-control" name="performed_by" value="{{ current_user.username }}" required>
         </div>
-        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="isolated" value="1" id="c4"><label class="form-check-label" for="c4">Energy isolated / space prepared</label></div>
+        <div class="mb-3">
+            <label class="form-label">Type of work (check all that apply)</label>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="work_grinding" value="1" id="w1"><label class="form-check-label" for="w1">Grinding</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="work_torch" value="1" id="w2"><label class="form-check-label" for="w2">Cutting torch</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="work_welding" value="1" id="w3"><label class="form-check-label" for="w3">Welding</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="work_soldering" value="1" id="w4"><label class="form-check-label" for="w4">Soldering</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="work_brazing" value="1" id="w5"><label class="form-check-label" for="w5">Brazing</label></div>
+            <div class="input-group mt-1"><span class="input-group-text">Other</span><input class="form-control" name="work_other"></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Possible combustibles present</label>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="comb_oil" value="1"><label class="form-check-label">Oil</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="comb_gas" value="1"><label class="form-check-label">Gas</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="comb_wood" value="1"><label class="form-check-label">Wood</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="comb_paper" value="1"><label class="form-check-label">Paper</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="comb_cardboard" value="1"><label class="form-check-label">Cardboard</label></div>
+            <div class="input-group mt-1"><span class="input-group-text">Other</span><input class="form-control" name="comb_other"></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Work description</label>
+            <textarea class="form-control" name="work_description" rows="3" required></textarea>
+        </div>
+        <p class="small text-danger mb-2">Must be Yes or you cannot submit</p>
+        <div class="mb-2">
+            <label class="form-label">Fire extinguishers located for immediate response?</label>
+            <select class="form-select" name="extinguishers_ready" required>
+                <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+        </div>
+        <div class="mb-2">
+            <label class="form-label">Combustibles reduced enough to proceed?</label>
+            <select class="form-select" name="combustibles_reduced" required>
+                <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+        </div>
+        <div class="mb-2">
+            <label class="form-label">Liquid or gas systems neutralized?</label>
+            <select class="form-select" name="systems_neutralized" required>
+                <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">If in a confined space, is there a confined space permit?</label>
+            <select class="form-select" name="confined_permit">
+                <option value="not_confined">Not a confined space</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Fire watch performed by</label>
+            <input class="form-control" name="fire_watch" required>
+        </div>
+
+        {% elif kind=='confined' %}
+        <div class="mb-3">
+            <label class="form-label">Name(s) of individuals entering space</label>
+            <textarea class="form-control" name="entrants" rows="3" required></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Sign in</label>
+                <input class="form-control" name="sign_in">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Sign out</label>
+                <input class="form-control" name="sign_out">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Confined space classification / permit</label>
+            <select class="form-select" name="classification">
+                <option value="yes">Permit — Yes</option>
+                <option value="no">Permit — No</option>
+                <option value="downgraded">Downgraded</option>
+                <option value="upgraded">Upgraded</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description of work (be specific)</label>
+            <textarea class="form-control" name="work_description" rows="4" required></textarea>
+        </div>
+        <p class="small text-danger mb-2">Must be Yes or you cannot submit</p>
+        <div class="mb-2"><label class="form-label">Received confined space entry training?</label>
+            <select class="form-select" name="trained" required><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">All energy sources isolated (LOTO)?</label>
+            <select class="form-select" name="loto_isolated" required><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">Space flushed, purged, or ventilated?</label>
+            <select class="form-select" name="ventilated" required><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">Atmospheric testing necessary?</label>
+            <select class="form-select" name="atmo_needed"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">Continuous monitoring necessary?</label>
+            <select class="form-select" name="continuous_mon"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">Periodic testing necessary?</label>
+            <select class="form-select" name="periodic_test"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-2"><label class="form-label">Action plan for emergencies?</label>
+            <select class="form-select" name="emergency_plan" required><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-3"><label class="form-label">Does the work warrant an upgrade (welding / burning)?</label>
+            <select class="form-select" name="upgrade_welding"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="mb-3">
+            <label class="form-label">Name of standby at site</label>
+            <input class="form-control" name="standby" required>
+        </div>
+        <h6 class="mt-3">Gas meter readings</h6>
+        <p class="small text-muted">Write the numbers from the meter. Safe to enter only if oxygen is 19.5–23.5% and flammable gas is under 10% LEL.</p>
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Oxygen (O₂ %)</label>
+                <input class="form-control" name="o2" placeholder="e.g. 20.9">
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Flammable gas (% LEL)</label>
+                <input class="form-control" name="lel" placeholder="e.g. 0">
+                <div class="form-text">LEL = how close the air is to exploding. 0 is good.</div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Toxic gas (meter reading)</label>
+                <input class="form-control" name="toxic" placeholder="e.g. 0 or ND">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-4"><input class="form-control" name="o2_retest" placeholder="Oxygen retest"></div>
+            <div class="col-md-4"><input class="form-control" name="lel_retest" placeholder="Flammable retest"></div>
+            <div class="col-md-4"><input class="form-control" name="toxic_retest" placeholder="Toxic retest"></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Special equipment / permits needed</label>
+            <textarea class="form-control" name="special_equipment" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ventilating / rescue equipment checked before entry?</label>
+            <select class="form-select" name="rescue_checked"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Special precautions</label>
+            <textarea class="form-control" name="precautions" rows="2" placeholder="Continuous ventilation, isolation, GFCI…"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3"><label class="form-label">Pre-entry briefing date/time</label><input class="form-control" name="briefing_pre"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Number of employees in space</label><input class="form-control" name="headcount"></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Equipment / space name</label>
+            <input class="form-control" name="equipment">
+        </div>
+
         {% else %}
-        <div class="mb-3"><label class="form-label">Locks / tags applied</label><input class="form-control" name="locks"></div>
+        <div class="mb-3">
+            <label class="form-label">Equipment</label>
+            <input class="form-control" name="equipment">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">What was locked out</label>
+            <textarea class="form-control" name="work_description" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Locks / tags applied</label>
+            <input class="form-control" name="locks">
+        </div>
         {% endif %}
 
         <div class="mb-3">
-            <label class="form-label">{% if kind=='loto' %}Photos (required for documentation){% else %}Photos (optional){% endif %}</label>
+            <label class="form-label">{% if kind=='loto' %}Photos{% else %}Photos (optional){% endif %}</label>
             <input type="file" name="photos" class="form-control" accept="image/*,.pdf" multiple {% if kind=='loto' %}required{% endif %}>
         </div>
-        <button class="btn btn-success w-100" type="submit">
+        <button class="btn btn-success w-100" type="submit" id="permit-submit">
             {% if kind=='loto' %}Save lockout log{% else %}Submit for approval{% endif %}
         </button>
     </form>
     </div></div>
 </div>
+{% if kind != 'loto' %}
+<script>
+document.getElementById('permit-form').addEventListener('submit', function (e) {
+    var blocked = false;
+    ['extinguishers_ready','combustibles_reduced','systems_neutralized','trained','loto_isolated','ventilated','emergency_plan'].forEach(function (name) {
+        var el = document.querySelector('[name="'+name+'"]');
+        if (el && el.value === 'no') blocked = true;
+    });
+    var cp = document.querySelector('[name="confined_permit"]');
+    if (cp && cp.value === 'no') blocked = true;
+    if (blocked) {
+        e.preventDefault();
+        alert('A required safety item is No. Do not proceed until it is Yes.');
+    }
+});
+</script>
+{% endif %}
 {% endblock %}
