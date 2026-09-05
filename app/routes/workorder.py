@@ -1,10 +1,13 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
+from werkzeug.utils import secure_filename
+from pathlib import Path
 from flask_login import login_required, current_user
 from app import db
 from app.models.workorder import WorkOrder
 from app.models.user import User
 from app.models.part import Part
 from datetime import datetime
+ALLOWED_PHOTO = {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.gif'}
 
 bp = Blueprint('workorder', __name__)
 
@@ -112,6 +115,22 @@ def create():
     try:
         db.session.add(new_wo)
         db.session.commit()
+        saved = []
+        upload_dir = Path(current_app.root_path) / "static" / "uploads" / "workorders"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        files = request.files.getlist("photos")
+        for i, f in enumerate(files):
+            if not f or not f.filename:
+                continue
+            ext = Path(f.filename).suffix.lower()
+            if ext not in ALLOWED_PHOTO:
+                continue
+            name = secure_filename(f"wo{new_wo.id}_{i+1}{ext}")
+            f.save(upload_dir / name)
+            saved.append(name)
+        if saved:
+            new_wo.photos = saved
+            db.session.commit()
         try:
             from app.notify import notify_workorder_created
             notify_workorder_created(new_wo)

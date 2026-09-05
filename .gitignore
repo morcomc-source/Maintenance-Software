@@ -6,3 +6,4 @@ instance/*.db
 *.db
 venv/
 .venv/
+app/static/uploads/

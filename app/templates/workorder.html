@@ -12,7 +12,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <form method="POST" action="{{ url_for('workorder.create') }}">
+            <form method="POST" action="{{ url_for('workorder.create') }}" enctype="multipart/form-data">
 
                 <h6 class="text-muted text-uppercase mb-3">What needs work</h6>
                 <div class="mb-3">
@@ -63,6 +63,12 @@
                     <label class="form-check-label" for="safety_issue">This is a safety issue</label>
                 </div>
 
+                
+                <div class="mb-4">
+                    <label class="form-label">Photo of the issue</label>
+                    <input type="file" name="photos" class="form-control" accept="image/*" multiple>
+                    <div class="form-text">Take a picture or pick from the camera roll. You can add more than one.</div>
+                </div>
                 <h6 class="text-muted text-uppercase mb-3">Contact</h6>
                 <div class="mb-4">
                     <label class="form-label">Name or phone</label>

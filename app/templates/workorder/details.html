@@ -31,6 +31,41 @@
         <p class="border p-3 bg-light rounded">{{ wo.description | default('No description provided') }}</p>
     </div>
 
+    
+    {% if wo.photos %}
+    <div class="mb-4">
+        <strong>Photos:</strong>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for fn in wo.photos %}
+            <img src="{{ url_for('static', filename='uploads/workorders/' + fn) }}"
+                 alt="Work order photo"
+                 style="max-width: 180px; max-height: 180px; object-fit: cover; cursor: pointer;"
+                 class="border rounded wo-photo-thumb"
+                 onclick="openWoPhoto(this.src)">
+            {% endfor %}
+        </div>
+    </div>
+    <div id="wo-photo-overlay" onclick="if(event.target.id==='wo-photo-overlay') closeWoPhoto();"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:20000;
+                align-items:center; justify-content:center; flex-direction:column; padding:16px;">
+        <img id="wo-photo-full" alt="" style="max-width:100%; max-height:75vh; object-fit:contain;">
+        <button type="button" class="btn btn-light mt-3" onclick="closeWoPhoto()">Close</button>
+    </div>
+    <script>
+    function openWoPhoto(src) {
+        document.getElementById('wo-photo-full').src = src;
+        var el = document.getElementById('wo-photo-overlay');
+        el.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeWoPhoto() {
+        document.getElementById('wo-photo-overlay').style.display = 'none';
+        document.getElementById('wo-photo-full').src = '';
+        document.body.style.overflow = '';
+    }
+    </script>
+    {% endif %}
+
     <div class="row">
         <div class="col-md-6">
             <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
