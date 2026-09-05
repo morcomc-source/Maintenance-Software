@@ -10,7 +10,7 @@ bp = Blueprint('dashboard', __name__)
 @bp.route('/')
 @login_required
 def index():
-    if current_user.role == 'admin':
+    if current_user.role in ('admin', 'supervisor'):
         return render_template('dashboard/admin.html')
 
     if current_user.role == 'department':

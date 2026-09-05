@@ -80,6 +80,7 @@
         </div>
 
         <!-- Users -->
+        {% if current_user.role == 'admin' %}
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
                 <div class="card-body d-flex flex-column">
@@ -91,6 +92,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- System Setup -->
         <div class="col-md-6 col-lg-4">

@@ -26,7 +26,7 @@ def index():
             (WorkOrder.equipment_id.ilike(f'%{query}%'))
         )
 
-    if current_user.role == 'admin':
+    if current_user.role in ('admin', 'supervisor'):
         pass
     elif current_user.role == 'requestor':
         base = base.filter_by(created_by_id=current_user.id)
@@ -39,7 +39,7 @@ def index():
         WorkOrder.created_at.desc()
     ).all()
     
-    technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
+    technicians = User.query.filter_by(role='technician').all() if current_user.role in ('admin', 'supervisor') else []
     today = datetime.now().date()
     
     tmpl = 'workorder/requestor_list.html' if current_user.role == 'requestor' else 'workorder/list.html'
@@ -51,7 +51,7 @@ def index():
 @bp.route('/new')
 @login_required
 def new():
-    technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
+    technicians = User.query.filter_by(role='technician').all() if current_user.role in ('admin', 'supervisor') else []
     return render_template('workorder.html', technicians=technicians)
 
 @bp.route('/new', methods=['POST'])
@@ -169,7 +169,7 @@ def assign(wo_id):
 @bp.route('/edit/<int:wo_id>')
 @login_required
 def edit(wo_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can edit work orders.", "danger")
         return redirect(url_for('workorder.index'))
   
@@ -181,7 +181,7 @@ def edit(wo_id):
 @bp.route('/edit/<int:wo_id>', methods=['POST'])
 @login_required
 def update(wo_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can edit work orders.", "danger")
         return redirect(url_for('workorder.index'))
   
@@ -230,7 +230,7 @@ def details(wo_id):
         flash("You can only view your assigned work orders.", "danger")
         return redirect(url_for('workorder.index'))
    
-    technicians = User.query.filter_by(role='technician').order_by(User.username).all() if current_user.role == 'admin' else []
+    technicians = User.query.filter_by(role='technician').order_by(User.username).all() if current_user.role in ('admin', 'supervisor') else []
     return render_template('workorder/details.html', wo=wo, technicians=technicians)
 
 
@@ -358,7 +358,7 @@ def pause(wo_id):
 @bp.route('/delete/<int:wo_id>', methods=['POST'])
 @login_required
 def delete(wo_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can delete work orders.", "danger")
         return redirect(url_for('workorder.index'))
 
@@ -442,7 +442,7 @@ def history():
 @bp.route('/dispatch/<int:wo_id>', methods=['POST'])
 @login_required
 def dispatch(wo_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Admin only.", "danger")
         return redirect(url_for('workorder.details', wo_id=wo_id))
     wo = WorkOrder.query.get_or_404(wo_id)

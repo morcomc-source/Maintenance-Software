@@ -13,6 +13,12 @@ bp = Blueprint('settings', __name__, url_prefix='/settings')
 
 
 def admin_required():
+    if current_user.role not in ('admin', 'supervisor'):
+        flash("Admin only.", "danger")
+        return False
+    return True
+
+def slack_admin_required():
     if current_user.role != 'admin':
         flash("Admin only.", "danger")
         return False
@@ -535,7 +541,7 @@ def delete_drawer_position(id):
 @bp.route('/slack', methods=['GET', 'POST'])
 @login_required
 def slack():
-    if not admin_required():
+    if not slack_admin_required():
         return redirect(url_for('dashboard.index'))
     from app.notify import get_setting, set_setting
     if request.method == 'POST':
@@ -555,7 +561,7 @@ def slack():
 @bp.route('/slack/test', methods=['POST'])
 @login_required
 def slack_test():
-    if not admin_required():
+    if not slack_admin_required():
         return redirect(url_for('dashboard.index'))
     from app.notify import send_slack, slack_ready
     if not slack_ready():
@@ -569,7 +575,7 @@ def slack_test():
 @bp.route('/slack/test-dm', methods=['POST'])
 @login_required
 def slack_test_dm():
-    if not admin_required():
+    if not slack_admin_required():
         return redirect(url_for('dashboard.index'))
     from app.notify import send_dm_to_app_user, bot_ready
     if not bot_ready():

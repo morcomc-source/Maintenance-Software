@@ -18,6 +18,7 @@
                 <option value="technician">Technician</option>
                 <option value="department">Department</option>
                 <option value="requestor">Requestor</option>
+                <option value="supervisor">Supervisor</option>
                 <option value="admin">Admin</option>
             </select>
         </div>
@@ -33,16 +34,7 @@
             <td>{{ user.username }}</td>
             <td>{{ user.email or 'N/A' }}</td>
             <td>
-                <form method="post" class="d-inline">
-                    <input type="hidden" name="update_role" value="1">
-                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                    <select name="new_role" onchange="this.form.submit()">
-                        <option value="technician" {% if user.role == 'technician' %}selected{% endif %}>Technician</option>
-                        <option value="department" {% if user.role == 'department' %}selected{% endif %}>Department</option>
-                        <option value="requestor" {% if user.role == 'requestor' %}selected{% endif %}>Requestor</option>
-                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
-                    </select>
-                </form>
+                {{ user.role }}
             </td>
             <td>
                 <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">✏️</button>
@@ -87,6 +79,7 @@
                             <option value="technician">Technician</option>
                             <option value="department">Department</option>
                             <option value="requestor">Requestor</option>
+                <option value="supervisor">Supervisor</option>
                 <option value="admin">Admin</option>
                         </select>
                     </div>

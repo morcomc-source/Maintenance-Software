@@ -79,7 +79,7 @@ def new():
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit(id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can edit equipment.", "danger")
         return redirect(url_for('equipment.index'))
     eq = Equipment.query.get_or_404(id)
@@ -112,7 +112,7 @@ def edit(id):
 @bp.route('/delete/<int:id>', methods=['POST'])
 @login_required
 def delete(id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can delete equipment.", "danger")
         return redirect(url_for('equipment.index'))
   
@@ -147,7 +147,7 @@ def search():
 @bp.route('/details/<int:id>')
 @login_required
 def details(id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'supervisor'):
         flash("Admin only.", "danger")
         return redirect(url_for('equipment.index'))
     from app.models.workorder import WorkOrder
