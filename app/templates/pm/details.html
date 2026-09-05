@@ -137,10 +137,14 @@ if (new URLSearchParams(location.search).get("print") === "1") {
            {{ 'checked' if item.completed else '' }}>
               <label class="form-check-label" for="live_task_{{ loop.index }}">
                 {{ item.item }}
-                {% if item.value is defined and item.value is not none %}
-                  <span class="badge bg-info text-dark ms-1">{{ item.value }}</span>
-                {% endif %}
               </label>
+              {% if item.input_type == 'number' %}
+              <input type="number" step="any" class="form-control form-control-sm live-num ms-2"
+                     style="max-width:120px"
+                     {% if pm.status != 'In Progress' %}disabled{% endif %}
+                     value="{{ item.value or '' }}"
+                     placeholder="Value">
+              {% endif %}
             </div>
           {% endif %}
         {% endfor %}
@@ -194,10 +198,10 @@ if (new URLSearchParams(location.search).get("print") === "1") {
                   <h6 class="mt-2 border-bottom">{{ item.item }}</h6>
                 {% else %}
                   <div class="form-check mb-2 ms-1 d-flex align-items-center flex-wrap gap-2">
-                    <input class="form-check-input comp-check" type="checkbox" id="comp_task_{{ ns.i }}">
+                    <input class="form-check-input comp-check" type="checkbox" id="comp_task_{{ ns.i }}" {{ "checked" if item.completed else "" }}>
                     <label class="form-check-label" for="comp_task_{{ ns.i }}">{{ item.item }}</label>
                     {% if item.input_type == 'number' %}
-                      <input type="number" step="any" class="form-control form-control-sm comp-num" style="max-width:120px" placeholder="Value">
+                      <input type="number" step="any" class="form-control form-control-sm comp-num" style="max-width:120px" placeholder="Value" value="{{ item.value or '' }}">
                     {% else %}
                       <input type="hidden" class="comp-num" value="">
                     {% endif %}
@@ -411,6 +415,20 @@ function showCompleteModal(id) {
   currentPMId = id;
   partsUsed = [];
   renderPartsList();
+  var live = document.querySelectorAll(".live-check");
+  var dest = document.querySelectorAll(".comp-check");
+  live.forEach(function (box, i) {
+    if (dest[i]) dest[i].checked = box.checked;
+  });
+  var liveNum = document.querySelectorAll(".live-num");
+  var destNum = document.querySelectorAll(".comp-num");
+  var ni = 0;
+  destNum.forEach(function (inp) {
+    if (inp.type === "hidden") return;
+    if (liveNum[ni]) inp.value = liveNum[ni].value;
+    ni += 1;
+  });
+  if (typeof savePMProgress === "function") savePMProgress();
   new bootstrap.Modal(document.getElementById("completeModal")).show();
 }
 
@@ -570,7 +588,12 @@ function savePMProgress() {
   if ("{{ pm.status }}" !== "In Progress") return;
   var checks = [];
   document.querySelectorAll(".live-check").forEach(function (box) {
-    checks.push({ completed: box.checked, value: "" });
+    var wrap = box.closest(".form-check");
+    var num = wrap ? wrap.querySelector(".live-num") : null;
+    checks.push({ completed: box.checked, value: num ? num.value : "" });
+  });
+  document.querySelectorAll(".live-num").forEach(function (num) {
+    num.addEventListener("change", savePMProgress);
   });
   fetch("/pm/save_progress/{{ pm.id }}", {
     method: "POST",
