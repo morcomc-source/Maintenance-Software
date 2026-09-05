@@ -40,6 +40,7 @@ class WorkOrder(db.Model):
     contact = db.Column(db.String(120), nullable=True)
     safety_issue = db.Column(db.Boolean, nullable=True)
     photos = db.Column(db.JSON, nullable=True)
+    work_area = db.Column(db.String(30), nullable=True)
    
     created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_workorders')
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id], backref='assigned_workorders')

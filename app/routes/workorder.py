@@ -69,6 +69,7 @@ def create():
     contact = (request.form.get('contact') or '').strip() or None
     machine_down = True if request.form.get('machine_down') == '1' else False
     safety_issue = True if request.form.get('safety_issue') == '1' else False
+    work_area = (request.form.get('work_area') or '').strip() or None
 
 
     if not equipment or not description:
@@ -109,6 +110,7 @@ def create():
         contact=contact,
         machine_down=machine_down,
         safety_issue=safety_issue,
+        work_area=work_area,
         created_at=datetime.utcnow()
     )
    
@@ -132,8 +134,9 @@ def create():
             new_wo.photos = saved
             db.session.commit()
         try:
-            from app.notify import notify_workorder_created
+            from app.notify import notify_workorder_created, notify_workorder_area_supervisor
             notify_workorder_created(new_wo)
+            notify_workorder_area_supervisor(new_wo)
         except Exception as notify_err:
             print("Slack notify warning:", notify_err)
         flash("✅ Work Order created successfully!", "success")
@@ -230,11 +233,14 @@ def details(wo_id):
         flash("You can only view your assigned work orders.", "danger")
         return redirect(url_for('workorder.index'))
    
-    technicians = (
-        User.query.filter(User.role.in_(['technician', 'supervisor']))
-        .order_by(User.username).all()
-        if current_user.role in ('admin', 'supervisor') else []
-    )
+
+    if current_user.role == 'admin':
+        technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
+    elif current_user.role == 'supervisor':
+        technicians = User.query.filter_by(reports_to_id=current_user.id).order_by(User.username).all()
+    else:
+        technicians = []
+
     return render_template('workorder/details.html', wo=wo, technicians=technicians)
 
 

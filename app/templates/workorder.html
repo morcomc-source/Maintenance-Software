@@ -36,7 +36,17 @@
 
                 <div class="mb-4">
                     <label class="form-label">What's wrong <span class="text-danger">*</span></label>
-                    <textarea name="description" class="form-control" rows="4" placeholder="What did you see, hear, or smell? When did it start?" required></textarea>
+                    
+                <div class="mb-3">
+                    <label class="form-label">Type of request</label>
+                    <select name="work_area" class="form-select" required>
+                        <option value="">— Select —</option>
+                        <option value="facility">Facility maintenance</option>
+                        <option value="press">Press maintenance</option>
+                        <option value="mobile">Mobile maintenance</option>
+                    </select>
+                </div>
+                <textarea name="description" class="form-control" rows="4" placeholder="What did you see, hear, or smell? When did it start?" required></textarea>
                 </div>
 
                 <h6 class="text-muted text-uppercase mb-3">How bad is it</h6>
@@ -75,7 +85,7 @@
                     <input type="text" name="contact" class="form-control" placeholder="Name or phone">
                 </div>
 
-                {% if current_user.role == 'admin' %}
+                {% if current_user.role in ['admin', 'supervisor'] %}
                 <h6 class="text-muted text-uppercase mb-3">Dispatch</h6>
                 <div class="row">
                     <div class="col-md-6 mb-3">

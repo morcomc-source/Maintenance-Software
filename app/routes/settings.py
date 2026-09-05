@@ -587,3 +587,22 @@ def slack_test_dm():
     ok = send_dm_to_app_user(current_user.id, "Maintenance Desk test DM. If you see this, DMs work.")
     flash("Test DM sent. Check Slack direct messages." if ok else "DM failed. Email must match Slack, and bot scopes must include chat:write, im:write, users:read.email.", "success" if ok else "danger")
     return redirect(url_for("settings.slack"))
+
+
+@bp.route("/request-routing", methods=["GET", "POST"])
+@login_required
+def request_routing():
+    if current_user.role != "admin":
+        flash("Admin only.", "danger")
+        return redirect(url_for("settings.index"))
+    from app.models.user import User
+    from app.notify import get_setting, set_setting
+    keys = ("route_facility", "route_press", "route_mobile")
+    if request.method == "POST":
+        for k in keys:
+            set_setting(k, request.form.get(k) or "")
+        flash("Routing saved.", "success")
+        return redirect(url_for("settings.request_routing"))
+    supervisors = User.query.filter(User.role.in_(["supervisor", "admin"])).order_by(User.username).all()
+    routes = {k: get_setting(k, "") or "" for k in keys}
+    return render_template("settings/routing.html", supervisors=supervisors, routes=routes)

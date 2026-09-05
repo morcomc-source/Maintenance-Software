@@ -9,6 +9,21 @@
 {% block content %}
 
 <style>
+.list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
+.list-table-wrap table { margin-bottom: 0; }
+.list-table-wrap thead th {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-size: .75rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 0 !important;
+}
+.list-table-wrap tbody tr { box-shadow: inset 4px 0 0 #cbd5e1; }
+</style>
+
+
+<style>
 .mm-overlay {
   display: none;
   position: fixed;
@@ -199,7 +214,8 @@ text-align: center;
 
         <!-- Table View (desktop) -->
         <div id="table-view" class="table-responsive">
-            <table id="parts-table" class="table table-striped table-hover">
+            <div class="list-table-wrap">
+<table id="parts-table" class="table table-striped table-hover">
                 <thead class="table-light">
                     <tr>
                         <th class="center-text">Part Name</th>
@@ -253,6 +269,7 @@ text-align: center;
                     {% endfor %}
                 </tbody>
             </table>
+</div>
         </div>
 
         <!-- Card View (mobile) -->

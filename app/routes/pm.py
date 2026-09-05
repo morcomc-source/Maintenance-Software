@@ -165,7 +165,12 @@ def index():
 
     today = datetime.now().strftime("%Y-%m-%d")
     tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-    technicians = User.query.filter_by(role='technician').all() if current_user.role == 'admin' else []
+    if current_user.role == 'admin':
+        technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
+    elif current_user.role == 'supervisor':
+        technicians = User.query.filter_by(reports_to_id=current_user.id).order_by(User.username).all()
+    else:
+        technicians = []
 
     pm_mains = PMMainEquipment.query.order_by(PMMainEquipment.name).all()
     pm_machines = PMMachine.query.order_by(PMMachine.name).all()

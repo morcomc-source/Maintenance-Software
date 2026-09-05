@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Request routing{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:640px;">
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary mb-4">← Back to System Setup</a>
+    <h2 class="text-center mb-4">Request routing</h2>
+    <p class="text-muted">When a requestor or department submits a work order, Slack DMs this supervisor.</p>
+    <div class="card shadow-sm"><div class="card-body">
+        <form method="post">
+            {% for key, label in [('route_facility','Facility maintenance'),('route_press','Press maintenance'),('route_mobile','Mobile maintenance')] %}
+            <div class="mb-3">
+                <label class="form-label">{{ label }}</label>
+                <select name="{{ key }}" class="form-select">
+                    <option value="">— None —</option>
+                    {% for u in supervisors %}
+                    <option value="{{ u.id }}" {% if routes[key] == u.id|string %}selected{% endif %}>{{ u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endfor %}
+            <button class="btn btn-success w-100" type="submit">Save</button>
+        </form>
+    </div></div>
+</div>
+{% endblock %}

@@ -69,6 +69,12 @@
     <div class="row">
         <div class="col-md-6">
             <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
+            <p><strong>Type:</strong>
+                {% if wo.work_area == 'facility' %}Facility
+                {% elif wo.work_area == 'press' %}Press
+                {% elif wo.work_area == 'mobile' %}Mobile
+                {% else %}—{% endif %}
+            </p>
             <p><strong>Priority:</strong> {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}</p>
             <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">{{ wo.status }}</span></p>
             <p><strong>Assigned To:</strong> {{ wo.assigned_to.username if wo.assigned_to else 'Unassigned' }}</p>

@@ -2,23 +2,180 @@
 {% block title %}Work Orders{% endblock %}
 {% block content %}
 
+<style>
+#workorder-table { font-size: 0.88rem; }
+#workorder-table th, #workorder-table td { font-weight: bold; padding: 8px 6px; }
+</style>
+
+
+<style>
+#workorder-table tbody td,
+#workorder-table tbody td strong,
+#workorder-table tbody td .wo-txt,
+#workorder-table tbody td .assigned-user {
+    font-weight: 700 !important;
+}
+</style>
+
+
+<style>
+#workorder-table tbody td { font-weight: bold; }
+</style>
+
+
+<style>
+.pm-row-overdue .wo-txt { color: #fff !important; }
+</style>
+
+
+<style>
+#workorder-table tr.pm-row-overdue td,
+#workorder-table tr.pm-row-overdue td * { color: #fff !important; }
+</style>
+
+
+<style id="wo-overdue-text">
+#workorder-table.table tbody tr.pm-row-overdue > td {
+    color: #fff !important;
+}
+#workorder-table.table tbody tr.pm-row-overdue > td * {
+    color: #fff !important;
+}
+</style>
+
+<style>
+.pm-row-complete td { background-color: #4dff4d; font-weight: bold; }
+.pm-row-due-soon td { background-color: #ffff4d; font-weight: bold; }
+.pm-row-overdue td { background-color: #FF0000; color: white !important; font-weight: bold; }
+.pm-row-secondary td { background-color: #bebec1; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; }
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
+.list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
+.list-table-wrap thead th {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-size: .75rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 0 !important;
+}
+
+.pm-row-overdue td,
+.pm-row-overdue td *,
+.pm-row-overdue a,
+.pm-row-overdue strong {
+    color: #fff !important;
+}
+
+</style>
+
+
+<style>
+.list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
+.list-table-wrap table { margin-bottom: 0; }
+.list-table-wrap thead th {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-size: .75rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 0 !important;
+    white-space: nowrap;
+}
+.list-table-wrap tbody td { vertical-align: middle; }
+.list-table-wrap tbody tr { box-shadow: inset 4px 0 0 #cbd5e1; }
+.list-table-wrap tbody tr.table-danger-dark pm-row-overdue,
+.list-table-wrap tbody tr.pm-row-overdue {
+    background: #FF0000 !important;
+    box-shadow: inset 4px 0 0 #dc3545;
+}
+.list-table-wrap tbody tr.table-warning pm-row-due-soon,
+.list-table-wrap tbody tr.pm-row-due-soon {
+    background: #ffff4d !important;
+    box-shadow: inset 4px 0 0 #ffc107;
+}
+.list-table-wrap tbody tr.table-success-dark pm-row-complete,
+.list-table-wrap tbody tr.pm-row-done {
+    background: #4dff4d !important;
+    box-shadow: inset 4px 0 0 #198754;
+}
+.list-table-wrap tbody tr:hover { filter: brightness(0.98); }
+
+.list-table-wrap thead th, .list-table-wrap thead th.sortable {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-size: .75rem !important;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 0 !important;
+}
+
+.list-table-wrap tbody tr.table-danger-dark pm-row-overdue td {
+    background: #FF0000 !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+.list-table-wrap tbody tr.table-warning pm-row-due-soon td,
+.list-table-wrap tbody tr.table-warning pm-row-due-soon {
+    background: #ffff4d !important;
+    color: #111 !important;
+    font-weight: 700;
+}
+.list-table-wrap tbody tr.table-success-dark pm-row-complete td {
+    background: #4dff4d !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+.list-table-wrap tbody tr.table-danger-dark pm-row-overdue .badge,
+.list-table-wrap tbody tr.table-success-dark pm-row-complete .badge {
+    border: 1px solid rgba(255,255,255,.6);
+}
+
+
+.list-table-wrap tbody tr.table-warning pm-row-due-soon td,
+.list-table-wrap tbody tr.table-warning pm-row-due-soon td strong,
+.list-table-wrap table.table-striped > tbody > tr.table-warning pm-row-due-soon > td {
+    background-color: #ffff4d !important;
+    color: #111 !important;
+}
+
+
+.pm-row-complete td { background-color: #4dff4d !important; font-weight: bold; color: #111 !important; }
+.pm-row-due-soon td { background-color: #ffff4d !important; font-weight: bold; color: #111 !important; }
+.pm-row-overdue td { background-color: #FF0000 !important; color: white !important; font-weight: bold; }
+
+
+.pm-row-complete td { background-color: #4dff4d !important; font-weight: bold; color: #111 !important; }
+.pm-row-due-soon td { background-color: #ffff4d !important; font-weight: bold; color: #111 !important; }
+.pm-row-overdue td { background-color: #FF0000 !important; color: white !important; font-weight: bold; }
+.pm-row-secondary td { background-color: #bebec1 !important; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; padding: .5rem 1rem; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; padding: .5rem 1rem; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; padding: .5rem 1rem; }
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; padding: .5rem 1rem; }
+
+</style>
+
+
 <div class="mb-3">
   <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
 </div>
 
 <style>
-.table thead th {
+.table thead th.UNUSED {
     background-color: #6c757d !important;
     color: #fff !important;
     font-weight: 700;
 }
 /* row colors */
-.table-success-dark td {
+.table-success-dark pm-row-complete td {
     background-color: #4caf50 !important;
     color: #fff !important;
     font-weight: 500;
 }
-.table-danger-dark td {
+.table-danger-dark pm-row-overdue td {
     background-color: #d9534f !important;
     color: #fff !important;
     font-weight: 500;
@@ -26,7 +183,7 @@
 /* force all table text black */
 .table tbody td,
 .table tbody td * {
-    color: #000 !important;
+    color: inherit !important;
     font-weight: 600;
 }
 /* Light Gray background for all action buttons */
@@ -36,7 +193,7 @@
 .btn-warning {
     background-color: #f8f9fa !important;
     border-color: #adb5bd;
-    color: #495057;
+    color: inherit;
     border-width: 2px;
 }
 /* Hover effects */
@@ -45,8 +202,8 @@
 .btn-danger:hover { background-color: #dc3545 !important; color: white !important; }
 .btn-warning:hover { background-color: #ffc107 !important; }
 /* Other styles */
-.assigned-user { color: #000 !important; font-weight: 600; }
-.completed-date { color: #000 !important; font-weight: 600; }
+.assigned-user { color: inherit !important; font-weight: 600; }
+.completed-date { color: inherit !important; font-weight: 600; }
 /* Description column */
 td:nth-child(3), th:nth-child(3) {
     max-width: 325px;
@@ -67,7 +224,7 @@ td:nth-child(3), th:nth-child(3) {
 
 <div class="container mt-4">
     <h2 class="mb-4 text-center">
-            {% if current_user.role == 'admin' %}
+            {% if current_user.role in ['admin', 'supervisor'] %}
                 All Work Orders
             {% else %}
                 My Assigned Work Orders
@@ -75,26 +232,59 @@ td:nth-child(3), th:nth-child(3) {
         </h2>
 
     <!-- Search and Scan Bar -->
-    <div class="input-group mb-4">
-        <input type="text" id="search-input" class="form-control" placeholder="Search by equipment, description, or ID...">
-        <button class="btn btn-primary" onclick="searchWorkOrders()">Search</button>
-        <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+    
+    <form class="row g-3 mb-3" onsubmit="searchWorkOrders(); return false;">
+        <div class="col-md-12">
+            <label class="form-label">Search work orders</label>
+            <input type="text" id="search-input" class="form-control" placeholder="Search by equipment, description, or ID...">
+        </div>
+        <div class="col-12">
+            <button type="button" class="btn btn-primary" onclick="searchWorkOrders()">Search</button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="document.getElementById('search-input').value=''; searchWorkOrders();">Reset</button>
+        </div>
+    </form>
+    <div class="d-flex align-items-center justify-content-center mb-4 flex-wrap gap-3">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary fw-bold" id="wo-btn-attention" onclick="setWOFilter('attention')">Needs Attention</button>
+            <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-upcoming" onclick="setWOFilter('upcoming')">Upcoming</button>
+            <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-completed" onclick="setWOFilter('completed')">Completed</button>
+            {% if current_user.role in ['admin', 'supervisor'] %}
+            <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-all" onclick="setWOFilter('all')">Show All</button>
+            {% endif %}
+        </div>
+        <span class="px-3 py-2 fw-bold text-white" style="background:#dc3545;border-radius:6px;">Overdue</span>
+        <span class="px-3 py-2 fw-bold" style="background:#ffff4d;border-radius:6px;">Due today</span>
+        <span class="px-3 py-2 fw-bold text-white" style="background:#28a745;border-radius:6px;">Completed</span>
+        <span class="px-3 py-2 fw-bold text-white" style="background:#6c757d;border-radius:6px;">Upcoming</span>
     </div>
+
 
     <!-- Toggle + New Button -->
     <div class="mb-4">
         <div class="row g-2">
             <div class="col-6 col-md-4">
-                <a href="/workorder/new" class="btn btn-success w-100 fw-bold">
-                    + Create New Work Order
                 </a>
             </div>
         </div>
     </div>
 
     <!-- Desktop Table -->
-    <table class="table table-striped table-hover align-middle d-none d-md-table" id="workorder-table">
-        <thead style="background-color: #495057 !important;">
+    
+<style>
+
+.pm-row-overdue td strong,
+.pm-row-overdue td .assigned-user { color: #fff !important; }
+</style>
+
+
+<style>
+#workorder-table tr.pm-row-overdue > td { color: #fff !important; }
+</style>
+<div class="list-table-wrap">
+<table class="table table-striped table-hover align-middle d-none d-md-table" 
+<style>
+id="workorder-table">
+        <thead >
             <tr>
                 <th class="text-center sortable">ID</th>
                 <th class="text-center sortable">Equipment</th>
@@ -109,11 +299,12 @@ td:nth-child(3), th:nth-child(3) {
         </thead>
         <tbody>
         {% for wo in workorders %}
-            <tr class="{% if wo.status == 'Completed' %}table-success-dark{% elif wo.expected_completion_date and wo.expected_completion_date < today %}table-danger-dark{% endif %}">
+            <tr class="{% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}"
+        data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif not wo.expected_completion_date or wo.expected_completion_date <= today %}attention{% else %}upcoming{% endif %}">
                 <td class="text-center"><strong>#{{ wo.id }}</strong></td>
-                <td>{{ wo.equipment }}</td>
+                <td><span class="wo-txt"><span class="wo-txt">{{ wo.equipment }}</span></span></td>
                 <td style="max-width: 325px; white-space: normal; word-wrap: break-word;">
-                    {{ wo.description[:150] }}{% if wo.description|length > 150 %}...{% endif %}
+                    <span class="wo-txt">{{ wo.description[:150] }}</span>{% if wo.description|length > 150 %}...{% endif %}
                 </td>
                 <td class="text-center">
                     {% if wo.priority %}
@@ -143,14 +334,14 @@ td:nth-child(3), th:nth-child(3) {
                         <span class="text-muted">Unassigned</span>
                     {% endif %}
                 </td>
-                <td class="text-center">{{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}</td>
+                <td class="text-center"><span class="wo-txt">{{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}</span></td>
                 <td class="text-center">
                     {% if current_user.role == 'technician' %}
                         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">📋 Details</a>
                     {% else %}
                         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
                     {% endif %}
-                    {% if current_user.role == 'admin' %}
+                    {% if current_user.role in ['admin', 'supervisor'] %}
                         <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
                         <button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
                     {% endif %}
@@ -165,15 +356,16 @@ td:nth-child(3), th:nth-child(3) {
         {% endfor %}
         </tbody>
     </table>
+</div>
 
     <!-- Mobile Card View -->
     <div class="d-md-none">
     {% for wo in workorders %}
-    <div class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
+    <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif not wo.expected_completion_date or wo.expected_completion_date <= today %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
         <div class="card-body pb-2">
             <div class="d-flex justify-content-between align-items-start">
-                <h5 class="mb-1">#{{ wo.id }} - {{ wo.equipment }}</h5>
+                <h5 class="mb-1">#{{ wo.id }} - <span class="wo-txt">{{ wo.equipment }}</span></h5>
                 <span class="badge bg-{{ 'light text-dark' if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) else 'primary' }}">
                     {{ wo.status }}
                 </span>
@@ -183,7 +375,7 @@ td:nth-child(3), th:nth-child(3) {
             <p class="small mb-0">{{ wo.description[:100] if wo.description else '' }}{% if wo.description and wo.description|length > 100 %}...{% endif %}</p>
         </div>
         </a>
-        {% if current_user.role == 'admin' %}
+        {% if current_user.role in ['admin', 'supervisor'] %}
         <div class="card-body pt-0">
             <div class="d-flex gap-2">
                 <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
@@ -226,7 +418,6 @@ td:nth-child(3), th:nth-child(3) {
 let html5QrcodeScanner = null;
 
 // Scanner
-function startScanning() {
     document.getElementById("scanner-overlay").style.display = "flex";
     html5QrcodeScanner = new Html5Qrcode("scanner-preview");
     const config = { fps: 20, qrbox: { width: 500, height: 100 } };
@@ -284,4 +475,91 @@ function deleteWorkOrder(woId) {
     new bootstrap.Modal(modalEl).show();
 }
 </script>
+
+<script>
+window.woFilter = "attention";
+function setWOFilter(mode) {
+  window.woFilter = mode;
+  ["attention","upcoming","completed","all"].forEach(function(m) {
+    var btn = document.getElementById("wo-btn-" + m);
+    if (!btn) return;
+    if (m === mode) { btn.classList.add("btn-primary"); btn.classList.remove("btn-outline-primary"); }
+    else { btn.classList.remove("btn-primary"); btn.classList.add("btn-outline-primary"); }
+  });
+  applyWOFilter();
+}
+function applyWOFilter() {
+  var mode = window.woFilter || "attention";
+  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
+    var show = (mode === "all" || el.getAttribute("data-wo-bucket") === mode);
+    el.style.display = show ? "" : "none";
+  });
+}
+document.addEventListener("DOMContentLoaded", applyWOFilter);
+</script>
+
+
+<style>
+.pm-row-complete td { background-color: #4dff4d !important; font-weight: bold; }
+.pm-row-due-soon td { background-color: #ffff4d !important; font-weight: bold; }
+.pm-row-overdue td { background-color: #FF0000 !important; color: white !important; font-weight: bold; }
+.pm-row-secondary td { background-color: #bebec1 !important; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; }
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
+</style>
+<script>
+window.woFilter = "attention";
+function setWOFilter(mode) {
+  window.woFilter = mode;
+  ["attention","upcoming","completed","all"].forEach(function(m) {
+    var btn = document.getElementById("wo-btn-" + m);
+    if (!btn) return;
+    btn.classList.toggle("btn-primary", m === mode);
+    btn.classList.toggle("btn-outline-primary", m !== mode);
+  });
+  applyWOFilter();
+}
+function applyWOFilter() {
+  var mode = window.woFilter || "attention";
+  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
+    el.style.display = (mode === "all" || el.getAttribute("data-wo-bucket") === mode) ? "" : "none";
+  });
+}
+document.addEventListener("DOMContentLoaded", applyWOFilter);
+</script>
+
+
+<style>
+.pm-row-complete td { background-color: #4dff4d !important; font-weight: bold; }
+.pm-row-due-soon td { background-color: #ffff4d !important; font-weight: bold; }
+.pm-row-overdue td { background-color: #FF0000 !important; color: white !important; font-weight: bold; }
+.pm-row-secondary td { background-color: #bebec1 !important; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; }
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
+</style>
+<script>
+window.woFilter = "attention";
+function setWOFilter(mode) {
+  window.woFilter = mode;
+  ["attention","upcoming","completed","all"].forEach(function(m) {
+    var btn = document.getElementById("wo-btn-" + m);
+    if (!btn) return;
+    btn.classList.toggle("btn-primary", m === mode);
+    btn.classList.toggle("btn-outline-primary", m !== mode);
+  });
+  applyWOFilter();
+}
+function applyWOFilter() {
+  var mode = window.woFilter || "attention";
+  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
+    el.style.display = (mode === "all" || el.getAttribute("data-wo-bucket") === mode) ? "" : "none";
+  });
+}
+document.addEventListener("DOMContentLoaded", applyWOFilter);
+</script>
+
 {% endblock %}

@@ -229,3 +229,23 @@ def notify_permit_submitted(permit):
         f"<{SITE_URL}/permits/{permit.id}|Open permit>"
     )
     return send_dm_to_app_user(permit.reports_to_id, text)
+
+
+def notify_workorder_area_supervisor(wo):
+    area = (getattr(wo, "work_area", None) or "").strip()
+    key = {"facility": "route_facility", "press": "route_press", "mobile": "route_mobile"}.get(area)
+    if not key:
+        return False
+    raw = (get_setting(key) or "").strip()
+    if not raw.isdigit():
+        print("Area Slack skipped: no supervisor mapped for", area)
+        return False
+    label = {"facility": "Facility", "press": "Press", "mobile": "Mobile"}[area]
+    who = wo.created_by.username if getattr(wo, "created_by", None) else "someone"
+    text = (
+        f"*{label} maintenance request* WO-{wo.id}\n"
+        f"From: {who}\n"
+        f"Equipment: {wo.equipment or '—'}\n"
+        f"<{SITE_URL}/workorder/details/{wo.id}|Open work order>"
+    )
+    return send_dm_to_app_user(int(raw), text)
