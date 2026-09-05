@@ -28,7 +28,7 @@ def index():
 
     if current_user.role in ('admin', 'supervisor'):
         pass
-    elif current_user.role == 'requestor':
+    elif current_user.role in ('requestor', 'department'):
         base = base.filter_by(created_by_id=current_user.id)
     else:
         base = base.filter_by(assigned_to_id=current_user.id)
@@ -42,7 +42,7 @@ def index():
     technicians = User.query.filter_by(role='technician').all() if current_user.role in ('admin', 'supervisor') else []
     today = datetime.now().date()
     
-    tmpl = 'workorder/requestor_list.html' if current_user.role == 'requestor' else 'workorder/list.html'
+    tmpl = 'workorder/requestor_list.html' if current_user.role in ('requestor', 'department') else 'workorder/list.html'
     return render_template(tmpl,
                          workorders=workorders,
                          technicians=technicians,
@@ -79,7 +79,7 @@ def create():
         assigned_to_id = int(assigned_to_id) if assigned_to_id else None
     except:
         assigned_to_id = None
-    if current_user.role == 'requestor':
+    if current_user.role in ('requestor', 'department'):
         assigned_to_id = None
 
     # Convert priority to int

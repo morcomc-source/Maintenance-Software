@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, url_for
 from flask_login import login_required, current_user
 from datetime import datetime
 from app.models.pm import PM
 from app.models.workorder import WorkOrder
+from app.models.user import User
 
 bp = Blueprint('dashboard', __name__)
 
@@ -11,7 +12,108 @@ bp = Blueprint('dashboard', __name__)
 @login_required
 def index():
     if current_user.role in ('admin', 'supervisor'):
-        return render_template('dashboard/admin.html')
+        today_mine, today_crew = [], []
+        if current_user.role == 'supervisor':
+            today = datetime.now().date()
+            crew = User.query.filter_by(reports_to_id=current_user.id).all()
+            crew_ids = [u.id for u in crew]
+
+            def add_row(bucket, kind, title, when, late, url, who=""):
+                bucket.append({
+                    "kind": kind, "title": title, "when": when,
+                    "late": late, "url": url, "who": who,
+                })
+
+            for pm in PM.query.all():
+                if not pm.next_due or pm.next_due > today:
+                    continue
+                uid = getattr(pm, "assigned_user_id", None)
+                who = ""
+                if uid:
+                    u = User.query.get(uid)
+                    who = u.username if u else ""
+                row = ("PM", (pm.main_equipment or "PM"), pm.next_due.strftime("%Y-%m-%d"),
+                       pm.next_due < today, url_for("pm.details", id=pm.id), who)
+                if uid == current_user.id:
+                    add_row(today_mine, *row)
+                elif uid in crew_ids:
+                    add_row(today_crew, *row)
+
+            for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
+                due = wo.expected_completion_date
+                if due is not None and due > today:
+                    continue
+                who = wo.assigned_to.username if wo.assigned_to else "Unassigned"
+                row = ("WO", "#{} {}".format(wo.id, wo.equipment or ""),
+                       due.strftime("%Y-%m-%d") if due else "Open",
+                       bool(due and due < today),
+                       url_for("workorder.details", wo_id=wo.id), who)
+                if wo.assigned_to_id == current_user.id:
+                    add_row(today_mine, *row)
+                elif wo.assigned_to_id in crew_ids:
+                    add_row(today_crew, *row)
+
+            try:
+                from app.models.permit import Permit
+                for perm in Permit.query.filter_by(reports_to_id=current_user.id, status="pending").all():
+                    who = perm.created_by.username if perm.created_by else ""
+                    add_row(today_crew if perm.created_by_id != current_user.id else today_mine,
+                            "Permit", "{} #{}".format(perm.type_label(), perm.id),
+                            "Needs approval", True,
+                            url_for("permits.details", pid=perm.id), who)
+            except Exception:
+                pass
+        plant_pm, plant_wo, plant_perm = [], [], []
+        if current_user.role == 'admin':
+            today = datetime.now().date()
+            for pm in PM.query.all():
+                if not pm.next_due or pm.next_due > today:
+                    continue
+                who = ""
+                if getattr(pm, "assigned_user_id", None):
+                    u = User.query.get(pm.assigned_user_id)
+                    who = u.username if u else ""
+                plant_pm.append({
+                    "title": (pm.main_equipment or "PM"),
+                    "when": pm.next_due.strftime("%Y-%m-%d"),
+                    "late": pm.next_due < today,
+                    "who": who or "Unassigned",
+                    "url": url_for("pm.details", id=pm.id),
+                })
+            for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
+                due = wo.expected_completion_date
+                if due is not None and due > today:
+                    continue
+                plant_wo.append({
+                    "title": "#{} {}".format(wo.id, wo.equipment or ""),
+                    "when": due.strftime("%Y-%m-%d") if due else "Open",
+                    "late": bool(due and due < today),
+                    "who": wo.assigned_to.username if wo.assigned_to else "Unassigned",
+                    "url": url_for("workorder.details", wo_id=wo.id),
+                })
+            try:
+                from app.models.permit import Permit
+                for perm in Permit.query.filter(Permit.status.in_(["pending"])).all():
+                    plant_perm.append({
+                        "title": "{} #{}".format(perm.type_label(), perm.id),
+                        "when": "Pending",
+                        "late": True,
+                        "who": (perm.created_by.username if perm.created_by else "") +
+                               ((" → " + perm.reports_to.username) if perm.reports_to else ""),
+                        "url": url_for("permits.details", pid=perm.id),
+                    })
+            except Exception:
+                pass
+        return render_template(
+            'dashboard/admin.html',
+            today_mine=today_mine,
+            today_crew=today_crew,
+            plant_pm=plant_pm,
+            plant_wo=plant_wo,
+            plant_perm=plant_perm,
+        )
+
+
 
     if current_user.role == 'department':
         return render_template('dashboard/department.html')
@@ -52,6 +154,41 @@ def index():
             'completed_workorders': completed_wo,
             'past_due_workorders': past_due_wo,
         }
-        return render_template('dashboard/technician.html', stats=stats)
+        today_items = []
+        for pm in assigned_pms:
+            if pm.next_due and pm.next_due <= today:
+                today_items.append({
+                    "kind": "PM",
+                    "title": (pm.main_equipment or "PM") + ((" — " + pm.sub_equipment) if pm.sub_equipment else ""),
+                    "when": pm.next_due.strftime("%Y-%m-%d"),
+                    "late": pm.next_due < today,
+                    "url": url_for("pm.details", id=pm.id),
+                })
+        for wo in assigned_wos:
+            if wo.status == "Completed":
+                continue
+            due = wo.expected_completion_date
+            if due is not None and due > today:
+                continue
+            today_items.append({
+                "kind": "WO",
+                "title": "#{} {}".format(wo.id, wo.equipment or ""),
+                "when": due.strftime("%Y-%m-%d") if due else "Open",
+                "late": bool(due and due < today),
+                "url": url_for("workorder.details", wo_id=wo.id),
+            })
+        try:
+            from app.models.permit import Permit
+            for perm in Permit.query.filter_by(created_by_id=current_user.id, status="pending").all():
+                today_items.append({
+                    "kind": "Permit",
+                    "title": "{} #{}".format(perm.type_label(), perm.id),
+                    "when": "Pending approval",
+                    "late": False,
+                    "url": url_for("permits.details", pid=perm.id),
+                })
+        except Exception:
+            pass
+        return render_template('dashboard/technician.html', stats=stats, today_items=today_items)
 
     return "Invalid role", 403

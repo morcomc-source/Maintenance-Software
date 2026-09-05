@@ -5,7 +5,110 @@
     <h2 class="mb-2">Welcome, Admin {{ current_user.username }}</h2>
     <p class="lead mb-4">System Overview</p>
 
-    <div class="row g-4">
+    
+    
+    {% if current_user.role == 'admin' %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><strong>PMs due</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in plant_pm|default([]) %}
+                    <a href="{{ item.url }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-{{ 'danger' if item.late else 'warning' }}">PM</span>
+                            <small class="text-muted">{{ item.when }}</small>
+                        </div>
+                        <div>{{ item.title }}</div>
+                        <small class="text-muted">{{ item.who }}</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">None</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><strong>Work due</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in plant_wo|default([]) %}
+                    <a href="{{ item.url }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-{{ 'danger' if item.late else 'warning' }}">WO</span>
+                            <small class="text-muted">{{ item.when }}</small>
+                        </div>
+                        <div>{{ item.title }}</div>
+                        <small class="text-muted">{{ item.who }}</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">None</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><strong>Permits waiting</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in plant_perm|default([]) %}
+                    <a href="{{ item.url }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-danger">Permit</span>
+                            <small class="text-muted">{{ item.when }}</small>
+                        </div>
+                        <div>{{ item.title }}</div>
+                        <small class="text-muted">{{ item.who }}</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">None</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% if current_user.role == 'supervisor' %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><strong>My work today</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in today_mine|default([]) %}
+                    <a href="{{ item.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><span class="badge bg-{{ 'danger' if item.late else 'warning' }} me-2">{{ item.kind }}</span>{{ item.title }}</span>
+                        <small class="text-muted">{{ item.when }}</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">Nothing assigned to you</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header"><strong>Crew due today</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for item in today_crew|default([]) %}
+                    <a href="{{ item.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge bg-{{ 'danger' if item.late else 'warning' }} me-2">{{ item.kind }}</span>
+                            {{ item.title }}
+                            <small class="text-muted ms-1">{{ item.who }}</small>
+                        </span>
+                        <small class="text-muted">{{ item.when }}</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">No crew work due — set Reports to on your techs</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+<div class="row g-4">
         <!-- PMs -->
         <div class="col-md-6 col-lg-4">
             <div class="card text-center h-100 shadow-sm">
