@@ -312,8 +312,13 @@ def add_pm_machine():
     if not name:
         flash("Machine name is required.", "danger")
         return redirect(url_for('settings.pm_setup'))
-    if PMMachine.query.filter_by(name=name).first():
-        flash("That machine already exists.", "warning")
+    q = PMMachine.query.filter_by(name=name)
+    if main_id:
+        q = q.filter_by(main_equipment_id=main_id)
+    else:
+        q = q.filter(PMMachine.main_equipment_id.is_(None))
+    if q.first():
+        flash("That machine already exists at this location.", "warning")
         return redirect(url_for('settings.pm_setup'))
     try:
         main_id = int(main_id) if main_id else None

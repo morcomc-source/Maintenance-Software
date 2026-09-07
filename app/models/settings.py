@@ -6,7 +6,7 @@ class PartLocation(db.Model):
     """Legacy flat location list (kept so old parts still work)."""
     __tablename__ = 'part_locations'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
@@ -132,7 +132,7 @@ class PMMainEquipment(db.Model):
 class PMMachine(db.Model):
     __tablename__ = 'pm_machines'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     main_equipment_id = db.Column(db.Integer, db.ForeignKey('pm_main_equipment.id'), nullable=True)
     main_equipment = db.relationship('PMMainEquipment', backref='machines')
     created_at = db.Column(db.DateTime, default=datetime.now)

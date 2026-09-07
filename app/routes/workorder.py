@@ -503,3 +503,27 @@ def location_search():
             seen.add(name.lower())
             rows.append(name)
     return jsonify(rows[:20])
+
+@bp.route("/machines")
+@login_required
+def machine_search():
+    q = (request.args.get("q") or "").strip().lower()
+    loc = (request.args.get("location") or "").strip()
+    from app.models.settings import PMMachine, PMMainEquipment
+    rows = []
+    query = PMMachine.query
+    if loc:
+        main = PMMainEquipment.query.filter(PMMainEquipment.name.ilike(loc)).first()
+        if main:
+            query = query.filter(PMMachine.main_equipment_id == main.id)
+        else:
+            query = query.filter(PMMachine.id == -1)
+    for m in query.order_by(PMMachine.name).limit(40).all():
+        name = (m.name or "").strip()
+        if not name:
+            continue
+        if q and q not in name.lower():
+            continue
+        locname = m.main_equipment.name if m.main_equipment else ""
+        rows.append({"name": name, "location": locname})
+    return jsonify(rows[:15])
