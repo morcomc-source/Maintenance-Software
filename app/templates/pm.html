@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Preventative Maintenance{% endblock %}
 {% block content %}
+<style>
+#pm-table .btn-danger { color: #212529 !important; border-color: #adb5bd !important; background: #f8f9fa !important; }
+</style>
+
+
+<style>
+#pm-table .btn-outline-info,
+#pm-table .btn-outline-dark,
+#pm-table .btn-danger,
+#pm-table .btn-warning {
+    background-color: #f8f9fa !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+    border-width: 2px !important;
+    font-weight: 600 !important;
+}
+#pm-table .btn-outline-info { color: #0d6efd !important; border-color: #0d6efd !important; }
+</style>
+
+
+
 
 <style>
 @media (max-width: 768px) {
@@ -17,9 +38,9 @@
     color: #212529 !important;
 }
 #pm-table td .btn-danger {
-    background: #fff !important;
-    color: #dc3545 !important;
-    border-color: #dc3545 !important;
+    background: #f8f9fa !important;
+    color: #212529 !important;
+    border-color: #adb5bd !important;
 }
 </style>
 
@@ -185,14 +206,18 @@
                                     0
                                 {% endif %}
                             </td>
-                            <td class="center-text">
-                                {% if current_user.role in ['admin', 'supervisor'] %}
-                                <button class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
-                                <button class="btn btn-sm btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
-                                {% endif %}
-{% if current_user.role in ['admin', 'supervisor'] %}<button class="btn btn-sm btn-outline-dark" onclick="window.open('{{ url_for('pm.details', id=item.id) }}?print=1','_blank')">📄 PDF</button>{% endif %}
-                                <a class="btn btn-sm btn-outline-info" href="{{ url_for('pm.details', id=item.id) }}">📋 Details</a>
-</td>
+                            <td class="text-center">
+                    {% if current_user.role == 'technician' %}
+                        <a href="{{ url_for('pm.details', id=item.id) }}" class="btn btn-sm btn-outline-info">📋 Details</a>
+                    {% else %}
+                        <a href="{{ url_for('pm.details', id=item.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
+                        {% if current_user.role in ['admin', 'supervisor'] %}
+                        <a href="{{ url_for('pm.details', id=item.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                        {% endif %}
+                    {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
