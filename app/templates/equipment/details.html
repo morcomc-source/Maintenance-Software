@@ -18,6 +18,7 @@
             <button type="button" class="btn btn-primary" data-panel="wo">Work orders ({{ workorders|length }})</button>
             <button type="button" class="btn btn-outline-primary" data-panel="pm">PMs ({{ completions|length }})</button>
             <button type="button" class="btn btn-outline-primary" data-panel="parts">Parts used ({{ parts|length }})</button>
+            <button type="button" class="btn btn-outline-primary" data-panel="docs">Documents</button>
         </div>
     </div>
 
@@ -113,6 +114,15 @@
         </div>
     </div>
 </div>
+
+    <div id="panel-docs" class="panel-block d-none">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Documents</strong></div>
+            <div class="card-body text-center text-muted py-4">
+                No documents uploaded for this equipment yet.
+            </div>
+        </div>
+    </div>
 <script>
 document.querySelectorAll('[data-panel]').forEach(function (btn) {
     btn.addEventListener('click', function () {

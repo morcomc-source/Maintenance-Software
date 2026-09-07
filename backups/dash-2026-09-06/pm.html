@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+{% block title %}Preventative Maintenance{% endblock %}
+{% block content %}
+
+<style>
+#pm-table td .btn {
+    background: #fff !important;
+    color: #212529 !important;
+}
+#pm-table td .btn-danger {
+    background: #fff !important;
+    color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+</style>
+
+
+<style>
+.list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
+.list-table-wrap table { margin-bottom: 0; }
+.list-table-wrap thead th {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-size: .75rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 0 !important;
+    white-space: nowrap;
+}
+.list-table-wrap tbody td { vertical-align: middle; }
+.list-table-wrap tbody tr { box-shadow: inset 4px 0 0 #cbd5e1; }
+.list-table-wrap tbody tr.table-danger-dark,
+.list-table-wrap tbody tr.pm-row-overdue {
+    background: #fdecec !important;
+    box-shadow: inset 4px 0 0 #dc3545;
+}
+.list-table-wrap tbody tr.table-warning,
+.list-table-wrap tbody tr.pm-row-due-soon {
+    background: #fff6e0 !important;
+    box-shadow: inset 4px 0 0 #ffc107;
+}
+.list-table-wrap tbody tr.table-success-dark,
+.list-table-wrap tbody tr.pm-row-done {
+    background: #e8f6ee !important;
+    box-shadow: inset 4px 0 0 #198754;
+}
+.list-table-wrap tbody tr:hover { filter: brightness(0.98); }
+</style>
+
+
+<div class="mb-3">
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+</div>
+<style>
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    #pm-table {
+        min-width: 850px;
+        font-size: 0.88rem;
+    }
+    #pm-table th, #pm-table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    @media (max-width: 576px) {
+        #pm-table th, #pm-table td {
+            font-size: 0.82rem;
+            padding: 6px 5px;
+        }
+    }
+    @media (min-width: 769px) {
+        #table-view { display: block; }
+        #card-view { display: none; }
+    }
+    @media (max-width: 768px) {
+        #table-view { display: none !important; }
+        #card-view { display: block !important; }
+    }
+.center-text {
+    text-align: center;
+}
+</style>
+<h2 class="mb-4 center-text" id="pm-page-title">Preventative Maintenance</h2>
+<style>
+.pm-row-complete td { background-color: #4dff4d; font-weight: bold; }
+.pm-row-due-soon td { background-color: #ffff4d; font-weight: bold; }
+.pm-row-overdue td { background-color: #FF0000; color: white !important; font-weight: bold;}
+.pm-row-secondary td { background-color: #bebec1; font-weight: bold; }
+.pm-card-complete { background-color: #2E6F40; color: white !important; font-weight: bold; }
+.pm-card-due-soon { background-color: #ffff4d; font-weight: bold; }
+.pm-card-overdue { background-color: #FF0000; color: white !important; font-weight: bold; }
+.pm-card-secondary { background-color: #737270; color: white !important; font-weight: bold; }
+.pm-complete-legion { background-color: #4dff4d; font-weight: bold; border-radius: 10px; }
+.pm-due-soon-legion { background-color: #ffff4d; font-weight: bold; border-radius: 10px; }
+.pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px;}
+.pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
+</style>
+<!-- Tabs (moved outside the form) -->
+
+<!-- SEARCH TAB -->
+<div id="tab-0" class="tab-content active">
+{% if current_user.role in ['admin', 'supervisor'] or current_user.is_admin() %}
+
+{% endif %}
+
+    <form method="get" action="/pm" class="row g-3 mb-4">
+        <div class="col-md-12">
+            <label class="form-label">Search for Preventative Maintenance Form:</label>
+            <input type="text" name="search" class="form-control" placeholder="Search by main equipment, sub equipment, frequency, last done, next due, or assigned to" value="{{ search or '' }}">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a href="/pm" class="btn btn-secondary ms-2">Reset</a>
+        </div>
+    </form>
+    {% if items %}
+        {% if items %}<div class="d-flex align-items-center mb-4">
+                    
+            <div class="flex-grow-1"></div>
+        
+            <div class="d-flex gap-3 flex-wrap">
+<div class="btn-group me-3" role="group">
+                <button type="button" class="btn btn-primary fw-bold" id="pm-btn-attention" onclick="setPMFilter('attention')">Needs Attention</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-upcoming" onclick="setPMFilter('upcoming')">Upcoming</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-completed" onclick="setPMFilter('completed')">Completed</button>
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-all" onclick="setPMFilter('all')">Show All</button>
+                {% endif %}
+            </div>
+<span class="pm-overdue-legion px-3 py-2">Overdue</span>
+<span class="pm-due-soon-legion text-dark px-3 py-2">Due Today</span>
+<span class="pm-complete-legion px-3 py-2">Completed</span>
+<span class="pm-secondary-legion px-3 py-2">Upcoming</span>
+</div>
+        
+            <div class="flex-grow-1"></div>
+        </div>
+    
+        {% endif %}
+        <!-- Table View (default on desktop) -->
+        <div id="table-view" class="table-responsive d-none d-md-block">
+            <div class="list-table-wrap">
+            <table id="pm-table" class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th class="center-text">Location</th>
+                        <th class="center-text">Sub Equipment</th>
+                        <th class="center-text">Frequency</th>
+                        <th class="center-text">Last Done</th>
+                        <th class="center-text">Next Due</th>
+                        <th class="center-text">Assigned To</th>
+                        <th class="center-text">Tasks</th>
+                        <th class="center-text">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+                        {% set next_due_str = item.next_due|string if item.next_due else '' %}
+                        {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
+                            'pm-row-due-soon' if next_due_str == today else
+                            'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
+                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
+                            <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
+                            <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
+                            <td class="center-text">{{ item.frequency|default('N/A') }}</td>
+                            <td class="center-text">{{ item.last_done|default('N/A') }}</td>
+                            <td class="center-text">{{ item.next_due|default('N/A') }}</td>
+                            <td class="center-text">{{ item.assigned_to|default('N/A') }}</td>
+                            <td class="center-text">
+                                {% if item.checklist %}
+                                    {{ item.checklist|selectattr('type', 'equalto', 'task')|list|length }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </td>
+                            <td class="center-text">
+                                {% if current_user.role in ['admin', 'supervisor'] %}
+                                <button class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                                {% endif %}
+{% if current_user.role in ['admin', 'supervisor'] %}<button class="btn btn-sm btn-outline-dark" onclick="window.open('{{ url_for('pm.details', id=item.id) }}?print=1','_blank')">📄 PDF</button>{% endif %}
+                                <a class="btn btn-sm btn-outline-info" href="{{ url_for('pm.details', id=item.id) }}">📋 Details</a>
+</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <!-- Card View (hidden by default on desktop) -->
+        <div id="card-view" style="display: none;">
+            <div class="row g-3">
+                {% for item in items %}
+                    {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+                    {% set next_due_str = item.next_due|string if item.next_due else '' %}
+                    {% set card_class = 'pm-card-complete' if is_completed or (item.last_done|string == today) else
+                        'pm-card-due-soon' if next_due_str == today else
+                        'pm-card-overdue' if next_due_str and next_due_str < today else
+                        'pm-card-secondary' %}
+                    {% set pm_bucket = 'completed' if (is_completed or (item.last_done|string == today)) else ('attention' if (next_due_str == today or (next_due_str and next_due_str < today)) else 'upcoming') %}
+                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
+                        <div class="card h-100 {{ card_class }}">
+                            <a href="{{ url_for('pm.details', id=item.id) }}" class="text-decoration-none text-reset">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.main_equipment|default('N/A') }}</h5>
+                                <h6 class="card-subtitle mb-3">{{ item.sub_equipment|default('N/A') }}</h6>
+                                <p class="mb-1"><strong>Frequency:</strong> {{ item.frequency|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Last Done:</strong> {{ item.last_done|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Next Due:</strong> {{ item.next_due|default('N/A') }}</p>
+                                <p class="mb-1"><strong>Assigned To:</strong> {{ item.assigned_to|default('N/A') }}</p>
+                                <p class="mb-3"><strong>Tasks:</strong>
+                                    {% if item.checklist %}
+                                        {{ item.checklist|selectattr('type', 'equalto', 'task')|list|length }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </p>
+                            </div>
+                            </a>
+                            <div class="card-footer border-0 d-flex flex-wrap gap-2">
+                                {% if current_user.role in ['admin', 'supervisor'] %}
+                                <button class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="d-md-none">
+            <div class="alert alert-light border text-center">
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                No PMs found.
+                {% else %}
+                No PMs assigned to you.
+                {% endif %}
+            </div>
+        </div>
+        <div id="table-view" class="table-responsive d-none d-md-block">
+            <div class="list-table-wrap">
+            <table id="pm-table-empty" class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Sub Equipment</th>
+                        <th>Frequency</th>
+                        <th>Last Done</th>
+                        <th>Next Due</th>
+                        <th>Assigned To</th>
+                        <th>Tasks</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            {% if current_user.role in ['admin', 'supervisor'] %}
+                            No PMs found.
+                            {% else %}
+                            No PMs assigned to you.
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<!-- ADD / EDIT TAB -->
+<div id="tab-1" class="tab-content">
+<div class="container mt-2">
+    <div class="mb-3">
+</div>
+    <h2 class="mb-4 text-center">Create New PM</h2>
+    <div class="card">
+        <div class="card-body">
+    <form method="post" id="add-edit-form" class="row g-3">
+        <input type="hidden" name="index" id="form-index">
+        <div class="col-md-4">
+            <label class="form-label">Location <span class="text-danger">*</span></label>
+            <select name="main_equipment" id="main-equipment-select" class="form-select" required>
+                    <option value="">— Pick —</option>
+                    {% for m in pm_mains %}
+                    <option value="{{ m.name }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+        </div>
+        <div class="col-md-4" id="sub-equipment-group">
+            <label class="form-label">Machine List</label>
+            <select name="sub_equipment" id="sub-equipment-select" class="form-select">
+                    <option value="">— Pick —</option>
+                    {% for m in pm_machines %}
+                    <option value="{{ m.name }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+        </div>
+<div class="col-md-4" id="frequency-group">
+    <label class="form-label">Frequency <span class="text-danger">*</span></label>
+    <select name="frequency" id="frequency" class="form-select" required>
+                    <option value="">— Pick —</option>
+                    {% for f in pm_frequencies %}
+                    <option value="{{ f.name }}">{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+</div>
+{% if current_user.role in ['admin', 'supervisor'] %}
+<div class="col-12">
+    <label class="form-label">Assign to</label>
+    <select name="assigned_user" class="form-select">
+        {% for tech in technicians %}
+        <option value="{{ tech.id }}">{{ tech.username }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+        <div class="col-12">
+            <h4>Tasks / Checklist</h4>
+            <div id="tasks-container"></div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="addTask()">+ Add Task</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="addTitle()">+ Add Section Title</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Last Done Date</label>
+            <input name="last_done" id="last_done" type="date" class="form-control">
+        </div>
+        <div class="col-12">
+            <button type="submit" id="submit-btn" class="btn btn-success mt-3">Add PM</button>
+        </div>
+    </form>
+        </div>
+    </div>
+</div>
+</div>
+<!-- View Modal - With Clear "Close" Button -->
+<div class="modal fade" id="view-modal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">PM Details</h5>
+            </div>
+            <div class="modal-body" id="view-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Simple Delete Confirmation Popup -->
+<div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <p>Are you sure you want to delete this PM? This action cannot be undone.</p>
+        <form method="post" id="delete-form">
+            <input type="hidden" name="delete_index" id="delete-index">
+            <button type="submit" class="btn btn-danger me-2">Yes, Delete</button>
+            <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">Cancel</button>
+        </form>
+    </div>
+</div>
+<!-- Start PM / Completion Modal -->
+<div class="modal fade" id="completion-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completion-title">Complete PM</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="completion-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="savePMCompletion()">Save Completion</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // ====================== DATA ======================
+    let pmData = {{ items | tojson | safe }};
+    let currentPMIndex = null; // real DB id now
+    // ====================== HELPERS ======================
+    function normalizeDateOnly(d) {
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setHours(0, 0, 0, 0);
+        return x;
+    }
+    function parseDueDate(value) {
+        if (!value) return null;
+        if (value === "N/A") return null;
+        if (typeof value === "string") {
+            const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) {
+                const y = parseInt(m[1], 10);
+                const mo = parseInt(m[2], 10) - 1;
+                const da = parseInt(m[3], 10);
+                return normalizeDateOnly(new Date(y, mo, da));
+            }
+        }
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return null;
+        return normalizeDateOnly(d);
+    }
+    function isPMComplete(pm) {
+        if (!pm || !pm.checklist || pm.checklist.length === 0) return false;
+        const tasks = pm.checklist.filter(x => x.type === "task");
+        if (tasks.length === 0) return false;
+        return tasks.every(x => x.completed === true);
+    }
+    // ====================== TAB & FORM ======================
+    function openTab(tabIndex) {
+    const pageTitle = document.getElementById('pm-page-title');
+    if (pageTitle) {
+        if (tabIndex === 1) {
+            pageTitle.style.display = 'none';
+        } else {
+            pageTitle.style.display = '';
+            pageTitle.textContent = 'Preventative Maintenance';
+        }
+    }
+
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        document.querySelectorAll(".tab-button").forEach(b => b.classList.remove("active"));
+        const targetTab = document.getElementById("tab-" + tabIndex);
+        if (targetTab) targetTab.classList.add("active");
+        const buttons = document.querySelectorAll(".tab-button");
+        if (buttons[tabIndex]) buttons[tabIndex].classList.add("active");
+        if (tabIndex === 1) {
+            resetPMForm();
+        }
+    }
+    function resetPMForm() {
+        document.getElementById('form-index').value = '';
+        document.getElementById('submit-btn').innerText = 'Add PM';
+        document.getElementById('main-equipment-select').value = '';
+        document.getElementById('sub-equipment-select').value = '';
+        document.getElementById('frequency').value = '';
+        document.getElementById('last_done').value = '';
+        document.getElementById('tasks-container').innerHTML = '';
+        // No hiding - keep visible by default
+    }
+    // ====================== CHECKLIST BUILDERS ======================
+    function addTask() {
+        const container = document.getElementById("tasks-container");
+        const row = document.createElement("div");
+        row.className = "input-group mb-2";
+        row.innerHTML = `
+            <input type="hidden" name="checklist_type[]" value="task">
+            <input type="text" name="checklist_item[]" class="form-control" placeholder="Task description">
+            <select name="checklist_input_type[]" class="form-select" style="max-width:150px">
+                <option value="checkbox">Check only</option>
+                <option value="number">Check + number</option>
+            </select>
+            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+        `;
+        container.appendChild(row);
+    }
+    function addTitle() {
+        const container = document.getElementById("tasks-container");
+        const row = document.createElement("div");
+        row.className = "input-group mb-2";
+        row.innerHTML = `
+            <input type="hidden" name="checklist_type[]" value="title">
+            <input type="hidden" name="checklist_input_type[]" value="">
+            <input type="text" name="checklist_item[]" class="form-control fw-bold" placeholder="Section title (e.g. Daily Checks)">
+            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+        `;
+        container.appendChild(row);
+    }
+    // ====================== EDIT ======================
+function editPM(id) {
+    if (!id) {
+        alert("PM not found!");
+        return;
+    }
+    const pm = pmData.find(p => p.id === id);
+    if (!pm) {
+        alert("PM not found!");
+        return;
+    }
+    openTab(1);
+    document.getElementById('form-index').value = id;
+    document.getElementById('main-equipment-select').value = pm.main_equipment || '';
+    document.getElementById('frequency').value = pm.frequency || '';
+    document.getElementById('last_done').value = pm.last_done || '';
+    document.getElementById('main-equipment-select').dispatchEvent(new Event('change'));
+    setTimeout(() => {
+        document.getElementById('sub-equipment-select').value = pm.sub_equipment || '';
+    }, 200);
+    // Build checklist
+    const container = document.getElementById('tasks-container');
+    let html = '';
+    if (pm.checklist && pm.checklist.length > 0) {
+        pm.checklist.forEach(item => {
+            const type = item.type === "title" ? "title" : "task";
+            const fw = item.type === "title" ? "fw-bold" : "";
+            html += `
+                <div class="input-group mb-2">
+                    <input type="hidden" name="checklist_type[]" value="${type}">
+                    <input type="text" name="checklist_item[]" class="form-control ${fw}" value="${item.item || ''}">
+                    ${type === 'task' ? `<select name="checklist_input_type[]" class="form-select" style="max-width:150px"><option value="checkbox" ${(item.input_type||'checkbox')==='checkbox'?'selected':''}>Check only</option><option value="number" ${item.input_type==='number'?'selected':''}>Check + number</option></select>` : `<input type="hidden" name="checklist_input_type[]" value="">`}
+                    <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">Remove</button>
+                </div>`;
+        });
+    }
+    container.innerHTML = html;
+    document.getElementById('submit-btn').innerText = 'Update PM';
+    // Populate assigned user (single select)
+    const assignedSelect = document.querySelector('select[name="assigned_user"]');
+    if (assignedSelect) {
+        assignedSelect.value = pm.assigned_user_id || '';
+    }
+}
+    // ====================== VIEW ======================
+    function viewPM(id) {
+        const pm = pmData.find(p => p.id === id);
+        if (!pm) return;
+        console.log("=== VIEW PM DEBUG ===");
+        console.log("Full PM object:", pm);
+        console.log("Checklist array:", pm.checklist);
+        let html = `
+            <p><strong>Location:</strong> ${pm.main_equipment || 'N/A'}</p>
+            <p><strong>Sub Equipment:</strong> ${pm.sub_equipment || 'N/A'}</p>
+            <p><strong>Frequency:</strong> ${pm.frequency || 'N/A'}</p>
+            <p><strong>Last Done:</strong> ${pm.last_done || 'N/A'}</p>
+            <p><strong>Next Due:</strong> ${pm.next_due || 'N/A'}</p>
+            <hr>
+            <h5>Checklist:</h5>
+        `;
+        if (pm.checklist && pm.checklist.length > 0) {
+            pm.checklist.forEach(item => {
+                if (item.type === "title") {
+                    html += `<h6 class="mt-3 border-bottom pb-2 fw-bold">${item.item}</h6>`;
+                } else {
+                    const checked = item.completed ? 'checked' : '';
+                    html += `
+                        <div class="form-check ms-4 mb-2">
+                            <input class="form-check-input" type="checkbox" disabled ${checked}>
+                            <label class="form-check-label">${item.item}</label>
+                        </div>`;
+                }
+            });
+        } else {
+            html += `<p><em>No checklist items found.</em></p>`;
+        }
+        document.getElementById('view-content').innerHTML = html;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('view-modal'));
+        modal.show();
+    }
+    // ====================== DELETE ======================
+    function showDeleteConfirm(id) {
+        document.getElementById("delete-index").value = id;
+        document.getElementById("delete-modal").style.display = "flex";
+    }
+    function hideDeleteModal() {
+        document.getElementById("delete-modal").style.display = "none";
+    }
+    // ====================== START / COMPLETE PM ======================
+    function startPM(id) {
+        currentPMIndex = id;
+        const pm = pmData.find(p => p.id === id);
+        if (!pm) {
+            alert("PM not found!");
+            return;
+        }
+        let html = `
+            <p><strong>${pm.main_equipment || "N/A"}</strong> — ${pm.sub_equipment || "N/A"}</p>
+            <p><strong>Frequency:</strong> ${pm.frequency || "N/A"}</p>
+            <hr>
+            <h5>Checklist</h5>
+        `;
+        if (pm.checklist && pm.checklist.length > 0) {
+            pm.checklist.forEach((item, i) => {
+                if (item.type === "title") {
+                    html += `<h6 class="mt-4 mb-2 border-bottom pb-2 fw-bold">${item.item}</h6>`;
+                } else {
+                    const needsNum = item.input_type === "number";
+                    html += `
+                        <div class="form-check mb-3 ms-3 d-flex align-items-center flex-wrap gap-2">
+                            <input class="form-check-input" type="checkbox" id="comp_task_${i}">
+                            <label class="form-check-label fs-5" for="comp_task_${i}">${item.item}</label>
+                            ${needsNum ? `<input type="number" step="any" class="form-control form-control-sm comp-num" style="max-width:120px" placeholder="Value">` : `<input type="hidden" class="comp-num" value="">`}
+                        </div>`;
+                }
+            });
+        }
+        document.getElementById("completion-content").innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById("completion-modal"));
+        modal.show();
+    }
+    function savePMCompletion() {
+    if (currentPMIndex === null) {
+        console.log("No PM selected");
+        return;
+    }
+    const checkboxes = document.querySelectorAll("#completion-content input[type='checkbox']");
+    const completedTasks = Array.from(checkboxes).map(cb => cb.checked);
+    console.log("Sending completion for PM ID:", currentPMIndex);
+    console.log("Completed tasks:", completedTasks);
+    fetch(`/pm/complete_pm/${currentPMIndex}`, { // ← ADDED /pm/ here
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            completed: completedTasks,
+            values: Array.from(document.querySelectorAll("#completion-content .comp-num")).map(el => el.value)
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Server response:", data);
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById("completion-modal")).hide();
+            alert("PM completed successfully!");
+            location.reload();
+        } else {
+            alert("Failed to save completion.");
+        }
+    })
+    .catch(error => {
+        console.error("Fetch error:", error);
+        alert("Error saving completion. Check console for details.");
+    });
+}
+    // ====================== EQUIPMENT SELECTORS ======================
+const allMachines = {{ machines_json | tojson | safe }};
+document.getElementById("main-equipment-select").addEventListener("change", () => {
+    const selected = document.getElementById("main-equipment-select").value;
+    const subSelect = document.getElementById("sub-equipment-select");
+    subSelect.innerHTML = '<option value="">— Pick —</option>';
+    const filtered = allMachines.filter(m => m.main_name === selected);
+    filtered.forEach(m => {
+        const option = document.createElement("option");
+        option.value = m.name;
+        option.text = m.name;
+        subSelect.add(option);
+    });
+});
+document.getElementById("sub-equipment-select").addEventListener("change", () => {
+    // No display toggle - always visible
+});
+    // Search form listeners (kept from original)
+    // main-equipment-select-search removed
+    // sub-equipment-select-search removed
+    // ====================== EXPORT ======================
+function exportPMtoPDF(id) {
+    window.location.href = `/pm/export_pm_pdf/${id}`;
+}
+    // ====================== INIT ======================
+    document.addEventListener("DOMContentLoaded", () => {
+        // applyPMRowColors(); // ← commented because you use cards, not table
+        resetPMForm(); // start clean
+        document.getElementById("sub-equipment-group").style.display = "block";
+        document.getElementById("frequency-group").style.display = "block";
+    });
+	// ====================== VIEW HISTORY ======================
+function viewHistory(id) {
+    window.location.href = `/pm/history/${id}`;
+}
+</script>
+
+<script>
+let pmFilter = 'attention'; // default: Needs Attention
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1' || params.get('tab') === '1') {
+        if (typeof openTab === 'function') openTab(1);
+    }
+});
+
+function setPMFilter(mode) {
+    pmFilter = mode;
+    ['attention', 'upcoming', 'completed', 'all'].forEach(function (m) {
+        const btn = document.getElementById('pm-btn-' + m);
+        if (!btn) return;
+        if (m === mode) {
+            btn.classList.add('btn-primary');
+            btn.classList.remove('btn-outline-primary');
+        } else {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        }
+    });
+    filterPMViews();
+}
+
+function filterPMViews() {
+    document.querySelectorAll('#pm-table tbody tr').forEach(function (row) {
+        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming'; const buckets = bucket.trim().split(/\s+/);
+        row.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
+    });
+    document.querySelectorAll('#card-view [data-pm-bucket]').forEach(function (el) {
+        const buckets = (el.getAttribute('data-pm-bucket') || 'upcoming').trim().split(/\s+/);
+        el.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    filterPMViews();
+});
+</script>
+
+{% endblock %}
