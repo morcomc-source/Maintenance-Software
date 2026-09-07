@@ -147,8 +147,8 @@ def search():
 @bp.route('/details/<int:id>')
 @login_required
 def details(id):
-    if current_user.role not in ('admin', 'supervisor'):
-        flash("Admin only.", "danger")
+    if current_user.role not in ('admin', 'supervisor', 'technician'):
+        flash("Access denied.", "danger")
         return redirect(url_for('equipment.index'))
     from app.models.workorder import WorkOrder
     from app.models.pm import PM
