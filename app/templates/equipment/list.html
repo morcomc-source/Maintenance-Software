@@ -79,9 +79,9 @@
                     <td>{{ eq.barcode or '-' }}</td>
                     <td>
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>{% endif %}
+                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation()">Edit</a>{% endif %}
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <button class="btn btn-sm btn-danger" onclick="deleteEquipment({{ eq.id }})">Delete</button>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteEquipment({{ eq.id }})">Delete</button>
                         {% endif %}
                     </td>
                 </tr>
@@ -110,9 +110,9 @@
 
                     <div class="mt-3">
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>{% endif %}
+                        <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation()">Edit</a>{% endif %}
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <button class="btn btn-sm btn-danger" onclick="deleteEquipment({{ eq.id }})">Delete</button>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteEquipment({{ eq.id }})">Delete</button>
                         {% endif %}
                     </div>
                 </div>

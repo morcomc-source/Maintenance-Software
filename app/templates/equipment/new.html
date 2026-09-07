@@ -12,12 +12,12 @@
             <form method="POST">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label>Name *</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <label>Location *</label>
+                        <input type="text" name="location" id="location-search" class="form-control" autocomplete="off" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label>Serial Number</label>
-                        <input type="text" name="serial_number" class="form-control">
+                        <label>Equipment *</label>
+                        <input type="text" name="name" id="eq-name-search" autocomplete="off" class="form-control" required>
                     </div>
                 </div>
                 <div class="row">
@@ -32,8 +32,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label>Location</label>
-                        <input type="text" name="location" class="form-control">
+                        <label>Serial Number</label>
+                        <input type="text" name="serial_number" class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label>Barcode</label>
@@ -108,4 +108,82 @@ function stopScanning() {
     }
 }
 </script>
+
+<script>
+(function () {
+  var input = document.getElementById("location-search");
+  if (!input) return;
+  var box = document.getElementById("location-results");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "location-results";
+    box.className = "list-group mt-1";
+    box.style.maxHeight = "220px";
+    box.style.overflowY = "auto";
+    box.style.display = "none";
+    input.parentNode.appendChild(box);
+  }
+  input.addEventListener("input", function () {
+    var q = input.value.trim();
+    if (!q) { box.style.display = "none"; return; }
+    fetch("/workorder/locations?q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        box.innerHTML = "";
+        (rows || []).forEach(function (loc) {
+          var a = document.createElement("button");
+          a.type = "button";
+          a.className = "list-group-item list-group-item-action";
+          a.textContent = loc;
+          a.onclick = function () { input.value = loc; box.style.display = "none"; };
+          box.appendChild(a);
+        });
+        box.style.display = rows && rows.length ? "block" : "none";
+      });
+  });
+})();
+</script>
+
+
+<script>
+(function () {
+  var input = document.getElementById("eq-name-search");
+  var loc = document.getElementById("location-search");
+  if (!input) return;
+  var box = document.getElementById("eq-name-results");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "eq-name-results";
+    box.className = "list-group mt-1";
+    box.style.maxHeight = "220px";
+    box.style.overflowY = "auto";
+    box.style.display = "none";
+    input.parentNode.appendChild(box);
+  }
+  input.addEventListener("input", function () {
+    var q = input.value.trim();
+    var location = loc ? loc.value.trim() : "";
+    if (!q) { box.style.display = "none"; return; }
+    fetch("/workorder/machines?location=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        box.innerHTML = "";
+        (rows || []).forEach(function (m) {
+          var a = document.createElement("button");
+          a.type = "button";
+          a.className = "list-group-item list-group-item-action";
+          a.textContent = m.location ? (m.name + " (" + m.location + ")") : m.name;
+          a.onclick = function () {
+            input.value = m.name;
+            if (loc && m.location) loc.value = m.location;
+            box.style.display = "none";
+          };
+          box.appendChild(a);
+        });
+        box.style.display = rows && rows.length ? "block" : "none";
+      });
+  });
+})();
+</script>
+
 {% endblock %}
