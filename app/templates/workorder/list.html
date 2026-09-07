@@ -3,6 +3,15 @@
 {% block content %}
 
 <style>
+#workorder-table th, #workorder-table td { white-space: nowrap; }
+#workorder-table td:nth-child(3), #workorder-table th:nth-child(3) {
+    white-space: normal !important;
+    max-width: 280px;
+}
+</style>
+
+
+<style>
 #workorder-table tr.pm-row-overdue td .btn,
 #workorder-table tr.pm-row-overdue td .btn * {
     background: #fff !important;
