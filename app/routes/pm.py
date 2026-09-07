@@ -227,10 +227,15 @@ def mark_in_progress(id):
         if pm.checklist:
             checklist = list(pm.checklist)
             for item in checklist:
-                if item.get("type") == "task":
+                if item.get("type") != "title":
                     item["completed"] = False
                     item["value"] = None
             pm.checklist = checklist
+            try:
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(pm, "checklist")
+            except Exception:
+                pass
         pm.completion_notes = None
         pm.parts_used = None
         pm.completed_at = None

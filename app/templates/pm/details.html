@@ -93,9 +93,9 @@ if (new URLSearchParams(location.search).get("print") === "1") {
 
 <div class="container mt-4">
   <div class="card">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('pm.index') }}" class="btn btn-secondary mb-4 w-100" onclick="if (document.referrer) { history.back(); return false; }">← Back to PMs</a>
+    <div class="card-header bg-primary text-white">
       <h4 class="mb-0">PM #{{ pm.id }} — {{ pm.main_equipment or 'Equipment' }}</h4>
-      <a href="{{ url_for('pm.index') }}" class="btn btn-sm btn-light">← Back to PMs</a>
     </div>
     <div class="card-body">
       {% if pm.pause_reason and pm.status == 'On Hold' %}
@@ -159,13 +159,15 @@ if (new URLSearchParams(location.search).get("print") === "1") {
         {% if can_act %}
           {% if pm.status == 'Completed' %}
             {% if is_due %}
-              <button class="btn btn-warning me-2" onclick="markInProgress({{ pm.id }})">🚧 Start Next Cycle</button>
+              <button class="btn btn-warning me-2" onclick="markInProgress({{ pm.id }})">🚧 Start / In Progress</button>
             {% else %}
               <p class="text-muted mb-2">Completed — next due {{ pm.next_due }}. Start will be available when due.</p>
             {% endif %}
           {% else %}
-            {% if pm.status != 'In Progress' %}
+            {% if pm.status != 'In Progress' and is_due %}
             <button class="btn btn-warning me-2" onclick="markInProgress({{ pm.id }})">🚧 Start / In Progress</button>
+            {% elif pm.status != 'In Progress' %}
+            <p class="text-muted mb-2">Not due until {{ pm.next_due }}. Start will be available on that date.</p>
             {% endif %}
             {% if pm.status == 'In Progress' %}
             <button class="btn btn-secondary me-2" onclick="pausePM({{ pm.id }})">⏸️ Pause</button>
@@ -604,6 +606,20 @@ function savePMProgress() {
 document.querySelectorAll(".live-check").forEach(function (box) {
   box.addEventListener("change", savePMProgress);
 });
+</script>
+
+
+<script>
+(function () {
+  var btn = document.querySelector("a.btn.btn-secondary");
+  if (!btn || !document.referrer) return;
+  try {
+    var path = new URL(document.referrer).pathname;
+    if (path === "/" || path.indexOf("dashboard") !== -1) {
+      btn.textContent = "← Back to Dashboard";
+    }
+  } catch (e) {}
+})();
 </script>
 
 {% endblock %}

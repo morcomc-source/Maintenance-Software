@@ -152,6 +152,9 @@ def index():
             'overdue': overdue_pm,
             'upcoming': upcoming_pm,
             'assigned_workorders': len(open_wos),
+            'due_today_wo': sum(1 for wo in open_wos if wo.expected_completion_date and wo.expected_completion_date == datetime.now().date()),
+            'upcoming_wo': sum(1 for wo in open_wos if wo.expected_completion_date and wo.expected_completion_date > datetime.now().date()),
+
             'completed_workorders': completed_wo,
             'past_due_workorders': past_due_wo,
         }

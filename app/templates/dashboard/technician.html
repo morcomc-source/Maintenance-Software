@@ -31,26 +31,32 @@
                     
                     <div class="row mt-4 text-center">
                         <div class="col-6 mb-3">
-                            <h5 class="text-primary">{{ stats.total_assigned }}</h5>
-                            <small class="text-muted">Assigned</small>
-                        </div>
-                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('pm.index') }}?filter=attention" class="text-decoration-none">
                             <h5 class="text-warning">{{ stats.due_today }}</h5>
                             <small class="text-muted">Due Today</small>
+                            </a>
                         </div>
-                        <div class="col-6">
-                            <h5 class="text-danger">{{ stats.overdue }}</h5>
-                            <small class="text-muted">Past Due</small>
-                        </div>
-                        <div class="col-6">
+                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('pm.index') }}?filter=upcoming" class="text-decoration-none">
                             <h5 class="text-success">{{ stats.upcoming }}</h5>
                             <small class="text-muted">Upcoming</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('pm.index') }}?filter=overdue" class="text-decoration-none">
+                            <h5 class="text-danger">{{ stats.overdue }}</h5>
+                            <small class="text-muted">Past Due</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('pm.index') }}?filter=all" class="text-decoration-none">
+                            <h5 class="text-primary">{{ stats.total_assigned }}</h5>
+                            <small class="text-muted">Assigned</small>
+                            </a>
                         </div>
                     </div>
 
-                    <a href="{{ url_for('pm.index') }}" class="btn btn-primary btn-lg w-100 mt-4">
-                        View My PMs
-                    </a>
+                    
                 </div>
             </div>
         </div>
@@ -60,28 +66,35 @@
 			<div class="card text-center h-100 shadow-sm">
 				<div class="card-body">
 					<h1 class="display-1 mb-3">📋</h1>
-					</h1>
-                    <h4>Work Orders</h4>
+					<h4>Work Orders</h4>
 					
-					<div class="row text-center mt-3">
-						<div class="col-4">
-							<strong class="text-primary">{{ stats.assigned_workorders }}</strong>
-							<small class="d-block">Assigned</small>
-						</div>
-						<div class="col-4">
-							<strong class="text-danger">{{ stats.past_due_workorders }}</strong>
-							<small class="d-block">Past Due</small>
-						</div>
-						<div class="col-4">
-							<strong class="text-success">{{ stats.completed_workorders }}</strong>
-							<small class="d-block">Completed</small>
-						</div>
-					</div>
+					<div class="row mt-4 text-center">
+                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('workorder.index') }}?filter=attention" class="text-decoration-none">
+                            <h5 class="text-warning">{{ stats.due_today_wo }}</h5>
+                            <small class="text-muted">Due Today</small>
+                            </a>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <a href="{{ url_for('workorder.index') }}?filter=upcoming" class="text-decoration-none">
+                            <h5 class="text-success">{{ stats.upcoming_wo }}</h5>
+                            <small class="text-muted">Upcoming</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('workorder.index') }}?filter=overdue" class="text-decoration-none">
+                            <h5 class="text-danger">{{ stats.past_due_workorders }}</h5>
+                            <small class="text-muted">Past Due</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('workorder.index') }}?filter=all" class="text-decoration-none">
+                            <h5 class="text-primary">{{ stats.assigned_workorders }}</h5>
+                            <small class="text-muted">Assigned</small>
+                            </a>
+                        </div>
+                    </div>
 
-					<a href="{{ url_for('workorder.index') }}" class="btn btn-primary btn-lg w-100 mt-3">
-						<span class="d-none d-md-inline">Manage Work Orders</span><span class="d-md-none">View my work orders</span>
-					</a>
-					
 					<a href="{{ url_for('workorder.new') }}" class="btn btn-success btn-lg w-100 mt-2">
 						+ Create New Work Order
 					</a>

@@ -3,6 +3,45 @@
 {% block content %}
 
 <style>
+.workorder-card.pm-row-overdue,
+.workorder-card.bg-danger {
+  background-color: #FF0000 !important;
+  color: #fff !important;
+}
+.workorder-card.pm-row-overdue a,
+.workorder-card.pm-row-overdue .wo-txt,
+.workorder-card.pm-row-overdue h5 {
+  color: #fff !important;
+}
+.workorder-card.pm-row-due-soon { background-color: #ffff4d !important; color: #111 !important; }
+.workorder-card.pm-row-secondary { background-color: #bebec1 !important; color: #111 !important; }
+</style>
+
+
+<style>
+#workorder-table tbody tr.pm-row-due-soon td { background-color: #ffff4d !important; color: #111 !important; font-weight: bold; }
+#workorder-table tbody tr.pm-row-secondary td { background-color: #bebec1 !important; color: #111 !important; font-weight: bold; }
+#workorder-table tbody tr.pm-row-overdue td { background-color: #FF0000 !important; color: #fff !important; font-weight: bold; }
+.workorder-card.pm-row-due-soon, .workorder-card.bg-warning { background-color: #ffff4d !important; color: #111 !important; }
+.workorder-card.pm-row-secondary { background-color: #bebec1 !important; color: #111 !important; }
+</style>
+
+
+<style>
+@media (max-width: 768px) {
+  .pm-complete-legion { display: none !important; }
+}
+</style>
+
+
+<style>
+@media (max-width: 768px) {
+  .wo-desktop-search, .wo-desktop-filters { display: none !important; }
+}
+</style>
+
+
+<style>
 #workorder-table { font-size: 0.88rem; }
 #workorder-table th, #workorder-table td { font-weight: bold; padding: 8px 6px; }
 </style>
@@ -160,7 +199,7 @@
 
 
 <div class="mb-3">
-  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4 w-100">← Back to Dashboard</a>
 </div>
 
 <style>
@@ -233,7 +272,7 @@ td:nth-child(3), th:nth-child(3) {
 
     <!-- Search and Scan Bar -->
     
-    <form class="row g-3 mb-3" onsubmit="searchWorkOrders(); return false;">
+    <form class="row g-3 mb-3 wo-desktop-search" onsubmit="searchWorkOrders(); return false;">
         <div class="col-md-12">
             <label class="form-label">Search work orders</label>
             <input type="text" id="search-input" class="form-control" placeholder="Search by equipment, description, or ID...">
@@ -245,7 +284,7 @@ td:nth-child(3), th:nth-child(3) {
     </form>
     {% if workorders %}
 <div class="d-flex align-items-center justify-content-center mb-4 flex-wrap gap-3">
-        <div class="btn-group" role="group">
+        <div class="btn-group wo-desktop-filters" role="group">
             <button type="button" class="btn btn-primary fw-bold" id="wo-btn-attention" onclick="setWOFilter('attention')">Needs Attention</button>
             <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-upcoming" onclick="setWOFilter('upcoming')">Upcoming</button>
             <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-completed" onclick="setWOFilter('completed')">Completed</button>
@@ -302,7 +341,7 @@ td:nth-child(3), th:nth-child(3) {
         <tbody>
         {% for wo in workorders %}
             <tr class="{% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}"
-        data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif not wo.expected_completion_date or wo.expected_completion_date <= today %}attention{% else %}upcoming{% endif %}">
+        data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}">
                 <td class="text-center"><strong>#{{ wo.id }}</strong></td>
                 <td><span class="wo-txt"><span class="wo-txt">{{ wo.equipment }}</span></span></td>
                 <td style="max-width: 325px; white-space: normal; word-wrap: break-word;">
@@ -382,7 +421,7 @@ td:nth-child(3), th:nth-child(3) {
 
 <div class="d-md-none">
     {% for wo in workorders %}
-    <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif not wo.expected_completion_date or wo.expected_completion_date <= today %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}bg-success text-white{% elif wo.expected_completion_date and wo.expected_completion_date < today %}bg-danger text-white{% else %}bg-light{% endif %}">
+    <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}">
         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
         <div class="card-body pb-2">
             <div class="d-flex justify-content-between align-items-start">
@@ -522,6 +561,14 @@ function applyWOFilter() {
   });
 }
 document.addEventListener("DOMContentLoaded", applyWOFilter);
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var f = new URLSearchParams(location.search).get("filter");
+  if (f && typeof setWOFilter === "function") setWOFilter(f);
+});
 </script>
 
 {% endblock %}

@@ -3,6 +3,15 @@
 {% block content %}
 
 <style>
+@media (max-width: 768px) {
+  .pm-desktop-only { display: none !important; }
+  .pm-legend-row { display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px; overflow-x: auto; }
+  .pm-legend-row span { font-size: .75rem; padding: .2rem .45rem !important; white-space: nowrap; }
+}
+</style>
+
+
+<style>
 #pm-table td .btn {
     background: #fff !important;
     color: #212529 !important;
@@ -49,7 +58,7 @@
 
 
 <div class="mb-3">
-  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4 w-100">← Back to Dashboard</a>
 </div>
 <style>
     .table-responsive {
@@ -105,7 +114,7 @@
 
 {% endif %}
 
-    <form method="get" action="/pm" class="row g-3 mb-4">
+    <form method="get" action="/pm" class="row g-3 mb-4 pm-desktop-only">
         <div class="col-md-12">
             <label class="form-label">Search for Preventative Maintenance Form:</label>
             <input type="text" name="search" class="form-control" placeholder="Search by main equipment, sub equipment, frequency, last done, next due, or assigned to" value="{{ search or '' }}">
@@ -121,7 +130,7 @@
             <div class="flex-grow-1"></div>
         
             <div class="d-flex gap-3 flex-wrap">
-<div class="btn-group me-3" role="group">
+<div class="btn-group me-3 pm-desktop-only" role="group">
                 <button type="button" class="btn btn-primary fw-bold" id="pm-btn-attention" onclick="setPMFilter('attention')">Needs Attention</button>
                 <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-upcoming" onclick="setPMFilter('upcoming')">Upcoming</button>
                 <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-completed" onclick="setPMFilter('completed')">Completed</button>
@@ -162,7 +171,7 @@
                         {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
                             'pm-row-due-soon' if next_due_str == today else
                             'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
-                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
+                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str and next_due_str < today %}attention overdue{% elif next_due_str == today %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
                             <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.frequency|default('N/A') }}</td>
@@ -201,7 +210,7 @@
                         'pm-card-overdue' if next_due_str and next_due_str < today else
                         'pm-card-secondary' %}
                     {% set pm_bucket = 'completed' if (is_completed or (item.last_done|string == today)) else ('attention' if (next_due_str == today or (next_due_str and next_due_str < today)) else 'upcoming') %}
-                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str == today or (next_due_str and next_due_str < today) %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
+                    <div class="col-12 col-md-6 col-lg-4" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str and next_due_str < today %}attention overdue{% elif next_due_str == today %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
                         <div class="card h-100 {{ card_class }}">
                             <a href="{{ url_for('pm.details', id=item.id) }}" class="text-decoration-none text-reset">
                             <div class="card-body">
@@ -709,6 +718,14 @@ function filterPMViews() {
 
 document.addEventListener('DOMContentLoaded', function () {
     filterPMViews();
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var f = new URLSearchParams(location.search).get("filter");
+  if (f && typeof setPMFilter === "function") setPMFilter(f);
 });
 </script>
 
