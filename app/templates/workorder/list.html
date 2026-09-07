@@ -3,6 +3,21 @@
 {% block content %}
 
 <style>
+#workorder-table tr.pm-row-overdue td .btn,
+#workorder-table tr.pm-row-overdue td .btn * {
+    background: #fff !important;
+    color: #212529 !important;
+    border-color: #adb5bd !important;
+}
+#workorder-table tr.pm-row-overdue td .btn-danger,
+#workorder-table tr.pm-row-overdue td .btn-danger * {
+    color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+</style>
+
+
+<style>
 .workorder-card.pm-row-overdue,
 .workorder-card.bg-danger {
   background-color: #FF0000 !important;
@@ -570,5 +585,20 @@ document.addEventListener("DOMContentLoaded", function () {
   if (f && typeof setWOFilter === "function") setWOFilter(f);
 });
 </script>
+
+
+<style id="wo-red-btns">
+#workorder-table.table tbody tr.pm-row-overdue td a.btn,
+#workorder-table.table tbody tr.pm-row-overdue td button.btn {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #6c757d !important;
+}
+#workorder-table.table tbody tr.pm-row-overdue td a.btn-danger,
+#workorder-table.table tbody tr.pm-row-overdue td button.btn-danger {
+    color: #212529 !important;
+    border-color: #6c757d !important;
+}
+</style>
 
 {% endblock %}

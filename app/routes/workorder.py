@@ -140,7 +140,9 @@ def create():
         except Exception as notify_err:
             print("Slack notify warning:", notify_err)
         flash("✅ Work Order created successfully!", "success")
-        return redirect(url_for('workorder.index'))
+        if current_user.role in ("technician", "requestor", "department"):
+            return redirect(url_for("dashboard.index"))
+        return redirect(url_for("workorder.index"))
     except Exception as e:
         db.session.rollback()
         flash("Error saving work order. Please try again.", "danger")
@@ -484,3 +486,20 @@ def dispatch(wo_id):
     db.session.commit()
     flash("Assignment updated.", "success")
     return redirect(url_for('workorder.index'))
+
+@bp.route("/locations")
+@login_required
+def location_search():
+    q = (request.args.get("q") or "").strip().lower()
+    from app.models.settings import PMMainEquipment
+    rows, seen = [], set()
+    for item in PMMainEquipment.query.order_by(PMMainEquipment.name).all():
+        name = (item.name or "").strip()
+        if not name:
+            continue
+        if q and q not in name.lower():
+            continue
+        if name.lower() not in seen:
+            seen.add(name.lower())
+            rows.append(name)
+    return jsonify(rows[:20])
