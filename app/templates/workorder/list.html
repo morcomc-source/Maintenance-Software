@@ -403,14 +403,10 @@ td:nth-child(3), th:nth-child(3) {
                 </td>
                 <td class="text-center"><span class="wo-txt">{{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}</span></td>
                 <td class="text-center">
-                    {% if current_user.role == 'technician' %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">📋 Details</a>
-                        {% if current_user.role in ['admin', 'supervisor'] %}
+                    {% if current_user.role == 'technician' %}{% if current_user.role in ['admin', 'supervisor'] %}
                         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
                         {% endif %}
-                    {% else %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">👁️ Details</a>
-                        {% if current_user.role in ['admin', 'supervisor'] %}
+                    {% else %}{% if current_user.role in ['admin', 'supervisor'] %}
                         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
                         {% endif %}
                     {% endif %}

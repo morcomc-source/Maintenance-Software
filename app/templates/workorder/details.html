@@ -121,7 +121,16 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
         <div class="card-header"><strong>Assign work</strong></div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('workorder.dispatch', wo_id=wo.id) }}" class="row g-3 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-3">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="1" {% if wo.priority == 1 %}selected{% endif %}>Can wait</option>
+                        <option value="2" {% if wo.priority == 2 or not wo.priority %}selected{% endif %}>Normal</option>
+                        <option value="3" {% if wo.priority == 3 %}selected{% endif %}>Soon</option>
+                        <option value="4" {% if wo.priority == 4 %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">Assign to</label>
                     <select name="assigned_to_id" class="form-select">
                         <option value="">— Unassigned —</option>
@@ -130,7 +139,7 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Needed by</label>
                     <input type="date" name="expected_completion_date" class="form-control"
                            value="{{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '' }}">
