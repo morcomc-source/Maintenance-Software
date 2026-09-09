@@ -237,7 +237,7 @@ text-align: center;
                         {% set qty_val = item.qty | int(default=0) %}
                         {% set min_val = item.min_stock | int(default=0) %}
                         {% set row_class = 'parts-row-warning' if qty_val <= min_val else 'parts-row-secondary' %}
-                        <tr class="{{ row_class }}{% if item.on_order %} parts-row-on-order{% endif %}">
+                        <tr class="{{ row_class }}{% if item.on_order %} parts-row-on-order{% endif %}" style="cursor:pointer" onclick="editPart({{ idx }})">
                             <td data-label="Part Name">
                                 {{ item.name|default('N/A') }}
                                 {% if item.on_order %}
@@ -254,7 +254,7 @@ text-align: center;
                             <td class="center-text" data-label="Part Location">{{ item.bin_location or "—" }}</td>
                             {% if current_user.is_admin() %}
                             <td class="center-text" data-label="Actions">
-                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️</button>
+                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️</button>
                                 <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
                                 {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
@@ -295,7 +295,7 @@ text-align: center;
                                 <p class="mb-1"><strong>Part Location:</strong> {{ item.bin_location or "—" }}</p>
                                 {% if current_user.is_admin() %}
                                 <div class="mt-2 d-flex flex-wrap gap-1">
-                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="editPart({{ idx }})">✏️ Edit</button>
+                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️ Edit</button>
                                     <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                     {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">

@@ -75,7 +75,8 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
 
     <div class="row">
         <div class="col-md-6">
-            <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
+            <p><strong>Location:</strong> {{ wo.location or "—" }}</p>
+        <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
             <p><strong>Type:</strong>
                 {% if wo.work_area == 'facility' %}Facility
                 {% elif wo.work_area == 'press' %}Press

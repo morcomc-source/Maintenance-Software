@@ -296,7 +296,7 @@ td:nth-child(3), th:nth-child(3) {
 
     <!-- Search and Scan Bar -->
     
-    <form class="row g-3 mb-3 wo-desktop-search" onsubmit="searchWorkOrders(); return false;">
+    <form class="row g-3 mb-3 wo-desktop-search" action="#" onsubmit="searchWorkOrders(); return false;">
         <div class="col-md-12">
             <label class="form-label">Search work orders</label>
             <input type="text" id="search-input" class="form-control" placeholder="Search by equipment, description, or ID...">
@@ -353,6 +353,7 @@ td:nth-child(3), th:nth-child(3) {
             <tr>
                 <th class="text-center sortable">ID</th>
                 <th class="text-center sortable">Equipment</th>
+                <th class="text-center">Location</th>
                 <th class="text-center sortable" style="width: 325px;">Description</th>
                 <th class="text-center sortable">Priority</th>
                 <th class="text-center sortable">Expected Completion</th>
@@ -364,10 +365,11 @@ td:nth-child(3), th:nth-child(3) {
         </thead>
         <tbody>
         {% for wo in workorders %}
-            <tr class="{% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}"
+            <tr style="cursor:pointer" onclick="window.location='{{ url_for('workorder.details', wo_id=wo.id) }}'" class="{% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}"
         data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}">
                 <td class="text-center"><strong>#{{ wo.id }}</strong></td>
                 <td><span class="wo-txt"><span class="wo-txt">{{ wo.equipment }}</span></span></td>
+                <td class="text-center"><span class="wo-txt">{{ wo.location or "—" }}</span></td>
                 <td style="max-width: 325px; white-space: normal; word-wrap: break-word;">
                     <span class="wo-txt">{{ wo.description[:150] }}</span>{% if wo.description|length > 150 %}...{% endif %}
                 </td>
@@ -402,19 +404,19 @@ td:nth-child(3), th:nth-child(3) {
                 <td class="text-center"><span class="wo-txt">{{ wo.created_at.strftime('%Y-%m-%d') if wo.created_at else 'N/A' }}</span></td>
                 <td class="text-center">
                     {% if current_user.role == 'technician' %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">📋 Details</a>
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">📋 Details</a>
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
                         {% endif %}
                     {% else %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">👁️ Details</a>
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
+                        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
                         {% endif %}
                     {% endif %}
                     {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
-                        <button class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
+                        <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" onclick="event.stopPropagation()" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark">✏️ Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteWorkOrder({{ wo.id }})">🗑️ Delete</button>
                     {% endif %}
                 </td>
             </tr>
@@ -446,7 +448,7 @@ td:nth-child(3), th:nth-child(3) {
 <div class="d-md-none">
     {% for wo in workorders %}
     <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}">
-        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
+        <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
         <div class="card-body pb-2">
             <div class="d-flex justify-content-between align-items-start">
                 <h5 class="mb-1">#{{ wo.id }} - <span class="wo-txt">{{ wo.equipment }}</span></h5>
@@ -462,7 +464,7 @@ td:nth-child(3), th:nth-child(3) {
         {% if current_user.role in ['admin', 'supervisor'] %}
         <div class="card-body pt-0">
             <div class="d-flex gap-2">
-                <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" onclick="event.stopPropagation()" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark">Edit</a>
                 <button type="button" class="btn btn-sm btn-danger" onclick="event.preventDefault(); deleteWorkOrder({{ wo.id }})">Delete</button>
             </div>
         </div>
@@ -499,29 +501,8 @@ function deleteWorkOrder(id) {
 </script>
 
 </script>
-</script>
 
-<script>
-window.woFilter = "attention";
-function setWOFilter(mode) {
-  window.woFilter = mode;
-  ["attention","upcoming","completed","all"].forEach(function(m) {
-    var btn = document.getElementById("wo-btn-" + m);
-    if (!btn) return;
-    if (m === mode) { btn.classList.add("btn-primary"); btn.classList.remove("btn-outline-primary"); }
-    else { btn.classList.remove("btn-primary"); btn.classList.add("btn-outline-primary"); }
-  });
-  applyWOFilter();
-}
-function applyWOFilter() {
-  var mode = window.woFilter || "attention";
-  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
-    var show = (mode === "all" || el.getAttribute("data-wo-bucket") === mode);
-    el.style.display = show ? "" : "none";
-  });
-}
-document.addEventListener("DOMContentLoaded", applyWOFilter);
-</script>
+
 
 
 <style>
@@ -534,26 +515,7 @@ document.addEventListener("DOMContentLoaded", applyWOFilter);
 .pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; }
 .pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
 </style>
-<script>
-window.woFilter = "attention";
-function setWOFilter(mode) {
-  window.woFilter = mode;
-  ["attention","upcoming","completed","all"].forEach(function(m) {
-    var btn = document.getElementById("wo-btn-" + m);
-    if (!btn) return;
-    btn.classList.toggle("btn-primary", m === mode);
-    btn.classList.toggle("btn-outline-primary", m !== mode);
-  });
-  applyWOFilter();
-}
-function applyWOFilter() {
-  var mode = window.woFilter || "attention";
-  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
-    el.style.display = (mode === "all" || el.getAttribute("data-wo-bucket") === mode) ? "" : "none";
-  });
-}
-document.addEventListener("DOMContentLoaded", applyWOFilter);
-</script>
+
 
 
 <style>
@@ -566,34 +528,10 @@ document.addEventListener("DOMContentLoaded", applyWOFilter);
 .pm-overdue-legion { background-color: #FF0000; color: white !important; font-weight: bold; border-radius: 10px; }
 .pm-secondary-legion { background-color: #bebec1; font-weight: bold; border-radius: 10px; }
 </style>
-<script>
-window.woFilter = "attention";
-function setWOFilter(mode) {
-  window.woFilter = mode;
-  ["attention","upcoming","completed","all"].forEach(function(m) {
-    var btn = document.getElementById("wo-btn-" + m);
-    if (!btn) return;
-    btn.classList.toggle("btn-primary", m === mode);
-    btn.classList.toggle("btn-outline-primary", m !== mode);
-  });
-  applyWOFilter();
-}
-function applyWOFilter() {
-  var mode = window.woFilter || "attention";
-  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
-    el.style.display = (mode === "all" || el.getAttribute("data-wo-bucket") === mode) ? "" : "none";
-  });
-}
-document.addEventListener("DOMContentLoaded", applyWOFilter);
-</script>
 
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  var f = new URLSearchParams(location.search).get("filter");
-  if (f && typeof setWOFilter === "function") setWOFilter(f);
-});
-</script>
+
+
 
 
 <style id="wo-red-btns">
@@ -609,5 +547,45 @@ document.addEventListener("DOMContentLoaded", function () {
     border-color: #6c757d !important;
 }
 </style>
+
+
+<script>
+window.woFilter = "attention";
+window.woSearch = "";
+function setWOFilter(mode) {
+  window.woFilter = mode;
+  ["attention","upcoming","completed","all"].forEach(function(m) {
+    var btn = document.getElementById("wo-btn-" + m);
+    if (!btn) return;
+    btn.classList.toggle("btn-primary", m === mode);
+    btn.classList.toggle("btn-outline-primary", m !== mode);
+  });
+  applyWOFilter();
+}
+function applyWOFilter() {
+  var mode = window.woFilter || "attention";
+  var q = (window.woSearch || "").toLowerCase();
+  document.querySelectorAll("[data-wo-bucket]").forEach(function(el) {
+    var bucket = el.getAttribute("data-wo-bucket") || "";
+    var attention = (bucket === "attention" || bucket === "overdue");
+    var okBucket = (mode === "all" || bucket === mode || (mode === "attention" && attention));
+    var text = (el.innerText || el.textContent || "").toLowerCase();
+    var okText = !q || text.indexOf(q) !== -1;
+    el.style.display = (okBucket && okText) ? "" : "none";
+  });
+}
+function searchWorkOrders() {
+  var input = document.getElementById("search-input");
+  window.woSearch = (input && input.value ? input.value : "").trim();
+  if (window.woSearch) setWOFilter("all");
+  else setWOFilter(window.woFilter || "attention");
+  return false;
+}
+document.addEventListener("DOMContentLoaded", function() {
+  var f = new URLSearchParams(location.search).get("filter");
+  if (f) window.woFilter = f;
+  setWOFilter(window.woFilter || "attention");
+});
+</script>
 
 {% endblock %}

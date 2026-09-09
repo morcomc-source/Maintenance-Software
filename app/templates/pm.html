@@ -192,7 +192,7 @@
                         {% set row_class = 'pm-row-complete' if is_completed or (item.last_done|string == today) else
                             'pm-row-due-soon' if next_due_str == today else
                             'pm-row-overdue' if next_due_str and next_due_str < today else 'pm-row-secondary' %}
-                        <tr class="{{ row_class }}" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str and next_due_str < today %}attention overdue{% elif next_due_str == today %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
+                        <tr class="{{ row_class }}" style="cursor:pointer" onclick="window.location='{{ url_for('pm.details', id=item.id) }}'" data-pm-bucket="{% if is_completed or (item.last_done|string == today) %}completed {% endif %}{% if next_due_str and next_due_str < today %}attention overdue{% elif next_due_str == today %}attention{% elif next_due_str and next_due_str > today %}upcoming{% endif %}">
                             <td class="center-text">{{ item.main_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.sub_equipment|default('N/A') }}</td>
                             <td class="center-text">{{ item.frequency|default('N/A') }}</td>
@@ -208,13 +208,13 @@
                             </td>
                             <td class="text-center">
                     {% if current_user.role == 'technician' %}
-                        <a href="{{ url_for('pm.details', id=item.id) }}" class="btn btn-sm btn-outline-info">📋 Details</a>
+                        <a href="{{ url_for('pm.details', id=item.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">📋 Details</a>
                     {% else %}
-                        <a href="{{ url_for('pm.details', id=item.id) }}" class="btn btn-sm btn-outline-info">👁️ Details</a>
+                        <a href="{{ url_for('pm.details', id=item.id) }}" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-info">👁️ Details</a>
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('pm.details', id=item.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
-                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                        <a href="{{ url_for('pm.details', id=item.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPM({{ item.id }})">✏️ Edit</button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                         {% endif %}
                     {% endif %}
                             </td>
@@ -256,8 +256,8 @@
                             </a>
                             <div class="card-footer border-0 d-flex flex-wrap gap-2">
                                 {% if current_user.role in ['admin', 'supervisor'] %}
-                                <button class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">✏️ Edit</button>
-                                <button class="btn btn-sm btn-outline-dark" onclick="showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPM({{ item.id }})">✏️ Edit</button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                                 {% endif %}
 
                             </div>
@@ -704,9 +704,10 @@ function viewHistory(id) {
 </script>
 
 <script>
-let pmFilter = 'attention'; // default: Needs Attention
+let pmFilter = {{ 'all' if search else 'attention' | tojson }}; // default: Needs Attention
 
 
+document.addEventListener('DOMContentLoaded', function(){ if (typeof setPMFilter==='function') setPMFilter(pmFilter); });
 document.addEventListener('DOMContentLoaded', function () {
     const params = new URLSearchParams(window.location.search);
     if (params.get('new') === '1' || params.get('tab') === '1') {
