@@ -9,6 +9,198 @@
 {% block content %}
 
 <style>
+#parts-table { table-layout: fixed; width: 100%; }
+#parts-table th:nth-child(1), #parts-table td:nth-child(1) { width: 22% !important; }
+#parts-table th:nth-child(3), #parts-table td:nth-child(3) { width: 11% !important; max-width: 130px !important; }
+#parts-table th:nth-child(4), #parts-table td:nth-child(4),
+#parts-table th:nth-child(5), #parts-table td:nth-child(5),
+#parts-table th:nth-child(6), #parts-table td:nth-child(6) { width: 36px !important; max-width: 36px !important; }
+#parts-table th:nth-child(7), #parts-table td:nth-child(7) { width: 10% !important; white-space: normal; overflow-wrap: anywhere; }
+#parts-table th:nth-child(8), #parts-table td:nth-child(8) { width: 118px !important; white-space: nowrap; }
+#parts-table th:nth-child(10), #parts-table td:nth-child(10) { width: 280px !important; white-space: nowrap !important; }
+</style>
+
+
+<style>
+#parts-table th:nth-child(3), #parts-table td:nth-child(3) {
+    width: 11% !important;
+    max-width: 130px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    font-size: .85rem;
+}
+#parts-table th:nth-child(10), #parts-table td:nth-child(10) {
+    width: 260px !important;
+    white-space: nowrap !important;
+}
+</style>
+
+
+<style>
+#parts-table th:nth-child(4), #parts-table td:nth-child(4),
+#parts-table th:nth-child(5), #parts-table td:nth-child(5),
+#parts-table th:nth-child(6), #parts-table td:nth-child(6) {
+    width: 36px !important;
+    max-width: 36px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    text-align: center !important;
+    font-size: .85rem;
+}
+</style>
+
+
+<style>
+#parts-table th:nth-child(2), #parts-table td:nth-child(2),
+#parts-table th:nth-child(9), #parts-table td:nth-child(9) { display: none !important; }
+</style>
+
+
+<style>
+#parts-table { table-layout: fixed; width: 100%; }
+#parts-table th, #parts-table td { vertical-align: middle; }
+#parts-table td[data-label="Part Name"],
+#parts-table td:first-child {
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#parts-table td[data-label="Actions"],
+#parts-table th:last-child {
+    width: 220px;
+    white-space: nowrap;
+}
+#parts-table td[data-label="Actions"] form { display: inline; margin: 0; }
+</style>
+
+
+<style>
+tr.parts-row-warning td .btn-danger,
+tr.parts-row-warning td .btn-danger *,
+tr.parts-row-warning td .btn-danger:hover,
+tr.parts-row-warning td .btn-danger:hover *,
+tr.parts-row-warning td .btn,
+tr.parts-row-warning td .btn * {
+    background-color: #fff !important;
+    color: #111 !important;
+    border-color: #adb5bd !important;
+    box-shadow: none !important;
+}
+tr.parts-row-warning td .btn-primary,
+tr.parts-row-warning td .btn-primary * {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd !important;
+}
+</style>
+
+
+<style>
+#parts-table td .btn-danger,
+#parts-table td .btn-danger:hover,
+#parts-table td .btn-danger:focus,
+#parts-table td .btn-danger:active,
+#parts-table tr.parts-row-warning td .btn-danger,
+#parts-table tr.parts-row-warning td .btn-danger:hover,
+#parts-table tr.parts-row-on-order td .btn-danger,
+#parts-table tr.parts-row-on-order td .btn-danger:hover,
+#parts-table tr.pm-row-overdue td .btn-danger,
+#parts-table tr.pm-row-overdue td .btn-danger:hover {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #adb5bd !important;
+    box-shadow: none !important;
+}
+</style>
+
+
+<style>
+#parts-table td .btn-primary,
+.card .btn-primary {
+    background: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #fff !important;
+}
+#parts-table td .btn-primary:hover,
+.card .btn-primary:hover {
+    background: #0b5ed7 !important;
+    border-color: #0a58ca !important;
+    color: #fff !important;
+}
+</style>
+
+
+<style>
+#parts-table td .btn-sm:not(.btn-primary),
+.card .btn-sm.btn-outline-dark,
+.card .btn-sm.btn-danger,
+.card .btn-sm.btn-outline-primary {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #adb5bd !important;
+    font-weight: 600;
+}
+#parts-table td .btn-sm:not(.btn-primary):hover,
+#parts-table td .btn-sm:not(.btn-primary):focus,
+.card .btn-sm.btn-outline-dark:hover,
+.card .btn-sm.btn-danger:hover,
+.card .btn-sm.btn-outline-primary:hover {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #adb5bd !important;
+    box-shadow: none !important;
+}
+</style>
+
+
+<style>
+#parts-table td .btn-sm {
+    font-weight: 600;
+}
+#parts-table tr td .btn-outline-dark {
+    background: #fff;
+    color: #212529;
+    border-color: #adb5bd;
+}
+#parts-table tr td .btn-outline-dark:hover {
+    background: #212529;
+    color: #fff;
+    border-color: #212529;
+}
+#parts-table tr td .btn-danger,
+#parts-table tr td .btn-danger:hover {
+    background: #fff !important;
+    border-color: #adb5bd !important;
+    color: #111 !important;
+}
+#parts-table tr.parts-row-warning td .btn-outline-dark,
+#parts-table tr.parts-row-on-order td .btn-outline-dark,
+#parts-table tr.pm-row-overdue td .btn-outline-dark,
+#parts-table tr.table-danger td .btn-outline-dark,
+#parts-table tr.table-warning td .btn-outline-dark {
+    background: #fff !important;
+    color: #212529 !important;
+    border-color: #adb5bd !important;
+}
+#parts-table tr.parts-row-warning td .btn-danger,
+#parts-table tr.parts-row-on-order td .btn-danger,
+#parts-table tr.pm-row-overdue td .btn-danger,
+#parts-table tr.table-danger td .btn-danger,
+#parts-table tr.table-warning td .btn-danger {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #adb5bd !important;
+}
+#parts-table tr.parts-row-warning td .btn-danger:hover,
+#parts-table tr.parts-row-on-order td .btn-danger:hover,
+#parts-table tr.pm-row-overdue td .btn-danger:hover {
+    background: #fff !important;
+    color: #111 !important;
+}
+</style>
+
+
+<style>
 .list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
 .list-table-wrap table { margin-bottom: 0; }
 .list-table-wrap thead th {
@@ -221,9 +413,9 @@ text-align: center;
                         <th class="center-text">Part Name</th>
                         <th class="center-text">Barcode</th>
                         <th class="center-text">Part Number</th>
-                        <th class="center-text">Quantity</th>
-                        <th class="center-text">Min Stock</th>
-                        <th class="center-text">Max Stock</th>
+                        <th class="center-text">Qty</th>
+                        <th class="center-text">Min</th>
+                        <th class="center-text">Max</th>
                         <th class="center-text">Main Location</th>
                         <th class="center-text">Sublocation</th>
                         <th class="center-text">Part Location</th>
@@ -254,15 +446,15 @@ text-align: center;
                             <td class="center-text" data-label="Part Location">{{ item.bin_location or "—" }}</td>
                             {% if current_user.is_admin() %}
                             <td class="center-text" data-label="Actions">
-                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️</button>
-                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️</button>
+                                <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️ Edit</button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                 {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
                                 </form>
 {% endif %}
-                                <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="exportPartPDF({{ item.id }})">📄</button>
+                                <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); exportPartPDF({{ item.id }})">📄 PDF</button>
                             </td>
                             {% endif %}
                         </tr>
@@ -295,8 +487,8 @@ text-align: center;
                                 <p class="mb-1"><strong>Part Location:</strong> {{ item.bin_location or "—" }}</p>
                                 {% if current_user.is_admin() %}
                                 <div class="mt-2 d-flex flex-wrap gap-1">
-                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️ Edit</button>
-                                    <button type="button" class="btn btn-sm btn-light btn-outline-dark" onclick="showDeleteConfirm({{ idx }})">🗑️ Delete</button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPart({{ idx }})">✏️ Edit</button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                     {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
                                     <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
