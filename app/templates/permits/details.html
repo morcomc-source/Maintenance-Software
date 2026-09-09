@@ -2,7 +2,7 @@
 {% block title %}Permit #{{ p.id }}{% endblock %}
 {% block content %}
 <div class="container mt-4" style="max-width: 760px;">
-    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary mb-4">← Back to Permits</a>
+    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Permits</a>
     <h2>{{ p.type_label() }} #{{ p.id }}</h2>
     <p><span class="badge bg-{{ 'success' if p.status=='approved' else 'danger' if p.status=='denied' else 'secondary' if p.status=='logged' else 'warning' }}">{{ p.status }}</span></p>
     <div class="card shadow-sm mb-3"><div class="card-body">

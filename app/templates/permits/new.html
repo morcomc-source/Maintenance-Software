@@ -2,7 +2,7 @@
 {% block title %}New permit{% endblock %}
 {% block content %}
 <div class="container mt-4" style="max-width: 800px;">
-    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary mb-4">← Back to Permits</a>
+    <a href="{{ url_for('permits.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Permits</a>
     <h2 class="text-center mb-1">
         {% if kind=='hot_work' %}Hot Work Permit
         {% elif kind=='confined' %}Confined Space Entry Permit

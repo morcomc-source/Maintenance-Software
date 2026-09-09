@@ -325,12 +325,9 @@
                 </select>
         </div>
         <div class="col-md-4" id="sub-equipment-group">
-            <label class="form-label">Machine List</label>
-            <select name="sub_equipment" id="sub-equipment-select" class="form-select">
-                    <option value="">— Pick —</option>
-                    {% for m in pm_machines %}
-                    <option value="{{ m.name }}">{{ m.name }}</option>
-                    {% endfor %}
+            <label class="form-label">Machine <span class="text-danger">*</span></label>
+            <select name="sub_equipment" id="sub-equipment-select" class="form-select" required>
+                    <option value="">— Pick location first —</option>
                 </select>
         </div>
 <div class="col-md-4" id="frequency-group">
@@ -666,17 +663,23 @@ function editPM(id) {
 }
     // ====================== EQUIPMENT SELECTORS ======================
 const allMachines = {{ machines_json | tojson | safe }};
-document.getElementById("main-equipment-select").addEventListener("change", () => {
-    const selected = document.getElementById("main-equipment-select").value;
+
+function fillMachinesForLocation(selected, keepValue) {
     const subSelect = document.getElementById("sub-equipment-select");
+    if (!subSelect) return;
     subSelect.innerHTML = '<option value="">— Pick —</option>';
-    const filtered = allMachines.filter(m => m.main_name === selected);
+    const filtered = (allMachines || []).filter(m => m.main_name === selected);
     filtered.forEach(m => {
         const option = document.createElement("option");
         option.value = m.name;
         option.text = m.name;
         subSelect.add(option);
     });
+    if (keepValue) subSelect.value = keepValue;
+}
+
+document.getElementById("main-equipment-select").addEventListener("change", () => {
+    fillMachinesForLocation(document.getElementById("main-equipment-select").value, "");
 });
 document.getElementById("sub-equipment-select").addEventListener("change", () => {
     // No display toggle - always visible

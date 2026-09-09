@@ -2,8 +2,8 @@
 {% block title %}Slack Notifications{% endblock %}
 {% block content %}
 <div class="container mt-4">
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary w-100 mb-4">← Back to System Setup</a>
     <h2 class="mb-4 text-center">Slack Notifications</h2>
-    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary mb-4">← Back to System Setup</a>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}

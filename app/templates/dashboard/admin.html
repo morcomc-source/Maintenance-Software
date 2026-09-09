@@ -2,8 +2,8 @@
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-2">Welcome, Admin {{ current_user.username }}</h2>
-    <p class="lead mb-4">System Overview</p>
+    <h2 class="mb-2 text-center">Welcome, {{ current_user.username }} <small class="text-muted">({{ current_user.role|capitalize }})</small></h2>
+    <p class="lead mb-4 text-center">System Overview</p>
 
     
     

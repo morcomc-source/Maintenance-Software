@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Welcome, {{ current_user.username }}</h2>
-    <p class="lead">Here's your current workload</p>
+    <h2 class="mb-4 text-center">Welcome, {{ current_user.username }} <small class="text-muted">(Technician)</small></h2>
+    <p class="lead text-center">Here's your current workload</p>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header"><strong>Today</strong> <span class="text-muted small">Due now or overdue</span></div>

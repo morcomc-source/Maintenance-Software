@@ -152,6 +152,9 @@ def index():
                     part.barcode = request.form.get("barcode", "").strip() or None
                     part.name = request.form.get("name", "").strip()
                     part.part_number = request.form.get("part_number", "").strip()
+                    if not part.part_number:
+                        flash("Part number is required.", "danger")
+                        return redirect(url_for("parts.index"))
                     part.qty = int(request.form.get("qty", 0))
                     _maybe_clear_on_order(part)
                     part.min_stock = int(request.form.get("min_stock", 0))

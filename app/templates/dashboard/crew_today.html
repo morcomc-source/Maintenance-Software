@@ -2,7 +2,7 @@
 {% block title %}Today{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Dashboard</a>
     <h2 class="text-center mb-4">Today</h2>
     <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
         <a class="btn {% if tab=='mine' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='mine') }}">My work ({{ today_mine|length }})</a>

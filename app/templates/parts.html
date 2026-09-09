@@ -375,14 +375,14 @@ text-align: center;
 .legend-swatch.order { background: #3d6ea8; }
 
 </style>
+<a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Dashboard</a>
 <h2 id="parts-page-title" class="mb-4 center-text">Parts Inventory Page</h2>
 
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
-<a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary mb-4">← Back to Dashboard</a>
 {% if current_user.is_admin() %}
-<div class="d-flex gap-2 mb-4">
-    <button class="btn btn-outline-primary" onclick="clearPartForm(); openTab(1)" onclick="clearPartForm(); openTab(1)">Add New Part</button>
+<div class="text-center mb-4">
+    <button type="button" class="btn btn-success btn-lg px-5" onclick="clearPartForm(); openTab(1)">+ Add New Part</button>
 </div>
 {% endif %}
 
@@ -514,9 +514,9 @@ text-align: center;
 <div id="tab-1" class="tab-content">
 <div class="container mt-2">
     <div class="mb-3">
-        <button type="button" class="btn btn-secondary" onclick="openTab(0)">← Back to Parts List</button>
+        <button type="button" class="btn btn-secondary w-100" onclick="openTab(0)">← Back to Parts List</button>
     </div>
-    <h2 class="mb-4 text-center">Create New Part</h2>
+    <h2 class="mb-4 text-center"Create New Part</h2>
     <div class="mb-0"><!-- spacer -->
     </div>
     
@@ -538,8 +538,8 @@ text-align: center;
             <input type="text" name="name" class="form-control" required>
         </div>
         <div class="col-md-6">
-            <label class="form-label">Part Number</label>
-            <input type="text" name="part_number" id="part-number-input" class="form-control">
+            <label class="form-label">Part Number <span class="text-danger">*</span></label>
+            <input type="text" name="part_number" id="part-number-input" class="form-control" required>
         </div>
         <div class="col-md-6">
             <label class="form-label">Quantity <span class="text-danger">*</span></label>

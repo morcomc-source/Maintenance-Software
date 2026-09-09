@@ -109,7 +109,7 @@ def index():
             except:
                 flash("Invalid ID", "danger")
         else:  # Add new
-            if main_equipment and frequency:
+            if main_equipment and sub_equipment and frequency:
                 new_pm = PM(
                     main_equipment=main_equipment,
                     sub_equipment=sub_equipment or "",
