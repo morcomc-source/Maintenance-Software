@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Manage Users
+{% block title %}Manage Users{% endblock %}
+{% block content %}
 <div class="modal fade" id="user-delete-modal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -28,9 +29,7 @@ function deleteUser(id, name) {
   new bootstrap.Modal(document.getElementById("user-delete-modal")).show();
 }
 </script>
-{% endblock %}
 
-{% block content %}
 <div class="container mt-4">
 <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Dashboard</a>
 <h2 class="text-center">Manage Users</h2>
