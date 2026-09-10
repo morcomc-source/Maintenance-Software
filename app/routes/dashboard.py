@@ -136,6 +136,14 @@ def index():
             except Exception:
                 pending_permits = []
 
+        ip_pm = PM.query.filter(PM.status.in_(["In Progress", "On Hold", "Paused", "Hold"]))
+        ip_wo = WorkOrder.query.filter(WorkOrder.status.in_(["In Progress", "On Hold", "Paused", "Hold"]))
+        if current_user.role == "supervisor":
+            crew_ids = [u.id for u in User.query.filter_by(reports_to_id=current_user.id).all()]
+            crew_ids.append(current_user.id)
+            ip_pm = ip_pm.filter(PM.assigned_user_id.in_(crew_ids))
+            ip_wo = ip_wo.filter(WorkOrder.assigned_to_id.in_(crew_ids))
+        in_progress_count = ip_pm.count() + ip_wo.count()
         return render_template(
             'dashboard/admin.html',
             today_mine=today_mine,
@@ -145,9 +153,8 @@ def index():
             plant_perm=plant_perm,
             unassigned_wos=unassigned_wos,
             pending_permits=pending_permits,
+            in_progress_count=in_progress_count,
         )
-
-
 
     if current_user.role == 'department':
         return render_template('dashboard/department.html')
@@ -227,7 +234,34 @@ def index():
                 })
         except Exception:
             pass
-        return render_template('dashboard/technician.html', stats=stats, today_items=today_items)
+
+        in_progress_items = []
+        active = {"In Progress", "On Hold", "Paused", "Hold"}
+        for pm in assigned_pms:
+            if (pm.status or "") in active:
+                in_progress_items.append({
+                    "kind": "PM",
+                    "title": (pm.main_equipment or "PM") + ((" — " + pm.sub_equipment) if pm.sub_equipment else ""),
+                    "who": "You",
+                    "url": url_for("pm.details", id=pm.id),
+                })
+        for wo in assigned_wos:
+            if (wo.status or "") in active:
+                in_progress_items.append({
+                    "kind": "WO",
+                    "title": "#{} {}".format(wo.id, wo.equipment or wo.description or ""),
+                    "who": "You",
+                    "url": url_for("workorder.details", wo_id=wo.id),
+                })
+        stats["in_progress"] = len(in_progress_items)
+
+        return render_template(
+            "dashboard/technician.html",
+            stats=stats,
+            today_items=today_items,
+            in_progress_items=in_progress_items,
+        )
+
 
     return "Invalid role", 403
 
@@ -272,7 +306,7 @@ def plant_today():
         for perm in Permit.query.filter_by(status="pending").all():
             plant_perm.append({
                 "title": "{} #{}".format(perm.type_label(), perm.id),
-                "when": "Pending",
+                "when": (pm.status or "Started"),
                 "late": True,
                 "who": perm.created_by.username if perm.created_by else "",
                 "url": url_for("permits.details", pid=perm.id),
@@ -389,3 +423,35 @@ def crew_today():
         tab=tab, today_mine=today_mine, today_crew=today_crew,
         today_unassigned=today_unassigned, today_perm=today_perm,
     )
+
+
+@bp.route("/in-progress")
+@login_required
+def in_progress():
+    if current_user.role not in ("admin", "supervisor"):
+        return redirect(url_for("dashboard.index"))
+    items = []
+    pm_q = PM.query.filter(PM.status.in_(["In Progress", "On Hold", "Paused", "Hold"]))
+    wo_q = WorkOrder.query.filter(WorkOrder.status.in_(["In Progress", "On Hold", "Paused", "Hold"]))
+    if current_user.role == "supervisor":
+        crew_ids = [u.id for u in User.query.filter_by(reports_to_id=current_user.id).all()]
+        crew_ids.append(current_user.id)
+        pm_q = pm_q.filter(PM.assigned_user_id.in_(crew_ids))
+        wo_q = wo_q.filter(WorkOrder.assigned_to_id.in_(crew_ids))
+    for pm in pm_q.all():
+        who = pm.assigned_user.username if getattr(pm, "assigned_user", None) else "—"
+        items.append({
+            "kind": "PM",
+            "title": (pm.main_equipment or "PM") + ((" — " + pm.sub_equipment) if pm.sub_equipment else ""),
+            "who": who,
+            "url": url_for("pm.details", id=pm.id),
+        })
+    for wo in wo_q.all():
+        who = wo.assigned_to.username if getattr(wo, "assigned_to", None) else "—"
+        items.append({
+            "kind": "WO",
+            "title": "#{} {}".format(wo.id, wo.equipment or wo.description or ""),
+            "who": who,
+            "url": url_for("workorder.details", wo_id=wo.id),
+        })
+    return render_template("dashboard/in_progress.html", items=items)
