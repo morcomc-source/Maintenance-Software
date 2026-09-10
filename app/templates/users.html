@@ -77,7 +77,7 @@ function deleteUser(id, name) {
     <tbody>
         {% for user in users %}
         <tr>
-            <td>{{ user.display_name }}</td>
+            <td>{{ user.username }}</td>
             <td>{{ user.display_name }}</td>
             <td>{{ user.email or 'N/A' }}</td>
             <td>{{ user.role }}</td>
