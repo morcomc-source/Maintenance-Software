@@ -1,6 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Preventative Maintenance{% endblock %}
+{% block title %}Preventative Maintenance<script>
+
+function applyPMSearch() {
+  if (typeof setPMFilter === "function") setPMFilter(pmFilter || "all");
+}
+function resetPMSearch() {
+  var box = document.getElementById("pm-search");
+  if (box) box.value = "";
+  if (typeof setPMFilter === "function") setPMFilter("all");
+}
+document.addEventListener("DOMContentLoaded", function() {
+  var box = document.getElementById("pm-search");
+  if (box) box.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); applyPMSearch(); }
+  });
+});
+</script>
+{% endblock %}
 {% block content %}
+
+<style>
+/* pm-list-hide-old */
+#table-view, #card-view, .pm-legend-row,
+.pm-overdue-legion, .pm-due-soon-legion, .pm-complete-legion, .pm-secondary-legion {
+  display: none !important;
+}
+.pm-desktop-only { display: flex !important; flex-wrap: wrap; }
+</style>
+
 <style>
 #pm-table .btn-danger { color: #212529 !important; border-color: #adb5bd !important; background: #f8f9fa !important; }
 </style>
@@ -135,29 +162,29 @@
 
 {% endif %}
 
-    <form method="get" action="/pm" class="row g-3 mb-4 pm-desktop-only">
-        <div class="col-md-12">
-            <label class="form-label">Search for Preventative Maintenance Form:</label>
-            <input type="text" name="search" class="form-control" placeholder="Search by main equipment, sub equipment, frequency, last done, next due, or assigned to" value="{{ search or '' }}">
+        <div class="mb-3">
+        <input type="text" id="pm-search" name="search" class="form-control" placeholder="Search equipment, frequency, assignee...">
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-primary flex-fill" onclick="applyPMSearch()">Search</button>
+            <button type="button" class="btn btn-outline-secondary flex-fill" onclick="resetPMSearch()">Reset</button>
         </div>
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary">Search</button>
-            <a href="/pm" class="btn btn-secondary ms-2">Reset</a>
-        </div>
-    </form>
+    </div>
+
     {% if items %}
         {% if items %}<div class="d-flex align-items-center mb-4">
                     
             <div class="flex-grow-1"></div>
         
             <div class="d-flex gap-3 flex-wrap">
-<div class="btn-group me-3 pm-desktop-only" role="group">
-                <button type="button" class="btn btn-primary fw-bold" id="pm-btn-attention" onclick="setPMFilter('attention')">Needs Attention</button>
-                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-upcoming" onclick="setPMFilter('upcoming')">Upcoming</button>
-                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-completed" onclick="setPMFilter('completed')">Completed</button>
-                {% if current_user.role in ['admin', 'supervisor'] %}
+<div class="d-flex flex-wrap gap-2 justify-content-center mb-3 w-100">
                 <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-all" onclick="setPMFilter('all')">Show All</button>
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-unassigned" onclick="setPMFilter('unassigned')">Unassigned</button>
                 {% endif %}
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-completed" onclick="setPMFilter('completed')">Completed</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-upcoming" onclick="setPMFilter('upcoming')">Upcoming</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-attention" onclick="setPMFilter('attention')">Due Today</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="pm-btn-overdue" onclick="setPMFilter('overdue')">Past Due</button>
             </div>
 <span class="pm-overdue-legion px-3 py-2">Overdue</span>
 <span class="pm-due-soon-legion text-dark px-3 py-2">Due Today</span>
@@ -169,6 +196,52 @@
         </div>
     
         {% endif %}
+
+        <div class="card shadow-sm mb-4" id="pm-new-list">
+          <div class="list-group list-group-flush">
+            {% for item in items %}
+              {% set is_completed = item.checklist and item.checklist|selectattr('type', 'equalto', 'task')|selectattr('completed', 'equalto', true)|list|length == item.checklist|selectattr('type', 'equalto', 'task')|list|length %}
+              {% set next_due_str = item.next_due|string if item.next_due else '' %}
+              {% if not item.assigned_to or item.assigned_to == 'N/A' %}
+                {% set bucket = 'unassigned' %}
+              {% elif next_due_str and next_due_str < today %}
+                {% set bucket = 'overdue' %}
+              {% elif next_due_str and next_due_str > today %}
+                {% set bucket = 'upcoming' %}
+              {% elif is_completed or (item.last_done|string == today) %}
+                {% set bucket = 'completed' %}
+              {% else %}
+                {% set bucket = 'attention' %}
+              {% endif %}
+              <div class="list-group-item pm-row" data-pm-bucket="{{ bucket }}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <a href="{{ url_for('pm.details', id=item.id) }}" class="text-decoration-none text-dark flex-grow-1">
+                    <div>
+                      <span class="badge bg-{{ 'success' if bucket=='completed' else 'danger' if bucket=='overdue' else 'warning' if bucket in ['attention','unassigned'] else 'secondary' }} me-2">
+                        {% if bucket == 'unassigned' %}Unassigned{% elif item.assigned_to %}{{ item.assigned_to }}{% else %}PM{% endif %}
+                      </span>
+                      <strong>{{ item.main_equipment|default('PM') }}</strong>
+                      {% if item.sub_equipment %} — {{ item.sub_equipment }}{% endif %}
+                    </div>
+                    <div class="small text-muted mt-1">
+                      {{ item.frequency|default('') }}
+                      {% if item.last_done %} · Last {{ item.last_done }}{% endif %}
+                    </div>
+                  </a>
+                  <small class="text-muted text-nowrap">{{ item.next_due or 'No date' }}</small>
+                </div>
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <a href="{{ url_for('pm.details', id=item.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">PDF</a>
+                  <button type="button" class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">Edit</button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteConfirm({{ item.id }})">Delete</button>
+                </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
         <!-- Table View (default on desktop) -->
         <div id="table-view" class="table-responsive d-none d-md-block">
             <div class="list-table-wrap">
@@ -343,6 +416,7 @@
 <div class="col-12">
     <label class="form-label">Assign to</label>
     <select name="assigned_user" class="form-select">
+    <option value="">— Unassigned —</option>
         {% for tech in technicians %}
         <option value="{{ tech.id }}">{{ tech.username }}</option>
         {% endfor %}
@@ -705,7 +779,7 @@ function viewHistory(id) {
 </script>
 
 <script>
-let pmFilter = {{ 'all' if search else 'attention' | tojson }}; // default: Needs Attention
+let pmFilter = 'all';
 
 
 document.addEventListener('DOMContentLoaded', function(){ if (typeof setPMFilter==='function') setPMFilter(pmFilter); });
@@ -733,13 +807,18 @@ function setPMFilter(mode) {
 }
 
 function filterPMViews() {
-    document.querySelectorAll('#pm-table tbody tr').forEach(function (row) {
-        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming'; const buckets = bucket.trim().split(/\s+/);
-        row.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
+        document.querySelectorAll('.pm-row').forEach(function (row) {
+        const bucket = row.getAttribute('data-pm-bucket') || 'upcoming';
+        const q = ((document.getElementById('pm-search') || {}).value || '').trim().toLowerCase();
+        let ok = (pmFilter === 'all' || bucket === pmFilter || (pmFilter === 'attention' && bucket === 'overdue'));
+        if (q && (row.innerText || '').toLowerCase().indexOf(q) === -1) ok = false;
+        row.style.display = ok ? '' : 'none';
     });
-    document.querySelectorAll('#card-view [data-pm-bucket]').forEach(function (el) {
-        const buckets = (el.getAttribute('data-pm-bucket') || 'upcoming').trim().split(/\s+/);
-        el.style.display = (pmFilter === 'all' || pmFilter === 'all' || buckets.indexOf(pmFilter) !== -1) ? '' : 'none';
+    ['all','unassigned','completed','upcoming','attention','overdue'].forEach(function(m){
+        var btn = document.getElementById('pm-btn-' + m);
+        if (!btn) return;
+        btn.classList.toggle('btn-primary', m === pmFilter);
+        btn.classList.toggle('btn-outline-primary', m !== pmFilter);
     });
 }
 
@@ -755,5 +834,63 @@ document.addEventListener("DOMContentLoaded", function () {
   if (f && typeof setPMFilter === "function") setPMFilter(f);
 });
 </script>
+
+
+<script>
+window.pmFilter = window.pmFilter || "all";
+function applyPMSearch() { setPMFilter(window.pmFilter || "all"); }
+function resetPMSearch() {
+  var box = document.getElementById("pm-search");
+  if (box) box.value = "";
+  setPMFilter("all");
+}
+function setPMFilter(mode) {
+  window.pmFilter = mode || "all";
+  var q = ((document.getElementById("pm-search") || {}).value || "").trim().toLowerCase();
+  document.querySelectorAll(".pm-row").forEach(function(row) {
+    var bucket = row.getAttribute("data-pm-bucket") || "";
+    var ok = (window.pmFilter === "all" || bucket === window.pmFilter || (window.pmFilter === "attention" && bucket === "overdue"));
+    if (bucket === "unassigned" && window.pmFilter !== "unassigned") ok = false;
+    if (window.pmFilter === "all" && bucket === "unassigned") ok = false;
+    if (q && (row.innerText || "").toLowerCase().indexOf(q) === -1) ok = false;
+    row.style.display = ok ? "" : "none";
+  });
+  ["all","unassigned","completed","upcoming","attention","overdue"].forEach(function(m) {
+    var btn = document.getElementById("pm-btn-" + m);
+    if (!btn) return;
+    btn.classList.toggle("btn-primary", m === window.pmFilter);
+    btn.classList.toggle("btn-outline-primary", m !== window.pmFilter);
+  });
+}
+document.addEventListener("DOMContentLoaded", function() {
+  var box = document.getElementById("pm-search");
+  if (box) box.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); applyPMSearch(); }
+  });
+  var f = new URLSearchParams(location.search).get("filter") || "all";
+  if (f === "needs" || f === "due") f = "attention";
+  setPMFilter(f);
+});
+</script>
+
+
+<style id="pm-mobile-list-fix">
+#table-view,
+#card-view,
+#pm-table,
+#pm-table-empty {
+  display: none !important;
+}
+#pm-new-list { display: block !important; }
+@media (max-width: 768px) {
+  #table-view,
+  #card-view,
+  .table-responsive,
+  #pm-table {
+    display: none !important;
+  }
+  #pm-new-list { display: block !important; }
+}
+</style>
 
 {% endblock %}

@@ -159,7 +159,7 @@ def details(id):
     if eq.equipment_id:
         match.append(WorkOrder.equipment_id == eq.equipment_id)
     if eq.name:
-        match.append(WorkOrder.equipment == eq.name)
+        match.append(WorkOrder.equipment.ilike(eq.name))
     if match:
         wo_q = wo_q.filter(or_(*match))
     else:
@@ -168,10 +168,14 @@ def details(id):
 
     pm_q = PM.query
     pm_match = []
-    if getattr(eq, 'equipment_id', None):
+    if getattr(eq, "equipment_id", None):
         pm_match.append(PM.equipment_id == eq.equipment_id)
     if eq.name:
-        pm_match.append(PM.main_equipment == eq.name)
+        name = eq.name
+        pm_match.append(PM.main_equipment.ilike(name))
+        pm_match.append(PM.sub_equipment.ilike(name))
+    if getattr(eq, "location", None):
+        pm_match.append(PM.main_equipment.ilike(eq.location))
     pms = pm_q.filter(or_(*pm_match)).all() if pm_match else []
     pm_ids = [pm.id for pm in pms]
     completions = []
