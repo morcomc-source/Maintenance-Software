@@ -182,11 +182,11 @@ def index():
 
         stats = {
             'total_assigned': total_pm,
-            'due_today': due_today_pm,
+            'due_today': due_today_pm + overdue_pm,
             'overdue': overdue_pm,
             'upcoming': upcoming_pm,
             'assigned_workorders': len(open_wos),
-            'due_today_wo': sum(1 for wo in open_wos if wo.expected_completion_date and wo.expected_completion_date == datetime.now().date()),
+            'due_today_wo': sum(1 for wo in open_wos if wo.expected_completion_date and wo.expected_completion_date <= today),
             'upcoming_wo': sum(1 for wo in open_wos if wo.expected_completion_date and wo.expected_completion_date > datetime.now().date()),
 
             'completed_workorders': completed_wo,

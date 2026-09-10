@@ -17,8 +17,8 @@ bp = Blueprint('workorder', __name__)
 def index():
     query = request.args.get('q', '').strip()
     
-    # Main list = incomplete only (completed live on Work Order History)
-    base = WorkOrder.query.filter(WorkOrder.status != 'Completed')
+    # Manage list includes completed so the Completed filter has rows
+    base = WorkOrder.query
 
     if query:
         base = base.filter(
