@@ -443,7 +443,7 @@ text-align: center;
                                 <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                 {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
-                                    <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
+                                    <input type="hidden" name="ordered_by" value="{{ current_user.display_name }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
                                 </form>
 {% endif %}
@@ -484,7 +484,7 @@ text-align: center;
                                     <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ idx }})">🗑️ Delete</button>
                                     {% if not item.on_order and (item.qty|default(0)|int) <= (item.min_stock|default(0)|int) %}
 <form method="POST" action="/parts/mark_ordered/{{ item.id }}" class="d-inline" onsubmit="return confirmMarkOnOrder(event, this);">
-                                    <input type="hidden" name="ordered_by" value="{{ current_user.username }}">
+                                    <input type="hidden" name="ordered_by" value="{{ current_user.display_name }}">
                                     <button type="submit" class="btn btn-sm btn-primary">📦 Order</button>
                                 </form>
 {% endif %}

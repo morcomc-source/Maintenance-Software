@@ -85,7 +85,7 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
             </p>
             <p><strong>Priority:</strong> {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}</p>
             <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">{{ wo.status }}</span></p>
-            <p><strong>Assigned To:</strong> {{ wo.assigned_to.username if wo.assigned_to else 'Unassigned' }}</p>
+            <p><strong>Assigned To:</strong> {{ wo.assigned_to.display_name if wo.assigned_to else 'Unassigned' }}</p>
         </div>
         <div class="col-md-6">
             <p><strong>Created On:</strong> {% if wo.created_at %}{{ wo.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
@@ -135,7 +135,7 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
                     <select name="assigned_to_id" class="form-select">
                         <option value="">— Unassigned —</option>
                         {% for tech in technicians %}
-                        <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.username }}</option>
+                        <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.display_name }}</option>
                         {% endfor %}
                     </select>
                 </div>

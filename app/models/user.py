@@ -13,6 +13,8 @@ class User(UserMixin, db.Model):
     must_change_password = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     email = db.Column(db.String(120), unique=True, nullable=True)
+    first_name = db.Column(db.String(80), nullable=True)
+    last_name = db.Column(db.String(80), nullable=True)
     reports_to_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
 
@@ -39,6 +41,12 @@ class User(UserMixin, db.Model):
         if self.password_hash.startswith("simple:"):
             return self.password_hash == "simple:" + password
         return check_password_hash(self.password_hash, password)
+
+
+    @property
+    def display_name(self):
+        name = " ".join(x for x in [self.first_name, self.last_name] if x)
+        return name or self.username
 
     def is_admin(self):
         return self.role == 'admin'

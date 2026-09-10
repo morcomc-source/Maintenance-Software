@@ -169,7 +169,7 @@ def index():
     if current_user.role == 'admin':
         technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
     elif current_user.role == 'supervisor':
-        technicians = User.query.filter_by(reports_to_id=current_user.id).order_by(User.username).all()
+        technicians = User.query.filter((User.reports_to_id==current_user.id) | (User.id==current_user.id)).order_by(User.username).all()
     else:
         technicians = []
 
@@ -582,6 +582,8 @@ def manage_users():
         # Add User
         if request.form.get('add_user'):
             username = request.form.get('username')
+            first_name = (request.form.get('first_name') or '').strip() or None
+            last_name = (request.form.get('last_name') or '').strip() or None
             email = request.form.get('email') or None
             password = request.form.get('password')
             role = request.form.get('role')
@@ -591,7 +593,7 @@ def manage_users():
             elif User.query.filter_by(username=username).first():
                 flash("Username already taken.", "danger")
             else:
-                new_user = User(username=username, email=email, role=role)
+                new_user = User(username=username, email=email, role=role, first_name=first_name, last_name=last_name)
                 rt = request.form.get('reports_to_id')
                 try:
                     new_user.reports_to_id = int(rt) if rt else None
@@ -608,6 +610,8 @@ def manage_users():
             user = User.query.get(user_id)
             if user:
                 user.username = request.form.get('username')
+                user.first_name = (request.form.get('first_name') or '').strip() or None
+                user.last_name = (request.form.get('last_name') or '').strip() or None
                 user.email = request.form.get('email') or None
                 user.role = request.form.get('role')
                 rt = request.form.get('reports_to_id') or ''
@@ -631,7 +635,7 @@ def manage_users():
                 flash("Cannot delete this user.", "danger")
 
     users = User.query.all()
-    users_list = [{'id': u.id, 'username': u.username, 'email': u.email, 'role': u.role, 'reports_to_id': u.reports_to_id} for u in users]
+    users_list = [{'id': u.id, 'username': u.username, 'first_name': u.first_name or '', 'last_name': u.last_name or '', 'email': u.email, 'role': u.role, 'reports_to_id': u.reports_to_id} for u in users]
    
     return render_template('users.html', users=users, users_json=users_list)
 

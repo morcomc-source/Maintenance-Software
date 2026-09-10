@@ -37,7 +37,9 @@ function deleteUser(id, name) {
 <form method="post" class="mb-4">
     <input type="hidden" name="add_user" value="1">
     <div class="row g-3">
-        <div class="col-md-2"><input name="username" class="form-control" placeholder="Username" required></div>
+        <div class="col-md-2"><input name="username" class="form-control" placeholder="Employee # (login)" required></div>
+        <div class="col-md-2"><input name="first_name" class="form-control" placeholder="First name"></div>
+        <div class="col-md-2"><input name="last_name" class="form-control" placeholder="Last name"></div>
         <div class="col-md-2"><input name="email" class="form-control" placeholder="Email"></div>
         <div class="col-md-2"><input name="password" type="password" class="form-control" placeholder="Password" required></div>
         <div class="col-md-2">
@@ -53,7 +55,7 @@ function deleteUser(id, name) {
             <select name="reports_to_id" class="form-select">
                 <option value="">Reports to…</option>
                 {% for u in users %}
-                <option value="{{ u.id }}">{{ u.username }}</option>
+                <option value="{{ u.id }}">{{ u.display_name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -64,7 +66,8 @@ function deleteUser(id, name) {
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>Username</th>
+            <th>Employee #</th>
+            <th>Name</th>
             <th>Email</th>
             <th>Role</th>
             <th>Reports to</th>
@@ -74,10 +77,11 @@ function deleteUser(id, name) {
     <tbody>
         {% for user in users %}
         <tr>
-            <td>{{ user.username }}</td>
+            <td>{{ user.display_name }}</td>
+            <td>{{ user.display_name }}</td>
             <td>{{ user.email or 'N/A' }}</td>
             <td>{{ user.role }}</td>
-            <td>{{ user.reports_to.username if user.reports_to else '—' }}</td>
+            <td>{{ user.reports_to.display_name if user.reports_to else '—' }}</td>
             <td>
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">Edit</button>
                 <button type="button" class="btn btn-sm btn-danger" onclick="deleteUser({{ user.id }}, '{{ user.username }}')">Delete</button>
@@ -100,8 +104,16 @@ function deleteUser(id, name) {
                     <input type="hidden" name="update_user" value="1">
                     <input type="hidden" name="user_id" id="edit-user-id">
                     <div class="mb-3">
-                        <label class="form-label">Username</label>
+                        <label class="form-label">Employee # (login)</label>
                         <input name="username" id="edit-username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">First name</label>
+                        <input name="first_name" id="edit-first-name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last name</label>
+                        <input name="last_name" id="edit-last-name" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email</label>
@@ -126,7 +138,7 @@ function deleteUser(id, name) {
                         <select name="reports_to_id" id="edit-reports-to" class="form-select">
                             <option value="">— None —</option>
                             {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.username }}</option>
+                            <option value="{{ u.id }}">{{ u.display_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -143,6 +155,8 @@ function deleteUser(id, name) {
         if (!user) return alert("User not found!");
         document.getElementById('edit-user-id').value = user.id;
         document.getElementById('edit-username').value = user.username;
+        document.getElementById('edit-first-name').value = user.first_name || '';
+        document.getElementById('edit-last-name').value = user.last_name || '';
         document.getElementById('edit-email').value = user.email || '';
         document.getElementById('edit-role').value = user.role;
         document.getElementById('edit-reports-to').value = user.reports_to_id || '';

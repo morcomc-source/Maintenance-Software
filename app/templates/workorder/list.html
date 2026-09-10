@@ -45,7 +45,7 @@
                     <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none text-dark flex-grow-1">
                         <div>
                             <span class="badge bg-{{ 'success' if bucket=='completed' else 'danger' if bucket=='overdue' else 'warning' if bucket in ['attention','unassigned'] else 'secondary' }} me-2">
-                                {% if bucket == 'unassigned' %}Unassigned{% elif wo.assigned_to %}{{ wo.assigned_to.username }}{% else %}{{ wo.status }}{% endif %}
+                                {% if bucket == 'unassigned' %}Unassigned{% elif wo.assigned_to %}{{ wo.assigned_to.display_name }}{% else %}{{ wo.status }}{% endif %}
                             </span>
                             <strong>#{{ wo.id }}</strong>
                             {{ wo.equipment or 'No equipment' }}

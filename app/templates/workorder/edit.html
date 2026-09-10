@@ -78,7 +78,7 @@
                         <select name="assigned_to_id" class="form-select">
                             <option value="">— Leave unassigned —</option>
                             {% for tech in technicians %}
-                            <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.username }}</option>
+                            <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.display_name }}</option>
                             {% endfor %}
                         </select>
                     </div>

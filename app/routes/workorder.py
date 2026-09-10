@@ -239,7 +239,7 @@ def details(wo_id):
     if current_user.role == 'admin':
         technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
     elif current_user.role == 'supervisor':
-        technicians = User.query.filter_by(reports_to_id=current_user.id).order_by(User.username).all()
+        technicians = User.query.filter((User.reports_to_id==current_user.id) | (User.id==current_user.id)).order_by(User.username).all()
     else:
         technicians = []
 

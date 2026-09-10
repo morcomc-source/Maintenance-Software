@@ -35,7 +35,7 @@
         {% if kind=='hot_work' %}
         <div class="mb-3">
             <label class="form-label">Work to be performed by</label>
-            <input class="form-control" name="performed_by" value="{{ current_user.username }}" required>
+            <input class="form-control" name="performed_by" value="{{ current_user.display_name }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Type of work (check all that apply)</label>

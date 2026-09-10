@@ -38,7 +38,7 @@
         {% if current_user.is_authenticated %}
         <a class="navbar-brand position-absolute top-50 start-50 translate-middle mb-0 fs-3 fw-semibold" href="{{ url_for('dashboard.index') }}">My Maintenance Desk</a>
         <div class="ms-auto d-flex align-items-center">
-            <span class="text-light small me-3 d-none d-sm-inline">{{ current_user.username }}</span>
+            <span class="text-light small me-3 d-none d-sm-inline">{{ current_user.display_name }}</span>
             <a class="btn btn-sm btn-outline-light" href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
         {% else %}

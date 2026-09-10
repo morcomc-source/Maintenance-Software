@@ -13,7 +13,7 @@
                 <select name="{{ key }}" class="form-select">
                     <option value="">— None —</option>
                     {% for u in supervisors %}
-                    <option value="{{ u.id }}" {% if routes[key] == u.id|string %}selected{% endif %}>{{ u.username }}</option>
+                    <option value="{{ u.id }}" {% if routes[key] == u.id|string %}selected{% endif %}>{{ u.display_name }}</option>
                     {% endfor %}
                 </select>
             </div>
