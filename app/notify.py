@@ -249,3 +249,19 @@ def notify_workorder_area_supervisor(wo):
         f"<{SITE_URL}/workorder/details/{wo.id}|Open work order>"
     )
     return send_dm_to_app_user(int(raw), text)
+
+def routed_areas_for(user_id):
+    """Areas this user is set as supervisor for in System Setup > Request routing."""
+    areas = []
+    if not user_id:
+        return areas
+    for area, key in (
+        ("facility", "route_facility"),
+        ("press", "route_press"),
+        ("mobile", "route_mobile"),
+    ):
+        raw = (get_setting(key) or "").strip()
+        if raw.isdigit() and int(raw) == int(user_id):
+            areas.append(area)
+    return areas
+

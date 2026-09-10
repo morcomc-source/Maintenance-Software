@@ -6,10 +6,11 @@
     <h2 class="text-center mb-4">Plant today</h2>
     <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
         <a class="btn {% if tab=='pm' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='pm') }}">PMs ({{ plant_pm|length }})</a>
-        <a class="btn {% if tab=='wo' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='wo') }}">Work orders ({{ plant_wo|length }})</a>
+        <a class="btn {% if tab=='wo' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='wo') }}">Work due ({{ plant_wo|length }})</a>
+        <a class="btn {% if tab=='unassigned' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='unassigned') }}">Unassigned ({{ plant_unassigned|default([])|length }})</a>
         <a class="btn {% if tab=='perm' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.plant_today', tab='perm') }}">Permits ({{ plant_perm|length }})</a>
     </div>
-    {% set rows = plant_pm if tab=='pm' else plant_perm if tab=='perm' else plant_wo %}
+    {% set rows = plant_pm if tab=='pm' else plant_perm if tab=='perm' else plant_unassigned if tab=='unassigned' else plant_wo %}
     <div class="card shadow-sm">
         <div class="list-group list-group-flush">
             {% for item in rows %}

@@ -6,9 +6,11 @@
     <h2 class="text-center mb-4">Today</h2>
     <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
         <a class="btn {% if tab=='mine' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='mine') }}">My work ({{ today_mine|length }})</a>
-        <a class="btn {% if tab=='crew' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='crew') }}">Crew ({{ today_crew|length }})</a>
+        <a class="btn {% if tab=='crew' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='crew') }}">Crew due ({{ today_crew|length }})</a>
+        <a class="btn {% if tab=='unassigned' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='unassigned') }}">Unassigned ({{ today_unassigned|default([])|length }})</a>
+        <a class="btn {% if tab=='perm' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ url_for('dashboard.crew_today', tab='perm') }}">Permits ({{ today_perm|default([])|length }})</a>
     </div>
-    {% set rows = today_mine if tab=='mine' else today_crew %}
+    {% set rows = today_perm if tab=='perm' else today_unassigned if tab=='unassigned' else today_mine if tab=='mine' else today_crew %}
     <div class="card shadow-sm">
         <div class="list-group list-group-flush">
             {% for item in rows %}

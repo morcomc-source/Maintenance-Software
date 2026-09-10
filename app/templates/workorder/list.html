@@ -313,7 +313,8 @@ td:nth-child(3), th:nth-child(3) {
             <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-upcoming" onclick="setWOFilter('upcoming')">Upcoming</button>
             <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-completed" onclick="setWOFilter('completed')">Completed</button>
             {% if current_user.role in ['admin', 'supervisor'] %}
-            <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-all" onclick="setWOFilter('all')">Show All</button>
+            <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-unassigned" onclick="setWOFilter('unassigned')">Unassigned</button>
+                <button type="button" class="btn btn-outline-primary fw-bold" id="wo-btn-all" onclick="setWOFilter('all')">Show All</button>
             {% endif %}
         </div>
         <span class="px-3 py-2 fw-bold text-white" style="background:#dc3545;border-radius:6px;">Overdue</span>
@@ -366,7 +367,7 @@ td:nth-child(3), th:nth-child(3) {
         <tbody>
         {% for wo in workorders %}
             <tr style="cursor:pointer" onclick="window.location='{{ url_for('workorder.details', wo_id=wo.id) }}'" class="{% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}"
-        data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}">
+        data-wo-bucket="{% if not wo.assigned_to_id %}unassigned{% elif wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}">
                 <td class="text-center"><strong>#{{ wo.id }}</strong></td>
                 <td><span class="wo-txt"><span class="wo-txt">{{ wo.equipment }}</span></span></td>
                 <td class="text-center"><span class="wo-txt">{{ wo.location or "—" }}</span></td>
@@ -443,7 +444,7 @@ td:nth-child(3), th:nth-child(3) {
 
 <div class="d-md-none">
     {% for wo in workorders %}
-    <div data-wo-bucket="{% if wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}">
+    <div data-wo-bucket="{% if not wo.assigned_to_id %}unassigned{% elif wo.status == 'Completed' %}completed{% elif wo.expected_completion_date and wo.expected_completion_date < today %}overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}attention{% elif not wo.expected_completion_date %}attention{% else %}upcoming{% endif %}" class="card workorder-card mb-3 {% if wo.status == 'Completed' %}pm-row-complete{% elif wo.expected_completion_date and wo.expected_completion_date < today %}pm-row-overdue{% elif wo.expected_completion_date and wo.expected_completion_date.strftime('%Y-%m-%d') == today.strftime('%Y-%m-%d') %}pm-row-due-soon{% else %}pm-row-secondary{% endif %}">
         <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" onclick="event.stopPropagation()" class="text-decoration-none {% if wo.status == 'Completed' or (wo.expected_completion_date and wo.expected_completion_date < today) %}text-white{% else %}text-dark{% endif %}">
         <div class="card-body pb-2">
             <div class="d-flex justify-content-between align-items-start">
@@ -550,7 +551,7 @@ window.woFilter = "attention";
 window.woSearch = "";
 function setWOFilter(mode) {
   window.woFilter = mode;
-  ["attention","upcoming","completed","all"].forEach(function(m) {
+  ["attention","upcoming","completed","unassigned","all"].forEach(function(m) {
     var btn = document.getElementById("wo-btn-" + m);
     if (!btn) return;
     btn.classList.toggle("btn-primary", m === mode);

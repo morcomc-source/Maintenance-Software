@@ -9,7 +9,7 @@
     
     {% if current_user.role == 'admin' %}
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-6 col-md-3">
             <a href="{{ url_for('dashboard.plant_today', tab='pm') }}" class="text-decoration-none text-dark">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
@@ -19,7 +19,7 @@
             </div>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col-6 col-md-3">
             <a href="{{ url_for('dashboard.plant_today', tab='wo') }}" class="text-decoration-none text-dark">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
@@ -29,7 +29,17 @@
             </div>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('dashboard.crew_today', tab='unassigned') if current_user.role == 'supervisor' else url_for('dashboard.plant_today', tab='unassigned') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Unassigned</div>
+                    <div class="display-6 {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ unassigned_wos|default([])|length }}</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
             <a href="{{ url_for('dashboard.plant_today', tab='perm') }}" class="text-decoration-none text-dark">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
@@ -44,7 +54,7 @@
 
 {% if current_user.role == 'supervisor' %}
     <div class="row g-3 mb-4">
-        <div class="col-md-6">
+        <div class="col-6 col-md-3">
             <a href="{{ url_for('dashboard.crew_today', tab='mine') }}" class="text-decoration-none text-dark">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
@@ -54,12 +64,32 @@
             </div>
             </a>
         </div>
-        <div class="col-md-6">
+        <div class="col-6 col-md-3">
             <a href="{{ url_for('dashboard.crew_today', tab='crew') }}" class="text-decoration-none text-dark">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
                     <div class="text-muted small">Crew due today</div>
                     <div class="display-6 {% if (today_crew|default([]))|length %}text-warning{% endif %}">{{ today_crew|default([])|length }}</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('dashboard.crew_today', tab='unassigned') if current_user.role == 'supervisor' else url_for('dashboard.plant_today', tab='unassigned') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Unassigned</div>
+                    <div class="display-6 {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ unassigned_wos|default([])|length }}</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('dashboard.crew_today', tab='perm') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Permits waiting</div>
+                    <div class="display-6 {% if (pending_permits|default([]))|length %}text-warning{% endif %}">{{ pending_permits|default([])|length }}</div>
                 </div>
             </div>
             </a>

@@ -4,6 +4,7 @@ from datetime import datetime
 from app.models.pm import PM
 from app.models.workorder import WorkOrder
 from app.models.user import User
+from app.notify import routed_areas_for
 
 bp = Blueprint('dashboard', __name__)
 
@@ -41,6 +42,8 @@ def index():
 
             for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
                 due = wo.expected_completion_date
+                if wo.assigned_to_id is None:
+                    continue
                 if due is not None and due > today:
                     continue
                 who = wo.assigned_to.username if wo.assigned_to else "Unassigned"
@@ -50,7 +53,7 @@ def index():
                        url_for("workorder.details", wo_id=wo.id), who)
                 if wo.assigned_to_id == current_user.id:
                     add_row(today_mine, *row)
-                elif wo.assigned_to_id in crew_ids:
+                elif wo.assigned_to_id in crew_ids or (wo.work_area and wo.work_area in routed_areas_for(current_user.id)):
                     add_row(today_crew, *row)
 
             try:
@@ -82,6 +85,8 @@ def index():
                 })
             for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
                 due = wo.expected_completion_date
+                if wo.assigned_to_id is None:
+                    continue
                 if due is not None and due > today:
                     continue
                 plant_wo.append({
@@ -104,6 +109,33 @@ def index():
                     })
             except Exception:
                 pass
+
+        unassigned_wos = []
+        pending_permits = plant_perm
+        if current_user.role == "admin":
+            unassigned_wos = WorkOrder.query.filter(
+                WorkOrder.status != "Completed",
+                WorkOrder.assigned_to_id.is_(None),
+            ).order_by(WorkOrder.created_at.desc()).all()
+        elif current_user.role == "supervisor":
+            areas = routed_areas_for(current_user.id)
+            q = WorkOrder.query.filter(
+                WorkOrder.status != "Completed",
+                WorkOrder.assigned_to_id.is_(None),
+            )
+            if areas:
+                q = q.filter(WorkOrder.work_area.in_(areas))
+            else:
+                q = q.filter(WorkOrder.id == -1)
+            unassigned_wos = q.order_by(WorkOrder.created_at.desc()).all()
+            try:
+                from app.models.permit import Permit
+                pending_permits = Permit.query.filter_by(
+                    reports_to_id=current_user.id, status="pending"
+                ).all()
+            except Exception:
+                pending_permits = []
+
         return render_template(
             'dashboard/admin.html',
             today_mine=today_mine,
@@ -111,6 +143,8 @@ def index():
             plant_pm=plant_pm,
             plant_wo=plant_wo,
             plant_perm=plant_perm,
+            unassigned_wos=unassigned_wos,
+            pending_permits=pending_permits,
         )
 
 
@@ -221,6 +255,8 @@ def plant_today():
             "url": url_for("pm.details", id=pm.id),
         })
     for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
+        if getattr(wo, 'assigned_to_id', None) is None:
+            continue
         due = wo.expected_completion_date
         if due is not None and due > today:
             continue
@@ -243,10 +279,23 @@ def plant_today():
             })
     except Exception:
         pass
+    plant_unassigned = []
+    for wo in WorkOrder.query.filter(
+        WorkOrder.status != "Completed",
+        WorkOrder.assigned_to_id.is_(None),
+    ).order_by(WorkOrder.created_at.desc()).all():
+        plant_unassigned.append({
+            "title": "#{} {}".format(wo.id, wo.equipment or ""),
+            "when": (wo.expected_completion_date.strftime("%Y-%m-%d") if wo.expected_completion_date else "Open"),
+            "late": True,
+            "who": (wo.work_area or "unassigned").title(),
+            "url": url_for("workorder.details", wo_id=wo.id),
+        })
     tab = request.args.get("tab") or "wo"
     return render_template(
         "dashboard/plant_today.html",
         tab=tab, plant_pm=plant_pm, plant_wo=plant_wo, plant_perm=plant_perm,
+        plant_unassigned=plant_unassigned,
     )
 
 
@@ -281,6 +330,8 @@ def crew_today():
 
     for wo in WorkOrder.query.filter(WorkOrder.status != "Completed").all():
         due = wo.expected_completion_date
+        if wo.assigned_to_id is None:
+            continue
         if due is not None and due > today:
             continue
         who = wo.assigned_to.username if wo.assigned_to else "Unassigned"
@@ -290,7 +341,7 @@ def crew_today():
                 url_for("workorder.details", wo_id=wo.id), who)
         if wo.assigned_to_id == current_user.id:
             add_row(today_mine, *args)
-        elif wo.assigned_to_id in crew_ids:
+        elif wo.assigned_to_id in crew_ids or (wo.work_area and wo.work_area in routed_areas_for(current_user.id)):
             add_row(today_crew, *args)
 
     try:
@@ -302,5 +353,39 @@ def crew_today():
                     "Needs approval", True, url_for("permits.details", pid=perm.id), who)
     except Exception:
         pass
+    today_unassigned, today_perm = [], []
+    areas = routed_areas_for(current_user.id)
+    for wo in WorkOrder.query.filter(
+        WorkOrder.status != "Completed",
+        WorkOrder.assigned_to_id.is_(None),
+    ).order_by(WorkOrder.created_at.desc()).all():
+        if areas and wo.work_area not in areas:
+            continue
+        if not areas:
+            continue
+        add_row(
+            today_unassigned, "WO",
+            "#{} {}".format(wo.id, wo.equipment or ""),
+            wo.expected_completion_date.strftime("%Y-%m-%d") if wo.expected_completion_date else "Open",
+            True,
+            url_for("workorder.details", wo_id=wo.id),
+            (wo.work_area or "unassigned").title(),
+        )
+    try:
+        from app.models.permit import Permit
+        for perm in Permit.query.filter_by(reports_to_id=current_user.id, status="pending").all():
+            add_row(
+                today_perm, "Permit",
+                "{} #{}".format(perm.type_label(), perm.id),
+                "Needs approval", True,
+                url_for("permits.details", pid=perm.id),
+                perm.created_by.username if perm.created_by else "",
+            )
+    except Exception:
+        pass
     tab = request.args.get("tab") or "crew"
-    return render_template("dashboard/crew_today.html", tab=tab, today_mine=today_mine, today_crew=today_crew)
+    return render_template(
+        "dashboard/crew_today.html",
+        tab=tab, today_mine=today_mine, today_crew=today_crew,
+        today_unassigned=today_unassigned, today_perm=today_perm,
+    )
