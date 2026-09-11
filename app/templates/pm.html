@@ -411,6 +411,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     {% endfor %}
                 </select>
 </div>
+        <div class="col-md-4">
+            <label class="form-label">Work days</label>
+            <select name="workdays" id="workdays" class="form-select">
+                <option value="all">Every day (includes Sat/Sun)</option>
+                <option value="weekdays">Monday–Friday only</option>
+            </select>
+        </div>
+
 {% if current_user.role in ['admin', 'supervisor'] %}
 <div class="col-12">
     <label class="form-label">Assign to</label>
@@ -548,6 +556,8 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('main-equipment-select').value = '';
         document.getElementById('sub-equipment-select').value = '';
         document.getElementById('frequency').value = '';
+        var wd = document.getElementById("workdays");
+        if (wd) wd.value = "all";
         document.getElementById('last_done').value = '';
         var nd = document.getElementById("next_due");
         if (nd) nd.value = "";
@@ -597,6 +607,8 @@ function editPM(id) {
     document.getElementById('form-index').value = id;
     document.getElementById('main-equipment-select').value = pm.main_equipment || '';
     document.getElementById('frequency').value = pm.frequency || '';
+    var wd = document.getElementById("workdays");
+    if (wd) wd.value = pm.workdays || "all";
     document.getElementById('last_done').value = pm.last_done || '';
     var nd = document.getElementById("next_due");
     if (nd) nd.value = pm.next_due || "";

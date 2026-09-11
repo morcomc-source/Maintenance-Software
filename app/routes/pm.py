@@ -17,6 +17,26 @@ from sqlalchemy import or_, cast, String
 bp = Blueprint("pm", __name__)
 
 
+
+def advance_pm_due(pm, from_date):
+    from dateutil.relativedelta import relativedelta
+    delta_map = {
+        "Daily": relativedelta(days=1),
+        "Weekly": relativedelta(weeks=1),
+        "Bi-Weekly": relativedelta(weeks=2),
+        "Monthly": relativedelta(months=1),
+        "Quarterly": relativedelta(months=3),
+        "Bi-Annually": relativedelta(months=6),
+        "Annually": relativedelta(years=1),
+    }
+    dlt = delta_map.get(pm.frequency)
+    due = from_date + dlt if dlt else from_date
+    if getattr(pm, "workdays", "all") == "weekdays":
+        while due.weekday() >= 5:
+            due = due + relativedelta(days=1)
+    return due
+
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
@@ -35,7 +55,8 @@ def index():
         index = request.form.get("index")
         main_equipment = request.form.get("main_equipment")
         sub_equipment = request.form.get("sub_equipment")
-        frequency = request.form.get("frequency")
+        frequency = request.form.get('frequency')
+        workdays = request.form.get('workdays') or 'all'
         last_done_str = request.form.get("last_done")
         last_done = None
         if last_done_str:
@@ -85,6 +106,7 @@ def index():
                     pm.main_equipment = main_equipment
                     pm.sub_equipment = sub_equipment or ""
                     pm.frequency = frequency
+                    pm.workdays = workdays or 'all'
                     pm.last_done = last_done
                     pm.next_due = next_due
                     pm.checklist = checklist
@@ -104,6 +126,7 @@ def index():
                     main_equipment=main_equipment,
                     sub_equipment=sub_equipment or "",
                     frequency=frequency,
+                    workdays=workdays or 'all',
                     last_done=last_done,
                     next_due=next_due,
                     checklist=checklist,
@@ -147,6 +170,7 @@ def index():
             'main_equipment': pm.main_equipment,
             'sub_equipment': pm.sub_equipment,
             'frequency': pm.frequency,
+            'workdays': getattr(pm, 'workdays', None) or 'all',
             'last_done': pm.last_done.strftime('%Y-%m-%d') if pm.last_done else None,
             'next_due': pm.next_due.strftime('%Y-%m-%d') if pm.next_due else None,
             'checklist': pm.checklist or [],
@@ -361,7 +385,7 @@ def complete_pm(id):
         }
         dlt = delta_map.get(pm.frequency)
         if dlt:
-            pm.next_due = today + dlt
+            pm.next_due = advance_pm_due(pm, today)
 
     
     completion = PMCompletion(
@@ -394,7 +418,7 @@ def complete_pm(id):
         }
         delta = delta_map.get(pm.frequency)
         if delta:
-            pm.next_due = today + delta
+            pm.next_due = advance_pm_due(pm, today)
 
     db.session.commit()
     try:

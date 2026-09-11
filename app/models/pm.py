@@ -9,6 +9,7 @@ class PM(db.Model):
     main_equipment = db.Column(db.String(255))
     sub_equipment = db.Column(db.String(255))
     frequency = db.Column(db.String(50))
+    workdays = db.Column(db.String(20), default="all")
     last_done = db.Column(db.Date)
     next_due = db.Column(db.Date)
     checklist = db.Column(db.JSON)
