@@ -688,7 +688,7 @@ text-align: center;
         </div>
         <div class="col-12">
             <button type="submit" id="submit-btn" class="btn btn-success me-2" onclick="return showUpdateConfirm(event);">Add Part</button>
-            <button type="button" id="export-pdf" class="btn btn-outline-primary" style="display: none;">Parts Export</button>
+            <button type="button" id="export-pdf" class="btn btn-outline-primary" onclick="exportCurrentPartPDF()" style="display: none;">Parts Export</button>
         </div>
     </form>
         </div>
@@ -764,8 +764,34 @@ text-align: center;
   </div>
 </div>
 <!-- Html5Qrcode CDN -->
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> <!-- Reverted to specific version 2.3.8 for stability -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+
+else if (confirm("Download this part PDF?")) {
+    window.location.href = "/parts/generate_barcode_pdf/" + id;
+  }
+}
+</script> <!-- Reverted to specific version 2.3.8 for stability -->
 <script>
+    
+function exportCurrentPartPDF() {
+  var idx = document.getElementById("form-index");
+  var raw = idx ? String(idx.value || "").trim() : "";
+  if (!raw) {
+    alert("Save the part first, then export the PDF.");
+    return false;
+  }
+  return exportPartPDF(raw);
+}
+function exportPartPDF(id) {
+  var url = "/parts/generate_barcode_pdf/" + id;
+  if (typeof confirmPdfDownload === "function") {
+    confirmPdfDownload(url, "this part PDF");
+    return false;
+  }
+  if (confirm("Download this part PDF?")) window.location.href = url;
+  return false;
+}
+
     let partsData = {{ items | tojson | safe }};
     let scannerActive = false;
     let html5QrcodeScanner = null;
@@ -1204,11 +1230,6 @@ function showDeleteConfirm(idx) {
             alert('Please save the part first to export PDF with details.');
         }
     });
-    function exportPartPDF(id) {
-        if (id) {
-            window.location.href = '/parts/generate_barcode_pdf/' + id;
-        }
-    }
 </script>
 
 
@@ -1403,6 +1424,8 @@ function applyLocationToDropdowns(locStr, subStr) {
         }
     }
 }
+
+
 </script>
 
 

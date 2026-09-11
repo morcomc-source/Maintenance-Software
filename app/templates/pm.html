@@ -231,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>
                 {% if current_user.role in ['admin', 'supervisor'] %}
                 <div class="d-flex flex-wrap gap-2 mt-2">
-                  <a href="{{ url_for('pm.details', id=item.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">PDF</a>
+                  <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.preventDefault(); event.stopPropagation(); confirmPdfDownload('{{ url_for('pm.export_pm_pdf', id=item.id) }}', 'this PM PDF')">📄 PDF</button>
                   <button type="button" class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">Edit</button>
                   <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteConfirm({{ item.id }})">Delete</button>
                 </div>
@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     {% if current_user.role == 'technician' %}
                     {% else %}
                         {% if current_user.role in ['admin', 'supervisor'] %}
-                        <a href="{{ url_for('pm.details', id=item.id) }}?print=1" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-dark" target="_blank">📄 PDF</a>
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.preventDefault(); event.stopPropagation(); confirmPdfDownload('{{ url_for('pm.export_pm_pdf', id=item.id) }}', 'this PM PDF')">📄 PDF</button>
                         <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPM({{ item.id }})">✏️ Edit</button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
                         {% endif %}
@@ -762,7 +762,8 @@ document.getElementById("sub-equipment-select").addEventListener("change", () =>
     // sub-equipment-select-search removed
     // ====================== EXPORT ======================
 function exportPMtoPDF(id) {
-    window.location.href = `/pm/export_pm_pdf/${id}`;
+    confirmPdfDownload("/pm/export_pm_pdf/" + id, "this PM PDF");
+}`;
 }
     // ====================== INIT ======================
     document.addEventListener("DOMContentLoaded", () => {

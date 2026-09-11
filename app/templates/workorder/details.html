@@ -20,6 +20,10 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
             ← {{ 'Back to Dashboard' if current_user.role == 'requestor' else ('Back to Work Order History' if wo.status == 'Completed' else 'Back to Work Orders') }}
         </a>
     </div>
+    <h2 class="mb-4 text-center">Work Order Details</h2>
+
+
+
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">Work Order #{{ wo.id }} - {{ wo.equipment }}</h4>
@@ -119,6 +123,12 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
     {% if current_user.role in ['admin', 'supervisor'] and wo.status != 'Completed' %}
     <div class="card shadow-sm mb-4">
         <div class="card-header"><strong>Assign work</strong></div>
+        {% if current_user.role in ['admin', 'supervisor'] %}
+        <div class="mt-3">
+            <button type="button" class="btn btn-sm btn-outline-dark" onclick="confirmPdfDownload('{{ url_for('workorder.export_pdf', wo_id=wo.id) }}', 'this work order PDF')">📄 Export PDF</button>
+        </div>
+        {% endif %}
+
         <div class="card-body">
             <form method="POST" action="{{ url_for('workorder.dispatch', wo_id=wo.id) }}" class="row g-3 align-items-end">
                 <div class="col-md-3">

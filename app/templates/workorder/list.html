@@ -66,7 +66,7 @@
                 </div>
                 {% if current_user.role in ['admin', 'supervisor'] %}
                 <div class="d-flex flex-wrap gap-2 mt-2">
-                    <a href="{{ url_for('workorder.details', wo_id=wo.id) }}?print=1" class="btn btn-sm btn-outline-dark" target="_blank">PDF</a>
+                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.preventDefault(); event.stopPropagation(); confirmPdfDownload('{{ url_for('workorder.export_pdf', wo_id=wo.id) }}', 'this work order PDF')">📄 PDF</button>
                     <a href="{{ url_for('workorder.edit', wo_id=wo.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteWorkOrder({{ wo.id }})">Delete</button>
                 </div>

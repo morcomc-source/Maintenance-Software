@@ -527,3 +527,70 @@ def machine_search():
         locname = m.main_equipment.name if m.main_equipment else ""
         rows.append({"name": name, "location": locname})
     return jsonify(rows[:15])
+
+
+@bp.route("/export_pdf/<int:wo_id>")
+@login_required
+def export_pdf(wo_id):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+    from flask import send_file
+    wo = WorkOrder.query.get_or_404(wo_id)
+    if current_user.role == "technician" and wo.assigned_to_id != current_user.id:
+        flash("Access denied.", "danger")
+        return redirect(url_for("workorder.index"))
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter)
+    width, height = letter
+    y = height - 1 * inch
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(1 * inch, y, f"Work Order #{wo.id}")
+    y -= 0.4 * inch
+    c.setFont("Helvetica", 12)
+    assigned = wo.assigned_to.display_name if getattr(wo, "assigned_to", None) else "Unassigned"
+    created = wo.created_at.strftime("%Y-%m-%d") if wo.created_at else "—"
+    due = wo.expected_completion_date.strftime("%Y-%m-%d") if wo.expected_completion_date else "—"
+    lines = [
+        f"Equipment: {wo.equipment or '—'}",
+        f"Status: {wo.status or '—'}",
+        f"Assigned to: {assigned}",
+        f"Created: {created}",
+        f"Expected completion: {due}",
+        "",
+        "Description:",
+        (wo.description or "—"),
+    ]
+    if getattr(wo, "completion_notes", None):
+        lines += ["", "Completion notes:", wo.completion_notes]
+    for line in lines:
+        for chunk in _wrap(line, 90):
+            if y < 1 * inch:
+                c.showPage()
+                c.setFont("Helvetica", 12)
+                y = height - 1 * inch
+            c.drawString(1 * inch, y, chunk)
+            y -= 0.28 * inch
+    c.save()
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name=f"workorder_{wo.id}.pdf", mimetype="application/pdf")
+
+
+def _wrap(text, width):
+    text = (text or "").replace("\n", " ").strip()
+    if not text:
+        return [""]
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        trial = (cur + " " + w).strip()
+        if len(trial) <= width:
+            cur = trial
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines or [""]

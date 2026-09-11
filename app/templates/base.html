@@ -60,5 +60,59 @@
             });
         }
     </script>
+
+<div class="modal fade" id="pdf-download-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Download PDF</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Download <strong id="pdf-download-label">this PDF</strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="pdf-download-yes">Download</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+window.confirmPdfDownload = function(url, label) {
+  function startDownload() {
+    var a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", "");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  function clearBackdrop() {
+    document.querySelectorAll(".modal-backdrop").forEach(function(el) { el.remove(); });
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("overflow");
+    document.body.style.removeProperty("padding-right");
+  }
+  var modalEl = document.getElementById("pdf-download-modal");
+  var labelEl = document.getElementById("pdf-download-label");
+  var yesBtn = document.getElementById("pdf-download-yes");
+  if (!modalEl || !yesBtn || typeof bootstrap === "undefined") {
+    if (confirm("Download " + (label || "this PDF") + "?")) startDownload();
+    return;
+  }
+  if (labelEl) labelEl.textContent = label || "this PDF";
+  yesBtn.onclick = function() {
+    var inst = bootstrap.Modal.getInstance(modalEl);
+    if (inst) inst.hide();
+    setTimeout(function() {
+      clearBackdrop();
+      startDownload();
+    }, 150);
+  };
+  new bootstrap.Modal(modalEl).show();
+};
+</script>
+
 </body>
 </html>

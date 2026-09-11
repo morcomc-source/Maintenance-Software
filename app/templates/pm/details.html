@@ -115,7 +115,7 @@ if (new URLSearchParams(location.search).get("print") === "1") {
               {{ pm.status or 'Open' }}
             </span>
           </p>
-          <p><strong>Assigned To:</strong> {{ pm.assigned_user.username if pm.assigned_user else 'Unassigned' }}</p>
+          <p><strong>Assigned To:</strong> {{ pm.assigned_user.display_name if pm.assigned_user else 'Unassigned' }}</p>
         </div>
         <div class="col-md-6">
           <p><strong>Last Done:</strong> {{ pm.last_done or '-' }}</p>
@@ -176,6 +176,11 @@ if (new URLSearchParams(location.search).get("print") === "1") {
           {% endif %}
         {% endif %}
         <a href="{{ url_for('pm.history', pm_id=pm.id) }}" class="btn btn-outline-info ms-2">History</a>
+
+        {% if current_user.role in ['admin', 'supervisor'] %}
+        <button type="button" class="btn btn-outline-dark" onclick="confirmPdfDownload('{{ url_for('pm.export_pm_pdf', id=pm.id) }}', 'this PM PDF')">📄 Export PDF</button>
+        {% endif %}
+
       </div>
     </div>
   </div>
