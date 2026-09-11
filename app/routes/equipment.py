@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, current_app
 from flask_login import login_required, current_user
 from app import db
 from sqlalchemy import or_
@@ -202,5 +202,169 @@ def details(id):
                 'qty': pu.get('quantity') or pu.get('qty') or '',
                 'source': f'PM-{row.pm_id}',
             })
+    from app.models.equipment_document import EquipmentDocument
+    from app.models.equipment_bom import EquipmentBOM
+    from app.models.part import Part
+    documents = (EquipmentDocument.query.filter_by(equipment_id=eq.id)
+                 .order_by(EquipmentDocument.uploaded_at.desc()).all())
+    bom_rows = (EquipmentBOM.query.filter_by(equipment_id=eq.id)
+                .order_by(EquipmentBOM.id.asc()).all())
+    bom = []
+    for row in bom_rows:
+        part = Part.query.get(row.part_id)
+        bom.append({"row": row, "part": part})
     return render_template('equipment/details.html', eq=eq, workorders=workorders,
-                           completions=completions, parts=parts)
+                           completions=completions, parts=parts, documents=documents, bom=bom)
+
+
+import os
+from werkzeug.utils import secure_filename
+from app.models.equipment_document import EquipmentDocument
+
+ALLOWED_DOC_EXT = {
+    "pdf", "doc", "docx", "xls", "xlsx", "csv", "txt",
+    "png", "jpg", "jpeg", "gif", "webp",
+}
+
+def _docs_dir(eq_id):
+    folder = os.path.join(current_app.instance_path, "equipment_docs", str(eq_id))
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+@bp.route("/details/<int:id>/documents", methods=["POST"])
+@login_required
+def upload_document(id):
+    if current_user.role not in ("admin", "supervisor"):
+        flash("Only admin or supervisor can upload documents.", "danger")
+        return redirect(url_for("equipment.details", id=id))
+    eq = Equipment.query.get_or_404(id)
+    files = request.files.getlist("files")
+    saved = 0
+    for f in files:
+        if not f or not f.filename:
+            continue
+        name = secure_filename(f.filename)
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        if ext not in ALLOWED_DOC_EXT:
+            flash(f"Skipped {f.filename}: file type not allowed.", "warning")
+            continue
+        folder = _docs_dir(eq.id)
+        stored = name
+        dest = os.path.join(folder, stored)
+        base, extra = os.path.splitext(name)
+        n = 1
+        while os.path.exists(dest):
+            stored = f"{base}_{n}{extra}"
+            dest = os.path.join(folder, stored)
+            n += 1
+        f.save(dest)
+        title = (request.form.get("title") or "").strip()
+        if not title:
+            title = f.filename
+        doc = EquipmentDocument(
+            equipment_id=eq.id,
+            original_name=f.filename,
+            title=title,
+            stored_name=stored,
+            content_type=f.mimetype,
+            size_bytes=os.path.getsize(dest),
+            uploaded_by_id=current_user.id,
+        )
+        db.session.add(doc)
+        saved += 1
+    if saved:
+        db.session.commit()
+        flash(f"Uploaded {saved} file(s).", "success")
+    else:
+        flash("No files uploaded.", "warning")
+    return redirect(url_for("equipment.details", id=id) + "#docs")
+
+@bp.route("/documents/<int:doc_id>/view")
+@login_required
+def view_document(doc_id):
+    if current_user.role not in ("admin", "supervisor", "technician"):
+        flash("Access denied.", "danger")
+        return redirect(url_for("equipment.index"))
+    doc = EquipmentDocument.query.get_or_404(doc_id)
+    folder = _docs_dir(doc.equipment_id)
+    return send_from_directory(folder, doc.stored_name, as_attachment=False, download_name=doc.original_name)
+
+@bp.route("/documents/<int:doc_id>/download")
+@login_required
+def download_document(doc_id):
+    if current_user.role not in ("admin", "supervisor", "technician"):
+        flash("Access denied.", "danger")
+        return redirect(url_for("equipment.index"))
+    doc = EquipmentDocument.query.get_or_404(doc_id)
+    folder = _docs_dir(doc.equipment_id)
+    return send_from_directory(folder, doc.stored_name, as_attachment=True, download_name=doc.original_name)
+
+@bp.route("/documents/<int:doc_id>/delete", methods=["POST"])
+@login_required
+def delete_document(doc_id):
+    if current_user.role not in ("admin", "supervisor"):
+        flash("Only admin or supervisor can delete documents.", "danger")
+        return redirect(url_for("equipment.index"))
+    doc = EquipmentDocument.query.get_or_404(doc_id)
+    eq_id = doc.equipment_id
+    folder = _docs_dir(eq_id)
+    path = os.path.join(folder, doc.stored_name)
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+    db.session.delete(doc)
+    db.session.commit()
+    flash("Document deleted.", "success")
+    return redirect(url_for("equipment.details", id=eq_id) + "#docs")
+
+
+from app.models.equipment_bom import EquipmentBOM
+from app.models.part import Part
+
+@bp.route("/details/<int:id>/bom", methods=["POST"])
+@login_required
+def add_bom(id):
+    if current_user.role not in ("admin", "supervisor"):
+        flash("Only admin or supervisor can edit the BOM.", "danger")
+        return redirect(url_for("equipment.details", id=id))
+    eq = Equipment.query.get_or_404(id)
+    part_id = request.form.get("part_id")
+    note = (request.form.get("note") or "").strip() or None
+    try:
+        qty = int(request.form.get("qty") or 1)
+    except ValueError:
+        qty = 1
+    proprietary = True if request.form.get("proprietary") else False
+    part = Part.query.get(part_id) if part_id else None
+    if not part:
+        flash("Pick a part from search first.", "warning")
+        return redirect(url_for("equipment.details", id=id) + "#bom")
+    exists = EquipmentBOM.query.filter_by(equipment_id=eq.id, part_id=part.id).first()
+    if exists:
+        flash("That part is already on this BOM.", "warning")
+        return redirect(url_for("equipment.details", id=id) + "#bom")
+    db.session.add(EquipmentBOM(
+        equipment_id=eq.id,
+        part_id=part.id,
+        qty=max(1, qty),
+        note=note,
+        proprietary=proprietary,
+    ))
+    db.session.commit()
+    flash("Part added to BOM.", "success")
+    return redirect(url_for("equipment.details", id=id) + "#bom")
+
+@bp.route("/bom/<int:row_id>/delete", methods=["POST"])
+@login_required
+def delete_bom(row_id):
+    if current_user.role not in ("admin", "supervisor"):
+        flash("Only admin or supervisor can edit the BOM.", "danger")
+        return redirect(url_for("equipment.index"))
+    row = EquipmentBOM.query.get_or_404(row_id)
+    eq_id = row.equipment_id
+    db.session.delete(row)
+    db.session.commit()
+    flash("Removed from BOM.", "success")
+    return redirect(url_for("equipment.details", id=eq_id) + "#bom")

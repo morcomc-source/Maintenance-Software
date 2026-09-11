@@ -1,24 +1,26 @@
 {% extends "base.html" %}
-{% block title %}{{ eq.equipment_id }} — {{ eq.name }}{% endblock %}
+{% block title %}{{ eq.equipment_id }} — {{ eq.name }}
+
+
+{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <div class="mb-4">
-        <a href="{{ url_for('equipment.index') }}" class="btn btn-secondary mb-3">← Equipment</a>
-        <h2 class="mb-0 text-center">{{ eq.name }}</h2>
-        <p class="text-center text-muted mb-0">
-            {{ eq.equipment_id }}
-            {% if eq.location %} · {{ eq.location }}{% endif %}
-            {% if eq.manufacturer %} · {{ eq.manufacturer }}{% endif %}
-            {% if eq.model %} {{ eq.model }}{% endif %}
-        </p>
-    </div>
+    <a href="{{ url_for('equipment.index') }}" class="btn btn-secondary w-100 mb-3">← Equipment</a>
+    <h2 class="mb-0 text-center">{{ eq.name }}</h2>
+    <p class="text-center text-muted mb-4">
+        {{ eq.equipment_id }}
+        {% if eq.location %} · {{ eq.location }}{% endif %}
+        {% if eq.manufacturer %} · {{ eq.manufacturer }}{% endif %}
+        {% if eq.model %} {{ eq.model }}{% endif %}
+    </p>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body d-flex flex-wrap gap-2 justify-content-center">
             <button type="button" class="btn btn-primary" data-panel="wo">Work orders ({{ workorders|length }})</button>
             <button type="button" class="btn btn-outline-primary" data-panel="pm">PMs ({{ completions|length }})</button>
             <button type="button" class="btn btn-outline-primary" data-panel="parts">Parts used ({{ parts|length }})</button>
-            <button type="button" class="btn btn-outline-primary" data-panel="docs">Documents</button>
+            <button type="button" class="btn btn-outline-primary" data-panel="bom">BOM ({{ bom|default([])|length }})</button>
+            <button type="button" class="btn btn-outline-primary" data-panel="docs">Documents ({{ documents|default([])|length }})</button>
         </div>
     </div>
 
@@ -28,7 +30,27 @@
                 <strong>Completed work orders</strong>
                 <span class="text-muted">{{ workorders|length }}</span>
             </div>
-            <div class="table-responsive">
+
+            <div class="d-md-none">
+                {% for wo in workorders %}
+                <a href="{{ url_for('workorder.details', wo_id=wo.id) }}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div class="fw-semibold">#{{ wo.id }}</div>
+                                <div class="small text-muted">{% if wo.completed_at %}{{ wo.completed_at|localtime }}{% else %}—{% endif %}</div>
+                            </div>
+                            <div class="mt-1">{{ wo.description[:120] if wo.description else '—' }}{% if wo.description and wo.description|length > 120 %}…{% endif %}</div>
+                            <div class="small text-muted mt-1">{{ wo.completed_by.username if wo.completed_by else '—' }}</div>
+                        </div>
+                    </div>
+                </a>
+                {% else %}
+                <p class="text-muted text-center">No completed work orders for this equipment</p>
+                {% endfor %}
+            </div>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-light">
                         <tr><th>Completed</th><th>ID</th><th>Issue</th><th>By</th></tr>
@@ -40,7 +62,6 @@
                             <td><strong>#{{ wo.id }}</strong></td>
                             <td class="text-muted">{{ wo.description[:90] if wo.description else '—' }}{% if wo.description and wo.description|length > 90 %}…{% endif %}</td>
                             <td>{{ wo.completed_by.username if wo.completed_by else '—' }}</td>
-                            
                         </tr>
                     {% else %}
                         <tr><td colspan="4" class="text-center text-muted py-4">No completed work orders for this equipment</td></tr>
@@ -57,7 +78,25 @@
                 <strong>PMs completed</strong>
                 <span class="text-muted">{{ completions|length }}</span>
             </div>
-            <div class="table-responsive">
+
+            <div class="d-md-none">
+                {% for row in completions %}
+                <a href="{% if row.pm %}{{ url_for('pm.details', id=row.pm.id) }}{% else %}#{% endif %}" class="text-decoration-none text-reset">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="fw-semibold">{{ row.pm.main_equipment if row.pm else '—' }}</div>
+                            {% if row.pm and row.pm.frequency %}<div class="small text-muted">{{ row.pm.frequency }}{% if row.pm.sub_equipment %} · {{ row.pm.sub_equipment }}{% endif %}</div>{% endif %}
+                            <div class="small mt-2"><span class="text-muted">Completed</span> {% if row.completed_date %}{{ row.completed_date|localtime }}{% else %}—{% endif %}</div>
+                            <div class="small"><span class="text-muted">By</span> {{ row.completed_by.username if row.completed_by else '—' }}</div>
+                        </div>
+                    </div>
+                </a>
+                {% else %}
+                <p class="text-muted text-center">No PM completions for this equipment</p>
+                {% endfor %}
+            </div>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-light">
                         <tr><th>Completed</th><th>PM</th><th>By</th></tr>
@@ -71,14 +110,9 @@
                                 {% if row.pm and row.pm.frequency %}<small class="d-block text-muted">{{ row.pm.frequency }}{% if row.pm.sub_equipment %} · {{ row.pm.sub_equipment }}{% endif %}</small>{% endif %}
                             </td>
                             <td>{{ row.completed_by.username if row.completed_by else '—' }}</td>
-                            <td class="text-end">
-                                {% if row.pm %}
-                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pm.details', id=row.pm.id) }}">View</a>
-                                {% endif %}
-                            </td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="4" class="text-center text-muted py-4">No PM completions for this equipment</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted py-4">No PM completions for this equipment</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
@@ -92,7 +126,24 @@
                 <strong>Parts logged on jobs</strong>
                 <span class="text-muted">{{ parts|length }}</span>
             </div>
-            <div class="table-responsive">
+
+            <div class="d-md-none">
+                {% for p in parts %}
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="fw-semibold">{{ p.name }}</div>
+                            <div class="fw-bold">{{ p.qty }}</div>
+                        </div>
+                        <div class="small text-muted mt-1">{{ p.when }} · {{ p.source }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No parts logged on jobs for this equipment</p>
+                {% endfor %}
+            </div>
+
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-light">
                         <tr><th>Date</th><th>Part</th><th>Qty</th><th>Job</th></tr>
@@ -113,16 +164,165 @@
             </div>
         </div>
     </div>
-</div>
+
+    <div id="panel-bom" class="panel-block d-none">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Bill of materials</strong> <span class="text-muted small">Machine-specific parts</span></div>
+            <div class="card-body">
+                <p class="text-muted small">Reference only. This does not take stock.</p>
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                <form method="post" action="{{ url_for('equipment.add_bom', id=eq.id) }}" class="row g-2 align-items-end mb-4 position-relative">
+                    <div class="col-md-5">
+                        <label class="form-label">Part</label>
+                        <input type="text" id="bom-search" class="form-control" placeholder="Type name, barcode, or part number" autocomplete="off">
+                        <input type="hidden" name="part_id" id="bom-part-id">
+                        <div id="bom-suggest" class="list-group position-absolute w-100" style="z-index:20; max-width:420px;"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Need</label>
+                        <input type="number" name="qty" class="form-control" min="1" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Note</label>
+                        <input type="text" name="note" class="form-control" placeholder="e.g. drive belt">
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" name="proprietary" id="bom-prop" checked>
+                            <label class="form-check-label" for="bom-prop">Proprietary</label>
+                        </div>
+                        <button class="btn btn-primary w-100 mt-2" type="submit">Add</button>
+                    </div>
+                </form>
+                {% endif %}
+
+                <div class="d-md-none">
+                    {% for item in bom|default([]) %}
+                    <a href="{% if item.part %}{{ url_for('parts.details', id=item.part.id) }}{% else %}#{% endif %}" class="text-decoration-none text-reset">
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div class="fw-semibold">{{ item.part.name if item.part else '(missing)' }}</div>
+                                    <div class="text-end"><div class="small text-muted">On hand</div><div class="fw-bold">{{ item.part.qty if item.part else '—' }}</div></div>
+                                </div>
+                                <div class="small mt-2">
+                                    <div><span class="text-muted">Location</span> {{ item.part.location if item.part and item.part.location else '—' }}{% if item.part and item.part.bin_location %} · {{ item.part.bin_location }}{% endif %}</div>
+                                    <div><span class="text-muted">Need</span> {{ item.row.qty }}</div>
+                                    {% if item.row.note %}<div><span class="text-muted">Note</span> {{ item.row.note }}</div>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% if current_user.role in ['admin', 'supervisor'] %}
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="showEqDocModal('delete', '{{ url_for('equipment.delete_bom', row_id=item.row.id) }}', '{{ item.part.name if item.part else 'this part' }}')">Remove</button>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center">No machine-specific parts listed yet.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr><th>Part</th><th>On hand</th><th>Location</th><th>Need</th><th>Note</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                        {% for item in bom|default([]) %}
+                            <tr>
+                                <td>
+                                    {% if item.part %}
+                                    <a href="{{ url_for('parts.details', id=item.part.id) }}">{{ item.part.name }}</a>
+                                    {% if item.row.proprietary %}<span class="badge bg-dark ms-1">Proprietary</span>{% endif %}
+                                    {% else %}(missing){% endif %}
+                                </td>
+                                <td>{{ item.part.qty if item.part else '—' }}</td>
+                                <td>{{ item.part.location if item.part and item.part.location else '—' }}{% if item.part and item.part.bin_location %}<div class="small text-muted">{{ item.part.bin_location }}</div>{% endif %}</td>
+                                <td>{{ item.row.qty }}</td>
+                                <td>{{ item.row.note or '—' }}</td>
+                                <td class="text-end">
+                                    {% if item.part %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('parts.details', id=item.part.id) }}">View</a>{% endif %}
+                                    {% if current_user.role in ['admin', 'supervisor'] %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); showEqDocModal('delete', '{{ url_for('equipment.delete_bom', row_id=item.row.id) }}', '{{ item.part.name if item.part else 'this part' }}')">Remove</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted">No machine-specific parts listed yet.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="panel-docs" class="panel-block d-none">
         <div class="card shadow-sm">
             <div class="card-header"><strong>Documents</strong></div>
-            <div class="card-body text-center text-muted py-4">
-                No documents uploaded for this equipment yet.
+            <div class="card-body">
+                {% if current_user.role in ['admin', 'supervisor'] %}
+                <form method="post" action="{{ url_for('equipment.upload_document', id=eq.id) }}" enctype="multipart/form-data" class="mb-4">
+                    <div class="mb-3">
+                        <label class="form-label">Reference name</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Hydraulic print, Electrical schematic">
+                    </div>
+                    <div id="eq-drop" class="border rounded-3 p-4 text-center bg-light" style="border-style:dashed!important;cursor:pointer;">
+                        <p class="mb-2 fw-semibold">Drop files here or click to browse</p>
+                        <p class="text-muted small mb-3">PDF, Word, Excel, images, text.</p>
+                        <input type="file" name="files" id="eq-files" class="form-control" multiple>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Upload</button>
+                </form>
+                {% endif %}
+
+                {% if documents %}
+                <div class="d-md-none">
+                    {% for doc in documents %}
+                    <div class="card shadow-sm mb-3 eq-doc-row" data-view="{{ url_for('equipment.view_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">
+                        <div class="card-body">
+                            <div class="fw-semibold">{{ doc.title or doc.original_name }}</div>
+                            <div class="small text-muted">{{ doc.uploaded_at.strftime('%Y-%m-%d %H:%M') if doc.uploaded_at else '' }}</div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.preventDefault(); event.stopPropagation(); openEqDoc(this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.view_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">View</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); showEqDocModal('download', this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.download_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">Download</button>
+                                {% if current_user.role in ['admin', 'supervisor'] %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); showEqDocModal('delete', this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.delete_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">Delete</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table align-middle">
+                        <thead><tr><th>File</th><th>Uploaded</th><th></th></tr></thead>
+                        <tbody>
+                        {% for doc in documents %}
+                            <tr class="eq-doc-row" data-view="{{ url_for('equipment.view_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}" style="cursor:pointer;">
+                                <td>{{ doc.title or doc.original_name }}</td>
+                                <td>{{ doc.uploaded_at.strftime('%Y-%m-%d %H:%M') if doc.uploaded_at else '' }}</td>
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.preventDefault(); event.stopPropagation(); openEqDoc(this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.view_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">View</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); showEqDocModal('download', this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.download_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">Download</button>
+                                    {% if current_user.role in ['admin', 'supervisor'] %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); showEqDocModal('delete', this.getAttribute('data-href'), this.getAttribute('data-name'))" data-href="{{ url_for('equipment.delete_document', doc_id=doc.id) }}" data-name="{{ doc.title or doc.original_name }}">Delete</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">No documents uploaded for this equipment yet.</p>
+                {% endif %}
             </div>
         </div>
     </div>
+</div>
+
+
+
 <script>
 document.querySelectorAll('[data-panel]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -133,8 +333,173 @@ document.querySelectorAll('[data-panel]').forEach(function (btn) {
         btn.classList.remove('btn-outline-primary');
         btn.classList.add('btn-primary');
         document.querySelectorAll('.panel-block').forEach(function (p) { p.classList.add('d-none'); });
-        document.getElementById('panel-' + btn.getAttribute('data-panel')).classList.remove('d-none');
+        var panel = document.getElementById('panel-' + btn.getAttribute('data-panel'));
+        if (panel) panel.classList.remove('d-none');
     });
 });
+if (location.hash === '#docs') {
+    var b = document.querySelector('[data-panel="docs"]');
+    if (b) b.click();
+}
+if (location.hash === '#bom') {
+    var b2 = document.querySelector('[data-panel="bom"]');
+    if (b2) b2.click();
+}
+
+var drop = document.getElementById('eq-drop');
+var input = document.getElementById('eq-files');
+if (drop && input) {
+    drop.addEventListener('click', function(e){ if (e.target !== input) input.click(); });
+    ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); }); });
+    drop.addEventListener('drop', function(e){
+        e.preventDefault();
+        if (e.dataTransfer && e.dataTransfer.files.length) input.files = e.dataTransfer.files;
+    });
+}
+
+var bomInput = document.getElementById('bom-search');
+var bomHid = document.getElementById('bom-part-id');
+var bomBox = document.getElementById('bom-suggest');
+if (bomInput) {
+    var timer = null;
+    bomInput.addEventListener('input', function(){
+        bomHid.value = '';
+        clearTimeout(timer);
+        var q = bomInput.value.trim();
+        if (q.length < 2) { bomBox.innerHTML = ''; return; }
+        timer = setTimeout(function(){
+            fetch('/parts/search?q=' + encodeURIComponent(q)).then(function(r){ return r.json(); }).then(function(rows){
+                bomBox.innerHTML = '';
+                (rows || []).forEach(function(part){
+                    var a = document.createElement('button');
+                    a.type = 'button';
+                    a.className = 'list-group-item list-group-item-action';
+                    a.textContent = part.name + (part.barcode ? ' (' + part.barcode + ')' : '');
+                    a.addEventListener('click', function(){
+                        bomHid.value = part.id;
+                        bomInput.value = part.name;
+                        bomBox.innerHTML = '';
+                    });
+                    bomBox.appendChild(a);
+                });
+            });
+        }, 200);
+    });
+}
+
+function confirmDownload(el) {
+    if (confirm('Download this file to this computer?')) window.location = el.getAttribute('data-href');
+    return false;
+}
+function closeEqDoc() {
+    var ov = document.getElementById('eq-doc-overlay');
+    var st = document.getElementById('eq-doc-stage');
+    if (st) st.innerHTML = '';
+    if (ov) ov.style.display = 'none';
+}
+function openEqDoc(url, name) {
+    var ov = document.getElementById('eq-doc-overlay');
+    var st = document.getElementById('eq-doc-stage');
+    if (!ov || !st) return;
+    var lower = (name || url || '').toLowerCase();
+    st.innerHTML = '';
+    if (/\.(png|jpe?g|gif|webp)(\?|$)/.test(lower)) {
+        var img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#111;';
+        st.appendChild(img);
+    } else {
+        var frame = document.createElement('iframe');
+        frame.src = url;
+        frame.style.cssText = 'width:100%;height:100%;border:0;background:#fff;';
+        st.appendChild(frame);
+    }
+    ov.style.display = 'flex';
+}
+document.addEventListener('click', function(e){
+    var viewBtn = e.target.closest('.eq-doc-view');
+    if (viewBtn) {
+        e.preventDefault();
+        openEqDoc(viewBtn.getAttribute('data-href'), viewBtn.getAttribute('data-name') || '');
+        return;
+    }
+    var row = e.target.closest('.eq-doc-row');
+    if (row && !e.target.closest('form,button,a')) {
+        openEqDoc(row.getAttribute('data-view'), row.getAttribute('data-name') || '');
+    }
+});
 </script>
+
+<div class="modal fade" id="eq-doc-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eq-doc-modal-title">Confirm</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="eq-doc-modal-text"></p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="eq-doc-modal-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="eq-doc-modal-yes">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="eq-doc-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10000; align-items:center; justify-content:center; padding:16px; flex-direction:column;">
+  <div id="eq-doc-stage" style="width:min(1100px,96vw); height:min(78vh,820px); background:#111; border-radius:12px; overflow:hidden;"></div>
+  <button type="button" class="btn btn-light mt-3" id="eq-doc-close">Close</button>
+</div>
+
+<script>
+function closeEqDoc() {
+  var ov = document.getElementById("eq-doc-overlay");
+  var st = document.getElementById("eq-doc-stage");
+  if (st) st.innerHTML = "";
+  if (ov) ov.style.display = "none";
+}
+function openEqDoc(url, name) {
+  var ov = document.getElementById("eq-doc-overlay");
+  var st = document.getElementById("eq-doc-stage");
+  if (!ov || !st || !url) return;
+  st.innerHTML = "";
+  var frame = document.createElement("iframe");
+  frame.src = url;
+  frame.title = name || "Document";
+  frame.style.cssText = "width:100%;height:100%;border:0;background:#fff;";
+  st.appendChild(frame);
+  ov.style.display = "flex";
+}
+function showEqDocModal(kind, url, label) {
+  var title = document.getElementById("eq-doc-modal-title");
+  var text = document.getElementById("eq-doc-modal-text");
+  var form = document.getElementById("eq-doc-modal-form");
+  var yes = document.getElementById("eq-doc-modal-yes");
+  form.action = url;
+  if (kind === "download") {
+    title.textContent = "Download file";
+    text.textContent = "Download " + (label || "this file") + " to this computer?";
+    form.method = "get";
+    yes.className = "btn btn-primary";
+    yes.textContent = "Download";
+  } else {
+    title.textContent = "Confirm Delete";
+    text.textContent = "Are you sure you want to delete " + (label || "this file") + "? This cannot be undone.";
+    form.method = "post";
+    yes.className = "btn btn-danger";
+    yes.textContent = "Yes, Delete";
+  }
+  new bootstrap.Modal(document.getElementById("eq-doc-modal")).show();
+}
+document.getElementById("eq-doc-close").addEventListener("click", closeEqDoc);
+document.getElementById("eq-doc-overlay").addEventListener("click", function(e){
+  if (e.target === this) closeEqDoc();
+});
+document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeEqDoc(); });
+</script>
+
 {% endblock %}

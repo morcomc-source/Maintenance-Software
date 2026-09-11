@@ -587,3 +587,10 @@ def history_delete(txn_id):
     db.session.commit()
     flash("History record deleted.", "success")
     return redirect(request.referrer or url_for("parts.history"))
+
+
+@bp.route("/details/<int:id>")
+@login_required
+def details(id):
+    part = Part.query.get_or_404(id)
+    return render_template("parts/details.html", part=part)

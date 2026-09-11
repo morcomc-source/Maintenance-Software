@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ part.name }}{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="javascript:history.back()" class="btn btn-secondary w-100 mb-3">← Back</a>
+    <h2 class="text-center mb-4">{{ part.name }}</h2>
+    <div class="card shadow-sm mx-auto" style="max-width:720px;">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="text-muted small">Qty on hand</div>
+                    <div class="fs-4 fw-bold">{{ part.qty }}</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small">Location stored</div>
+                    <div class="fs-5 fw-semibold">{{ part.location or '—' }}</div>
+                    {% if part.bin_location %}<div class="text-muted">Bin {{ part.bin_location }}</div>{% endif %}
+                    {% if part.sublocation %}<div class="text-muted">{{ part.sublocation }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small">Part number</div>
+                    <div class="fw-semibold">{{ part.part_number or '—' }}</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small">Barcode</div>
+                    <div class="fw-semibold">{{ part.barcode or '—' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
