@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from app import db
 from sqlalchemy import cast, Integer
 from app.models.part import Part
+from app.models.equipment_bom import EquipmentBOM
 from app.models.part_transaction import PartTransaction
 from app.models.settings import (
     PartLocation, PartSublocation,
@@ -114,6 +115,16 @@ def index():
         if delete_index:
             part = Part.query.get(int(delete_index))
             if part:
+                from app.models.equipment import Equipment
+                rows = EquipmentBOM.query.filter_by(part_id=part.id).all()
+                if rows:
+                    names = []
+                    for row in rows:
+                        eq = Equipment.query.get(row.equipment_id)
+                        names.append(eq.name if eq else f"#{row.equipment_id}")
+                    msg = "Cannot delete this part. Remove it from the BOM on: " + ", ".join(names) + "."
+                    flash(msg, "danger")
+                    return redirect(url_for("parts.index", bom_block="1", machines=", ".join(names)))
                 db.session.delete(part)
                 db.session.commit()
                 flash("Part deleted successfully.", "success")
