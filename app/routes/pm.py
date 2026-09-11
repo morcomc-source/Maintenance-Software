@@ -44,23 +44,13 @@ def index():
             except:
                 last_done = None
 
-        next_due = last_done
-        if last_done and frequency:
+        next_due_str = (request.form.get("next_due") or "").strip()
+        next_due = None
+        if next_due_str:
             try:
-                delta_map = {
-                    "Daily": relativedelta(days=1),
-                    "Weekly": relativedelta(weeks=1),
-                    "Bi-Weekly": relativedelta(weeks=2),
-                    "Monthly": relativedelta(months=1),
-                    "Quarterly": relativedelta(months=3),
-                    "Bi-Annually": relativedelta(months=6),
-                    "Annually": relativedelta(years=1)
-                }
-                delta = delta_map.get(frequency)
-                if delta:
-                    next_due = last_done + delta
+                next_due = datetime.strptime(next_due_str, "%Y-%m-%d").date()
             except:
-                next_due = last_done
+                next_due = None
 
         # Build checklist
         checklist = []
@@ -161,7 +151,7 @@ def index():
             'next_due': pm.next_due.strftime('%Y-%m-%d') if pm.next_due else None,
             'checklist': pm.checklist or [],
             'assigned_user_id': pm.assigned_user_id,
-            'assigned_to': pm.assigned_user.username if pm.assigned_user else 'N/A'
+            'assigned_to': pm.assigned_user.display_name if pm.assigned_user else 'N/A'
         })
 
     today = datetime.now().strftime("%Y-%m-%d")

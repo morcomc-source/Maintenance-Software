@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Parts Inventory{% endblock %}
 {% block content %}
+
+<style id="parts-details-form-labels">
+#tab-1 .form-label { font-size: .85rem !important; font-weight: 600; margin-bottom: .25rem; }
+#tab-1 h2, #tab-1 h3.section-title, #tab-1 .card-title { font-size: 1.15rem !important; }
+#tab-1 .card-body h4, #tab-1 .card-body h3 { font-size: 1rem !important; }
+</style>
+
 <style>
 #parts-table { table-layout: fixed; width: 100%; }
 #parts-table th:nth-child(1), #parts-table td:nth-child(1) { width: 22% !important; }
@@ -368,11 +375,13 @@ text-align: center;
 .legend-swatch.order { background: #3d6ea8; }
 
 </style>
-<a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Dashboard</a>
+
 <h2 id="parts-page-title" class="mb-4 center-text">Parts Inventory Page</h2>
 
 <!-- SEARCH TAB -->
 <div id="tab-0" class="tab-content active">
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-3">← Back to Dashboard</a>
+
 {% if current_user.is_admin() %}
 <div class="text-center mb-4">
     <button type="button" class="btn btn-success btn-lg px-5" onclick="clearPartForm(); openTab(1)">+ Add New Part</button>
@@ -509,7 +518,7 @@ text-align: center;
     <div class="mb-3">
         <button type="button" class="btn btn-secondary w-100" onclick="openTab(0)">← Back to Parts List</button>
     </div>
-    <h2 class="mb-4 text-center"Create New Part</h2>
+    <h3 class="mb-3 text-center">Parts Details</h3>
     <div class="mb-0"><!-- spacer -->
     </div>
     

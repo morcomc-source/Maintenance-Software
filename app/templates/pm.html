@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Preventative Maintenance<script>
-
+{% block title %}Preventative Maintenance{% endblock %}
+<script>
 function applyPMSearch() {
   if (typeof setPMFilter === "function") setPMFilter(pmFilter || "all");
 }
@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
-{% endblock %}
 {% block content %}
 
 <style>
