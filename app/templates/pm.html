@@ -434,6 +434,11 @@ document.addEventListener("DOMContentLoaded", function() {
             <label class="form-label">Last Done Date</label>
             <input name="last_done" id="last_done" type="date" class="form-control">
         </div>
+        <div class="col-md-4">
+            <label class="form-label">Next Due Date</label>
+            <input name="next_due" id="next_due" type="date" class="form-control">
+        </div>
+
         <div class="col-12">
             <button type="submit" id="submit-btn" class="btn btn-success mt-3">Add PM</button>
         </div>
@@ -544,6 +549,8 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('sub-equipment-select').value = '';
         document.getElementById('frequency').value = '';
         document.getElementById('last_done').value = '';
+        var nd = document.getElementById("next_due");
+        if (nd) nd.value = "";
         document.getElementById('tasks-container').innerHTML = '';
         // No hiding - keep visible by default
     }
@@ -591,6 +598,8 @@ function editPM(id) {
     document.getElementById('main-equipment-select').value = pm.main_equipment || '';
     document.getElementById('frequency').value = pm.frequency || '';
     document.getElementById('last_done').value = pm.last_done || '';
+    var nd = document.getElementById("next_due");
+    if (nd) nd.value = pm.next_due || "";
     document.getElementById('main-equipment-select').dispatchEvent(new Event('change'));
     setTimeout(() => {
         document.getElementById('sub-equipment-select').value = pm.sub_equipment || '';
