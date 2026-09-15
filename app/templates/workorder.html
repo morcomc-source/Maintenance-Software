@@ -79,7 +79,7 @@
                     <input type="file" id="wo-photo-picker" accept="image/*" hidden>
     <button type="button" class="btn btn-outline-primary w-100" id="wo-photo-add">Add photo</button>
     <div id="wo-photo-previews" class="d-flex flex-wrap gap-2 mt-2"></div>
-                    <div class="form-text">Take a picture or pick from the camera roll. Add as many as you need. Tap × to remove one.</div>
+                    <div class="form-text">Take a picture or pick from the camera roll. Tap × to remove a photo.</div>
                 </div>
                 <h6 class="text-muted text-uppercase mb-3">Contact</h6>
                 <div class="mb-4">
@@ -240,6 +240,9 @@ function stopScanning() {
       var img = document.createElement("img");
       img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
       img.src = URL.createObjectURL(file);
+      var kb = document.createElement("div");
+      kb.textContent = (file.size / 1024).toFixed(0) + " KB";
+      kb.style.cssText = "position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);color:#fff;font-size:11px;text-align:center;padding:2px 0;";
       var x = document.createElement("button");
       x.type = "button";
       x.textContent = "×";
@@ -249,8 +252,40 @@ function stopScanning() {
         render();
       });
       card.appendChild(img);
+      card.appendChild(kb);
       card.appendChild(x);
       wrap.appendChild(card);
+    });
+  }
+
+  function resizePhoto(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var max = 1600;
+        var w = img.width;
+        var h = img.height;
+        if (w > max || h > max) {
+          if (w >= h) { h = Math.round(h * max / w); w = max; }
+          else { w = Math.round(w * max / h); h = max; }
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function (blob) {
+          if (!blob) { resolve(file); return; }
+          var name = (file.name || "photo.jpg").replace(/\.[^.]+$/, "") + ".jpg";
+          resolve(new File([blob], name, { type: "image/jpeg", lastModified: Date.now() }));
+        }, "image/jpeg", 0.72);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
     });
   }
 
@@ -260,12 +295,11 @@ function stopScanning() {
       var list = Array.from(picker.files || []);
       picker.value = "";
       list.forEach(function (file) {
-        photos.push(new File([file.slice(0, file.size, file.type || "image/jpeg")], file.name || ("photo-" + Date.now() + ".jpg"), {
-          type: file.type || "image/jpeg",
-          lastModified: file.lastModified || Date.now()
-        }));
+        resizePhoto(file).then(function (out) {
+          photos.push(out);
+          render();
+        });
       });
-      render();
     });
   }
   if (form) {
