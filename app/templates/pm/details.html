@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}PM #{{ pm.id }}
-
+{% block title %}PM #{{ pm.id }}{% endblock %}
+{% block content %}
 <style>
 /* Full-screen barcode overlay (above Bootstrap modal z-index 1055) */
 #pm-scanner-overlay {
@@ -37,9 +37,7 @@ if (new URLSearchParams(location.search).get("print") === "1") {
   window.addEventListener("load", function(){ window.print(); });
 }
 </script>
-{% endblock %}
 
-{% block content %}
 
 <style>
 #scanner-preview {

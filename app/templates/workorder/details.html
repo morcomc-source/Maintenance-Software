@@ -1,17 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Work Order #{{ wo.id }}
-  </div>
-</div>
-
-
+{% block title %}Work Order #{{ wo.id }}{% endblock %}
+{% block content %}
 <script>
 if (new URLSearchParams(window.location.search).get("print") === "1") {
   window.addEventListener("load", function() { window.print(); });
 }
 </script>
-{% endblock %}
-
-{% block content %}
 
 <div class="container mt-4">
     <div class="mb-3">
