@@ -12,7 +12,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <form method="POST" action="{{ url_for('workorder.create') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ url_for('workorder.create') }}" enctype="multipart/form-data" id="wo-create-form">
 
                 <h6 class="text-muted text-uppercase mb-3">What needs work</h6>
                 <div class="mb-3">
@@ -76,8 +76,10 @@
                 
                 <div class="mb-4">
                     <label class="form-label">Photo of the issue</label>
-                    <input type="file" name="photos" class="form-control" accept="image/*" multiple>
-                    <div class="form-text">Take a picture or pick from the camera roll. You can add more than one.</div>
+                    <input type="file" id="wo-photo-picker" accept="image/*" hidden>
+    <button type="button" class="btn btn-outline-primary w-100" id="wo-photo-add">Add photo</button>
+    <div id="wo-photo-previews" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    <div class="form-text">Take a picture or pick from the camera roll. Add as many as you need. Tap × to remove one.</div>
                 </div>
                 <h6 class="text-muted text-uppercase mb-3">Contact</h6>
                 <div class="mb-4">
@@ -104,7 +106,7 @@
                 </div>
                 {% endif %}
 
-                <button type="submit" class="btn btn-success btn-lg w-100">
+                <button type="submit" class="btn btn-success btn-lg w-100" id="wo-submit-btn">
                     {% if current_user.role == 'requestor' %}Submit request{% else %}Submit work order{% endif %}
                 </button>
             </form>
@@ -210,6 +212,82 @@ function stopScanning() {
         box.style.display = rows && rows.length ? "block" : "none";
       });
   });
+})();
+</script>
+
+
+<div id="wo-saving-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.72); z-index:99999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:28px 32px; text-align:center; max-width:280px; width:90%;">
+    <div class="spinner-border text-primary mb-3" role="status"></div>
+    <div class="fw-bold">Saving…</div>
+    <div class="text-muted small mt-1">Please wait. Do not tap again.</div>
+  </div>
+</div>
+<script>
+(function () {
+  var picker = document.getElementById("wo-photo-picker");
+  var addBtn = document.getElementById("wo-photo-add");
+  var wrap = document.getElementById("wo-photo-previews");
+  var form = document.getElementById("wo-create-form");
+  var photos = [];
+
+  function render() {
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    photos.forEach(function (file, idx) {
+      var card = document.createElement("div");
+      card.style.cssText = "position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:#e9ecef;";
+      var img = document.createElement("img");
+      img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+      img.src = URL.createObjectURL(file);
+      var x = document.createElement("button");
+      x.type = "button";
+      x.textContent = "×";
+      x.style.cssText = "position:absolute;top:2px;right:2px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:18px;line-height:22px;padding:0;";
+      x.addEventListener("click", function () {
+        photos.splice(idx, 1);
+        render();
+      });
+      card.appendChild(img);
+      card.appendChild(x);
+      wrap.appendChild(card);
+    });
+  }
+
+  if (addBtn && picker) addBtn.addEventListener("click", function () { picker.click(); });
+  if (picker) {
+    picker.addEventListener("change", function () {
+      var list = Array.from(picker.files || []);
+      picker.value = "";
+      list.forEach(function (file) {
+        photos.push(new File([file.slice(0, file.size, file.type || "image/jpeg")], file.name || ("photo-" + Date.now() + ".jpg"), {
+          type: file.type || "image/jpeg",
+          lastModified: file.lastModified || Date.now()
+        }));
+      });
+      render();
+    });
+  }
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      var btn = document.getElementById("wo-submit-btn");
+      var overlay = document.getElementById("wo-saving-overlay");
+      if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+      if (overlay) overlay.style.display = "flex";
+      if (!photos.length) return;
+      e.preventDefault();
+      var fd = new FormData(form);
+      fd.delete("photos");
+      photos.forEach(function (file) { fd.append("photos", file, file.name); });
+      fetch(form.action, { method: "POST", body: fd, redirect: "follow" })
+        .then(function (res) { window.location.href = res.url || "/"; })
+        .catch(function () {
+          if (overlay) overlay.style.display = "none";
+          if (btn) { btn.disabled = false; btn.textContent = "Submit work order"; }
+          alert("Could not save. Try again.");
+        });
+    });
+  }
 })();
 </script>
 
