@@ -262,11 +262,21 @@ def update(wo_id):
         wo.assigned_at = datetime.utcnow()
         wo.status = "Assigned"
 
-    # Save any new photos
+    # Remove photos the user marked for deletion
+    remove = set(request.form.getlist("remove_photos"))
+    existing = list(wo.photos or [])
+    kept = [fn for fn in existing if fn not in remove]
+    # optionally delete the files
     upload_dir = Path(current_app.root_path) / "static" / "uploads" / "workorders"
+    for fn in remove:
+        try:
+            (upload_dir / fn).unlink(missing_ok=True)
+        except Exception:
+            pass
+    # Save any new photos
     upload_dir.mkdir(parents=True, exist_ok=True)
     files = request.files.getlist("photos")
-    saved = list(wo.photos or [])
+    saved = list(kept)
     for i, f in enumerate(files):
         if not f or not f.filename:
             continue
@@ -276,8 +286,7 @@ def update(wo_id):
         name = secure_filename(f"wo{wo.id}_{len(saved)+1}{ext}")
         f.save(upload_dir / name)
         saved.append(name)
-    if saved:
-        wo.photos = saved
+    wo.photos = saved if saved else None
   
     db.session.commit()
     flash("Work Order updated successfully!", "success")

@@ -89,6 +89,23 @@
                 </div>
                 
 <div class="mb-3">
+  <label class="form-label">Existing photos</label>
+  <div id="wo-existing-photos" class="d-flex flex-wrap gap-2 mt-2">
+    {% for fn in wo.photos or [] %}
+    <div class="position-relative" style="width:96px;height:96px;border-radius:8px;overflow:hidden;background:#e9ecef;" data-fn="{{ fn }}">
+      <img src="{{ url_for('static', filename='uploads/workorders/' + fn) }}"
+           alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <button type="button" class="wo-remove-existing"
+              style="position:absolute;top:2px;right:2px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:18px;line-height:22px;padding:0;">×</button>
+    </div>
+    {% else %}
+    <div class="text-muted small">No photos yet</div>
+    {% endfor %}
+  </div>
+  <div id="wo-remove-inputs"></div>
+</div>
+
+<div class="mb-3">
   <label class="form-label">Add photos</label>
   <input type="file" id="wo-photo-picker" accept="image/*" hidden>
   <button type="button" class="btn btn-outline-primary w-100" id="wo-photo-add">Add photo</button>
@@ -158,6 +175,25 @@
       x.textContent = "×";
       x.style.cssText = "position:absolute;top:2px;right:2px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:18px;line-height:22px;padding:0;";
       x.addEventListener("click", function () { photos.splice(idx, 1); render(); });
+    });
+  }
+  // existing photo remove
+  document.querySelectorAll(".wo-remove-existing").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var card = btn.closest("[data-fn]");
+      if (!card) return;
+      var fn = card.getAttribute("data-fn");
+      var inputs = document.getElementById("wo-remove-inputs");
+      if (inputs && fn) {
+        var inp = document.createElement("input");
+        inp.type = "hidden";
+        inp.name = "remove_photos";
+        inp.value = fn;
+        inputs.appendChild(inp);
+      }
+      card.remove();
+    });
+  });
       card.appendChild(img);
       card.appendChild(x);
       wrap.appendChild(card);
