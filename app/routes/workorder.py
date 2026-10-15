@@ -1,3 +1,4 @@
+from flask import current_app
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
 from werkzeug.utils import secure_filename
 from pathlib import Path
@@ -39,7 +40,22 @@ def index():
         WorkOrder.created_at.desc()
     ).all()
     
-    technicians = User.query.filter_by(role='technician').all() if current_user.role in ('admin', 'supervisor') else []
+    if current_user.role == 'admin':
+        # self + direct reports + reports of those reports
+        direct = User.query.filter_by(reports_to_id=current_user.id).all()
+        direct_ids = [u.id for u in direct]
+        second = User.query.filter(User.reports_to_id.in_(direct_ids)).all() if direct_ids else []
+        second_ids = [u.id for u in second]
+        all_ids = list(set([current_user.id] + direct_ids + second_ids))
+        technicians = User.query.filter(
+            User.id.in_(all_ids) | User.role.in_(['technician', 'supervisor'])
+        ).distinct().order_by(User.username).all()
+    elif current_user.role == 'supervisor':
+        technicians = User.query.filter(
+            (User.reports_to_id == current_user.id) | (User.id == current_user.id)
+        ).order_by(User.username).all()
+    else:
+        technicians = []
     today = datetime.now().date()
     
     tmpl = 'workorder/requestor_list.html' if current_user.role in ('requestor', 'department') else 'workorder/list.html'
@@ -51,10 +67,25 @@ def index():
 @bp.route('/new')
 @login_required
 def new():
-    technicians = User.query.filter_by(role='technician').all() if current_user.role in ('admin', 'supervisor') else []
+    if current_user.role == 'admin':
+        # self + direct reports + reports of those reports
+        direct = User.query.filter_by(reports_to_id=current_user.id).all()
+        direct_ids = [u.id for u in direct]
+        second = User.query.filter(User.reports_to_id.in_(direct_ids)).all() if direct_ids else []
+        second_ids = [u.id for u in second]
+        all_ids = list(set([current_user.id] + direct_ids + second_ids))
+        technicians = User.query.filter(
+            User.id.in_(all_ids) | User.role.in_(['technician', 'supervisor'])
+        ).distinct().order_by(User.username).all()
+    elif current_user.role == 'supervisor':
+        technicians = User.query.filter(
+            (User.reports_to_id == current_user.id) | (User.id == current_user.id)
+        ).order_by(User.username).all()
+    else:
+        technicians = []
     return render_template('workorder.html', technicians=technicians)
 
-@bp.route('/new', methods=['POST'])
+@bp.route('/create', methods=['POST'])
 @login_required
 def create():
     equipment = request.form.get('equipment')
@@ -177,9 +208,24 @@ def edit(wo_id):
     if current_user.role not in ('admin', 'supervisor'):
         flash("Only admins can edit work orders.", "danger")
         return redirect(url_for('workorder.index'))
-  
+
     wo = WorkOrder.query.get_or_404(wo_id)
-    technicians = User.query.filter_by(role='technician').all()
+    if current_user.role == 'admin':
+        # self + direct reports + reports of those reports
+        direct = User.query.filter_by(reports_to_id=current_user.id).all()
+        direct_ids = [u.id for u in direct]
+        second = User.query.filter(User.reports_to_id.in_(direct_ids)).all() if direct_ids else []
+        second_ids = [u.id for u in second]
+        all_ids = list(set([current_user.id] + direct_ids + second_ids))
+        technicians = User.query.filter(
+            User.id.in_(all_ids) | User.role.in_(['technician', 'supervisor'])
+        ).distinct().order_by(User.username).all()
+    elif current_user.role == 'supervisor':
+        technicians = User.query.filter(
+            (User.reports_to_id == current_user.id) | (User.id == current_user.id)
+        ).order_by(User.username).all()
+    else:
+        technicians = []
     return render_template('workorder/edit.html', wo=wo, technicians=technicians)
 
 
@@ -215,6 +261,23 @@ def update(wo_id):
     if wo.assigned_to_id:
         wo.assigned_at = datetime.utcnow()
         wo.status = "Assigned"
+
+    # Save any new photos
+    upload_dir = Path(current_app.root_path) / "static" / "uploads" / "workorders"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    files = request.files.getlist("photos")
+    saved = list(wo.photos or [])
+    for i, f in enumerate(files):
+        if not f or not f.filename:
+            continue
+        ext = Path(f.filename).suffix.lower()
+        if ext not in (".jpg", ".jpeg", ".png", ".webp", ".heic"):
+            continue
+        name = secure_filename(f"wo{wo.id}_{len(saved)+1}{ext}")
+        f.save(upload_dir / name)
+        saved.append(name)
+    if saved:
+        wo.photos = saved
   
     db.session.commit()
     flash("Work Order updated successfully!", "success")
@@ -237,9 +300,26 @@ def details(wo_id):
    
 
     if current_user.role == 'admin':
-        technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
+        # Manager case: admin who has supervisors reporting to them
+        direct_supervisors = User.query.filter_by(
+            reports_to_id=current_user.id, role='supervisor'
+        ).all()
+        if direct_supervisors:
+            supervisor_ids = [s.id for s in direct_supervisors]
+            technicians = User.query.filter(
+                (User.id == current_user.id) |
+                (User.reports_to_id == current_user.id) |
+                (User.reports_to_id.in_(supervisor_ids))
+            ).order_by(User.username).all()
+        else:
+            # Regular admin
+            technicians = User.query.filter(
+                User.role.in_(['technician', 'supervisor'])
+            ).order_by(User.username).all()
     elif current_user.role == 'supervisor':
-        technicians = User.query.filter((User.reports_to_id==current_user.id) | (User.id==current_user.id)).order_by(User.username).all()
+        technicians = User.query.filter(
+            (User.reports_to_id == current_user.id) | (User.id == current_user.id)
+        ).order_by(User.username).all()
     else:
         technicians = []
 
