@@ -52,11 +52,11 @@ def new():
 
         eq = Equipment(
             equipment_id=equipment_id,
-            name=request.form.get('name'),
+            name=(request.form.get('name') or '').strip(),
             serial_number=_blank_to_none(request.form.get('serial_number')),
             model=request.form.get('model'),
             manufacturer=request.form.get('manufacturer'),
-            location=request.form.get('location'),
+            location=(request.form.get('location') or '').strip() or None,
             purchase_date=purchase_date,
             status=request.form.get('status', 'Active'),
             barcode=_blank_to_none(request.form.get('barcode')),
@@ -85,11 +85,11 @@ def edit(id):
     eq = Equipment.query.get_or_404(id)
   
     if request.method == 'POST':
-        eq.name = request.form.get('name')
+        eq.name = (request.form.get('name') or '').strip()
         eq.serial_number = _blank_to_none(request.form.get('serial_number'))
         eq.model = request.form.get('model')
         eq.manufacturer = request.form.get('manufacturer')
-        eq.location = request.form.get('location')
+        eq.location = (request.form.get('location') or '').strip() or None
         eq.status = request.form.get('status')
         eq.barcode = _blank_to_none(request.form.get('barcode'))
         eq.notes = request.form.get('notes')

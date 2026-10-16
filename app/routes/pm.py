@@ -181,22 +181,54 @@ def index():
     today = datetime.now().strftime("%Y-%m-%d")
     tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     if current_user.role == 'admin':
-        technicians = User.query.filter(User.role.in_(['technician', 'supervisor'])).order_by(User.username).all()
+        # Manager case: admin who has supervisors reporting to them
+        direct_supervisors = User.query.filter_by(
+            reports_to_id=current_user.id, role='supervisor'
+        ).all()
+        if direct_supervisors:
+            supervisor_ids = [s.id for s in direct_supervisors]
+            technicians = User.query.filter(
+                (User.id == current_user.id) |
+                (User.reports_to_id == current_user.id) |
+                (User.reports_to_id.in_(supervisor_ids))
+            ).order_by(User.username).all()
+        else:
+            # Regular admin
+            technicians = User.query.filter(
+                User.role.in_(['technician', 'supervisor'])
+            ).order_by(User.username).all()
     elif current_user.role == 'supervisor':
-        technicians = User.query.filter((User.reports_to_id==current_user.id) | (User.id==current_user.id)).order_by(User.username).all()
+        technicians = User.query.filter(
+            (User.reports_to_id == current_user.id) | (User.id == current_user.id)
+        ).order_by(User.username).all()
     else:
         technicians = []
 
-    pm_mains = PMMainEquipment.query.order_by(PMMainEquipment.name).all()
-    pm_machines = PMMachine.query.order_by(PMMachine.name).all()
+    from app.models.equipment import Equipment
+    # Locations and machines now come from the Equipment inventory
+    raw_locations = (
+        db.session.query(Equipment.location)
+        .filter(Equipment.location.isnot(None), Equipment.location != "")
+        .all()
+    )
+    cleaned = sorted({(r[0] or "").strip() for r in raw_locations if (r[0] or "").strip()})
+    pm_mains = [type("M", (), {"name": loc})() for loc in cleaned]
+
+    machines = (
+        Equipment.query
+        .filter(Equipment.name.isnot(None), Equipment.name != "")
+        .order_by(Equipment.name)
+        .all()
+    )
+    pm_machines = machines  # keep name for any other uses
     pm_frequencies = PMFrequency.query.order_by(PMFrequency.name).all()
     machines_json = [
         {
             "id": m.id,
             "name": m.name,
-            "main_name": m.main_equipment.name if m.main_equipment else None
+            "main_name": m.location or ""
         }
-        for m in pm_machines
+        for m in machines
     ]
     return render_template(
         "pm.html",
