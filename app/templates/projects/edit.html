@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Edit Shutdown Project{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{{ url_for('projects.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Projects</a>
+    <h2 class="text-center mb-4">Edit Shutdown Project</h2>
+    <form method="post" class="col-lg-8 mx-auto">
+        <div class="mb-3">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select">
+                <option value="">—</option>
+                <option {% if project.priority == 'High' %}selected{% endif %}>High</option>
+                <option {% if project.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                <option {% if project.priority == 'Low' %}selected{% endif %}>Low</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Type</label>
+            <select name="project_type" class="form-select">
+                <option value="">—</option>
+                <option {% if project.project_type == 'Shut Down' %}selected{% endif %}>Shut Down</option>
+                <option {% if project.project_type == 'Anytime' %}selected{% endif %}>Anytime</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Location</label>
+            <select name="location" id="location-select" class="form-select">
+                <option value="">—</option>
+                {% for loc in locations %}
+                <option value="{{ loc }}" {% if project.location == loc %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Equipment</label>
+            <select name="equipment_id" id="equipment-select" class="form-select">
+                <option value="">—</option>
+                {% for eq in equipment %}
+                <option value="{{ eq.id }}" data-location="{{ eq.location or '' }}" {% if project.equipment_id == eq.id %}selected{% endif %}>{{ eq.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Project</label>
+            <textarea name="project" class="form-control" rows="3" required>{{ project.project }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Parts Status</label>
+            <select name="parts_status" class="form-select">
+                <option value="">—</option>
+                <option {% if project.parts_status == 'Here' %}selected{% endif %}>Here</option>
+                <option {% if project.parts_status == 'On Order' %}selected{% endif %}>On Order</option>
+                <option {% if project.parts_status == 'No Parts Needed' %}selected{% endif %}>No Parts Needed</option>
+                <option {% if project.parts_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Assigned To</label>
+            <select name="assigned_department" class="form-select">
+                <option value="">—</option>
+                {% for opt in assignment_options %}
+                <option value="{{ opt }}" {% if project is defined and project.assigned_department == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2">{{ project.notes or '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+</div>
+<script>
+(function() {
+  var locSel = document.getElementById('location-select');
+  var eqSel = document.getElementById('equipment-select');
+  if (!locSel || !eqSel) return;
+  var allOpts = Array.from(eqSel.options).slice(1);
+  var currentEq = eqSel.value;
+  function filterEquipment() {
+    var loc = locSel.value;
+    eqSel.innerHTML = '<option value="">—</option>';
+    allOpts.forEach(function(opt) {
+      if (!loc || opt.getAttribute('data-location') === loc) {
+        var clone = opt.cloneNode(true);
+        if (clone.value === currentEq) clone.selected = true;
+        eqSel.appendChild(clone);
+      }
+    });
+  }
+  locSel.addEventListener('change', filterEquipment);
+  filterEquipment();
+})();
+</script>
+{% endblock %}

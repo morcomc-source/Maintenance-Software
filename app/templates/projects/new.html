@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}New Shutdown Project{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{{ url_for('projects.index') }}" class="btn btn-secondary w-100 mb-4">← Back to Shutdown Projects</a>
+    <h2 class="text-center mb-4">New Shutdown Project</h2>
+
+    <form method="post" class="col-lg-8 mx-auto">
+        <div class="mb-3">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select">
+                <option value="">—</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Type</label>
+            <select name="project_type" class="form-select">
+                <option value="">—</option>
+                <option>Shut Down</option>
+                <option>Anytime</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Location</label>
+            <select name="location" id="location-select" class="form-select">
+                <option value="">—</option>
+                {% for loc in locations %}
+                <option value="{{ loc }}">{{ loc }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Equipment</label>
+            <select name="equipment_id" id="equipment-select" class="form-select">
+                <option value="">—</option>
+                {% for eq in equipment %}
+                <option value="{{ eq.id }}" data-location="{{ eq.location or '' }}">{{ eq.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Project</label>
+            <textarea name="project" class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Parts Status</label>
+            <select name="parts_status" class="form-select">
+                <option value="">—</option>
+                <option>Here</option>
+                <option>On Order</option>
+                <option>No Parts Needed</option>
+                <option>In Progress</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Assigned To</label>
+            <select name="assigned_department" class="form-select">
+                <option value="">—</option>
+                {% for opt in assignment_options %}
+                <option value="{{ opt }}" {% if project is defined and project.assigned_department == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Project</button>
+    </form>
+</div>
+<script>
+(function() {
+  var locSel = document.getElementById('location-select');
+  var eqSel = document.getElementById('equipment-select');
+  if (!locSel || !eqSel) return;
+  var allOpts = Array.from(eqSel.options).slice(1); // skip placeholder
+  function filterEquipment() {
+    var loc = locSel.value;
+    eqSel.innerHTML = '<option value="">—</option>';
+    allOpts.forEach(function(opt) {
+      if (!loc || opt.getAttribute('data-location') === loc) {
+        eqSel.appendChild(opt.cloneNode(true));
+      }
+    });
+  }
+  locSel.addEventListener('change', filterEquipment);
+  filterEquipment();
+})();
+</script>
+{% endblock %}

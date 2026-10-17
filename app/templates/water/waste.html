@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Waste Water{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="{{ url_for('water.index') }}" class="btn btn-secondary w-100 mb-3">← Back</a>
+    <h2 class="text-center mb-3">Waste Water Meter</h2>
+    <p class="text-muted text-center">Once a month, first of the month.</p>
+    <form method="get" class="mb-3">
+        <label class="form-label">Date</label>
+        <div class="input-group">
+            <input type="date" name="reading_date" value="{{ on_date.isoformat() }}" class="form-control">
+            <button class="btn btn-outline-secondary" type="submit">Go</button>
+        </div>
+    </form>
+    <form method="post" class="card shadow-sm mb-4">
+        <div class="card-body">
+            <input type="hidden" name="reading_date" value="{{ on_date.isoformat() }}">
+            <p class="text-muted">
+                Last meter:
+                {% if prev %}{{ fmt(prev.meter) }} on {{ prev.reading_date.strftime('%m/%d/%Y') }}
+                {% else %}none yet (opening reading)
+                {% endif %}
+            </p>
+            <label class="form-label">Meter</label>
+            <input inputmode="numeric" pattern="[0-9,]*" name="meter_waste"
+                   class="form-control form-control-lg mb-3"
+                   value="{{ rec.meter if rec and rec.meter is not none else '' }}">
+            {% if rec and rec.usage is not none %}
+            <p><strong>Usage since last reading: {{ fmt(rec.usage) }}</strong></p>
+            {% endif %}
+            <button type="submit" class="btn btn-success btn-lg w-100">Save</button>
+        </div>
+    </form>
+    <h5>History</h5>
+    <ul class="list-group mb-4">
+        {% for r in history %}
+        <li class="list-group-item d-flex justify-content-between">
+            <span>{{ r.reading_date.strftime('%m/%d/%Y') }}</span>
+            <span>{{ fmt(r.meter) }}{% if r.usage is not none %} · {{ fmt(r.usage) }}{% endif %}</span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">No waste water readings yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

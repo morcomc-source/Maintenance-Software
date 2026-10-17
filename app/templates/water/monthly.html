@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Monthly Water{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="{{ url_for('water.index') }}" class="btn btn-secondary w-100 mb-3">← Back</a>
+    <h2 class="text-center mb-3">Monthly totals</h2>
+    <p class="text-center text-muted">{{ month_name }}<br>Last reading this month minus last reading last month.</p>
+    <form method="get" class="row g-2 mb-4">
+        <div class="col-6">
+            <input type="number" name="year" value="{{ year }}" class="form-control" min="2020" max="2100">
+        </div>
+        <div class="col-6">
+            <select name="month" class="form-select">
+                {% for m in range(1,13) %}
+                <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12">
+            <button class="btn btn-outline-primary w-100" type="submit">Show</button>
+        </div>
+    </form>
+    {% for b in blocks %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header"><strong>{{ b.loc.name }}</strong></div>
+        <div class="card-body">
+            <p class="mb-1">Last prior month:
+                {% if b.prev %}{{ fmt(b.prev.meter) }} on {{ b.prev.reading_date.strftime('%m/%d/%Y') }}
+                {% else %}— missing
+                {% endif %}
+            </p>
+            <p class="mb-1">Last this month:
+                {% if b.cur %}{{ fmt(b.cur.meter) }} on {{ b.cur.reading_date.strftime('%m/%d/%Y') }}
+                {% else %}— missing
+                {% endif %}
+            </p>
+            <h4 class="mb-0">
+                {% if b.total is not none %}{{ fmt(b.total) }} gallons
+                {% else %}Need both readings
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

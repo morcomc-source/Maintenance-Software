@@ -31,12 +31,12 @@ def create_app():
   
     # Import models (late, inside create_app to avoid circulars)
     from .models.user import User
+    from .models.project import Project
     from .models.pm import PM
     from .models.part import Part
     from .models.part_transaction import PartTransaction
     from .models.equipment import Equipment
     from .models.settings import PartLocation, PartSublocation, AppSetting
-  
 # Register blueprints
     from .routes.pm import bp as pm_bp
     from .routes.parts import bp as parts_bp
@@ -46,6 +46,7 @@ def create_app():
     from .routes.equipment import bp as equipment_bp
     from .routes.settings import bp as settings_bp
     from .routes.permits import bp as permits_bp
+    from .routes.projects import bp as projects_bp
 
     app.register_blueprint(pm_bp, url_prefix='/pm')
     app.register_blueprint(parts_bp, url_prefix='/parts')
@@ -55,6 +56,7 @@ def create_app():
     app.register_blueprint(equipment_bp, url_prefix='/equipment')
     app.register_blueprint(settings_bp)
     app.register_blueprint(permits_bp)
+    app.register_blueprint(projects_bp, url_prefix='/projects')
 
     @app.route('/serviceworker.js')
     def service_worker():

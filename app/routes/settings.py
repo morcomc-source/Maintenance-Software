@@ -611,3 +611,19 @@ def request_routing():
     supervisors = User.query.filter(User.role.in_(["supervisor", "admin"])).order_by(User.username).all()
     routes = {k: get_setting(k, "") or "" for k in keys}
     return render_template("settings/routing.html", supervisors=supervisors, routes=routes)
+
+@bp.route('/shutdown-assignments', methods=['GET', 'POST'])
+@login_required
+def shutdown_assignments():
+    if current_user.role != 'admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('settings.index'))
+    from app.models.settings import get_setting, set_setting
+    if request.method == 'POST':
+        raw = request.form.get('list') or ''
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        set_setting('shutdown_assignment_list', '\n'.join(lines))
+        flash('Shutdown assignment list saved.', 'success')
+        return redirect(url_for('settings.shutdown_assignments'))
+    current = get_setting('shutdown_assignment_list', 'Weld Shop\nPress Maintenance\nFacility Maintenance\nOutside Contractor')
+    return render_template('settings/shutdown_assignments.html', current=current)

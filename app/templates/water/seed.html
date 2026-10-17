@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Seed Water Meters{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="{{ url_for('water.index') }}" class="btn btn-secondary w-100 mb-3">← Back</a>
+    <h2 class="text-center mb-3">Opening meters</h2>
+    <p class="text-muted">Enter the last good sheet readings (numbers only). Usage starts the next day after this date.</p>
+    <form method="post">
+        <label class="form-label">Date of these opening readings</label>
+        <input type="date" name="reading_date" value="{{ on_date.isoformat() }}" class="form-control mb-3">
+        {% for loc in seed_locs %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><strong>{{ loc.name }}</strong></div>
+            <div class="card-body">
+                <label class="form-label">Meter</label>
+                <input inputmode="numeric" name="meter_{{ loc.code }}" class="form-control form-control-lg mb-2"
+                       value="{{ current[loc.code].meter if current[loc.code] and current[loc.code].meter is not none else '' }}">
+                {% if loc.has_tds %}
+                <label class="form-label">TDS (optional)</label>
+                <input inputmode="numeric" name="tds_{{ loc.code }}" class="form-control"
+                       value="{{ current[loc.code].tds if current[loc.code] and current[loc.code].tds is not none else '' }}">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-success btn-lg w-100 mb-4">Save opening readings</button>
+    </form>
+</div>
+{% endblock %}

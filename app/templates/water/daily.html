@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Daily Water Test{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="{{ url_for('water.index') }}" class="btn btn-secondary w-100 mb-3">← Back</a>
+    <h2 class="text-center mb-3">Daily Water Test</h2>
+    <form method="get" class="mb-3">
+        <label class="form-label">Date</label>
+        <div class="input-group">
+            <input type="date" name="reading_date" value="{{ on_date.isoformat() }}" class="form-control">
+            <button class="btn btn-outline-secondary" type="submit">Go</button>
+        </div>
+    </form>
+    <form method="post">
+        <input type="hidden" name="reading_date" value="{{ on_date.isoformat() }}">
+        {% for row in form_rows %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><strong>{{ row.loc.name }}</strong></div>
+            <div class="card-body">
+                {% if row.loc.has_meter %}
+                <p class="text-muted mb-2">
+                    Last meter:
+                    {% if row.prev %}
+                    {{ fmt(row.prev.meter) }} on {{ row.prev.reading_date.strftime('%m/%d/%Y') }}
+                    {% else %}
+                    none yet (this will be an opening reading)
+                    {% endif %}
+                </p>
+                <label class="form-label">Meter</label>
+                <input inputmode="numeric" pattern="[0-9,]*" name="meter_{{ row.loc.code }}"
+                       class="form-control form-control-lg mb-2"
+                       value="{{ row.rec.meter if row.rec and row.rec.meter is not none else '' }}"
+                       placeholder="18756300">
+                {% endif %}
+                {% if row.loc.has_tds %}
+                <label class="form-label">TDS</label>
+                <input inputmode="numeric" pattern="[0-9]*" name="tds_{{ row.loc.code }}"
+                       class="form-control form-control-lg"
+                       value="{{ row.rec.tds if row.rec and row.rec.tds is not none else '' }}"
+                       placeholder="64">
+                {% endif %}
+                {% if row.rec and row.rec.usage is not none %}
+                <p class="mt-2 mb-0"><strong>Usage {{ fmt(row.rec.usage) }}</strong></p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-success btn-lg w-100 mb-4">Save readings</button>
+    </form>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong>Meeting line</strong></div>
+        <div class="card-body">
+            <pre class="mb-2 p-2 bg-light border rounded" id="meeting-copy">{{ header }}
+{{ row }}</pre>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="copyMeeting()">Copy</button>
+        </div>
+    </div>
+</div>
+<script>
+function copyMeeting() {
+  var t = document.getElementById("meeting-copy").innerText;
+  navigator.clipboard.writeText(t).then(function() { alert("Copied"); });
+}
+</script>
+{% endblock %}

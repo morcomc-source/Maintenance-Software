@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Water Tests{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary w-100 mb-3">← Back to Dashboard</a>
+    <h2 class="text-center mb-4">Water Tests</h2>
+    <div class="card shadow-sm mb-3">
+        <div class="card-header"><strong>Today's meeting line</strong></div>
+        <div class="card-body">
+            <pre class="mb-2 p-2 bg-light border rounded" id="meeting-copy">{{ header }}
+{{ row }}</pre>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="copyMeeting()">Copy</button>
+        </div>
+    </div>
+    <div class="d-grid gap-2 mb-4">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('water.daily') }}">Enter daily readings</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('water.monthly') }}">Monthly totals</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('water.waste') }}">Waste water (monthly)</a>
+        {% if current_user.role == 'admin' %}
+        <a class="btn btn-outline-dark" href="{{ url_for('water.seed') }}">Seed opening meters</a>
+        {% endif %}
+    </div>
+    <h5 class="mb-2">Recent readings</h5>
+    <div class="list-group mb-4">
+        {% for r in recent %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <strong>{{ locs[r.location_code].name if locs[r.location_code] else r.location_code }}</strong>
+                <span class="text-muted">{{ r.reading_date.strftime('%m/%d/%Y') }}</span>
+            </div>
+            <div>
+                {% if r.tds is not none %}TDS {{ r.tds }}{% endif %}
+                {% if r.meter is not none %} · Meter {{ fmt(r.meter) }}{% endif %}
+                {% if r.usage is not none %} · Usage {{ fmt(r.usage) }}{% endif %}
+                {% if r.is_baseline %} · opening{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="list-group-item text-muted">No readings yet. Seed opening meters first.</div>
+        {% endfor %}
+    </div>
+</div>
+<script>
+function copyMeeting() {
+  var t = document.getElementById("meeting-copy").innerText;
+  navigator.clipboard.writeText(t).then(function() { alert("Copied"); });
+}
+</script>
+{% endblock %}

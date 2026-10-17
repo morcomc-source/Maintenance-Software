@@ -181,3 +181,17 @@ class AppSetting(db.Model):
     value = db.Column(db.Text, nullable=True)
     def __repr__(self):
         return f'<AppSetting {self.key}>'
+
+def get_setting(key, default=""):
+    from app import db
+    row = db.session.execute(db.text("SELECT value FROM app_settings WHERE key = :k"), {"k": key}).fetchone()
+    return row[0] if row else default
+
+def set_setting(key, value):
+    from app import db
+    existing = db.session.execute(db.text("SELECT 1 FROM app_settings WHERE key = :k"), {"k": key}).fetchone()
+    if existing:
+        db.session.execute(db.text("UPDATE app_settings SET value = :v WHERE key = :k"), {"v": value, "k": key})
+    else:
+        db.session.execute(db.text("INSERT INTO app_settings (key, value) VALUES (:k, :v)"), {"k": key, "v": value})
+    db.session.commit()
