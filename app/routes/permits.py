@@ -8,7 +8,7 @@ from app.models.permit import Permit
 from app.models.user import User
 
 bp = Blueprint("permits", __name__, url_prefix="/permits")
-STAFF = ("admin", "supervisor", "technician")
+STAFF = ("admin", "supervisor", "technician", "viewer")
 APPROVERS = ("admin", "supervisor")
 ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".gif", ".pdf"}
 

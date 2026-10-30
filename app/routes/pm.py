@@ -41,6 +41,9 @@ def advance_pm_due(pm, from_date):
 @login_required
 def index():
     if request.method == 'POST':
+        if current_user.role == 'viewer':
+            flash("View only. You cannot change PMs.", "danger")
+            return redirect(url_for('pm.index'))
         # Delete
         delete_index = request.form.get("delete_index")
         if delete_index:
@@ -97,6 +100,15 @@ def index():
                     })
 
         assigned_user_id = request.form.get('assigned_user')
+        if current_user.role == 'supervisor' and assigned_user_id:
+            allowed = User.query.filter(
+                (User.id == current_user.id) | (User.reports_to_id == current_user.id)
+            ).all()
+            allowed_ids = {u.id for u in allowed}
+            if int(assigned_user_id) not in allowed_ids:
+                flash("You can only assign PMs to yourself or your direct reports.", "danger")
+                return redirect(url_for("pm.index"))
+        keep_assigned = request.form.get('keep_assigned') == '1'
 
         if index:  # Update
             try:
@@ -111,6 +123,7 @@ def index():
                     pm.next_due = next_due
                     pm.checklist = checklist
                     pm.assigned_user_id = int(assigned_user_id) if assigned_user_id else None
+                    pm.keep_assigned = keep_assigned
                     db.session.commit()
                     try:
                         from app.notify import notify_pm_saved
@@ -130,7 +143,8 @@ def index():
                     last_done=last_done,
                     next_due=next_due,
                     checklist=checklist,
-                    assigned_user_id=int(assigned_user_id) if assigned_user_id else None
+                    assigned_user_id=int(assigned_user_id) if assigned_user_id else None,
+                    keep_assigned=keep_assigned,
                 )
                 db.session.add(new_pm)
                 db.session.commit()
@@ -175,6 +189,7 @@ def index():
             'next_due': pm.next_due.strftime('%Y-%m-%d') if pm.next_due else None,
             'checklist': pm.checklist or [],
             'assigned_user_id': pm.assigned_user_id,
+            'keep_assigned': True if getattr(pm, 'keep_assigned', True) is not False else False,
             'assigned_to': pm.assigned_user.display_name if pm.assigned_user else 'N/A'
         })
 
@@ -432,6 +447,10 @@ def complete_pm(id):
         total_work_seconds=getattr(pm, "total_work_seconds", None) or 0,
     )
     db.session.add(completion)
+
+    # Clear assignee when this PM is set to reassign after completion
+    if getattr(pm, "keep_assigned", True) is False:
+        pm.assigned_user_id = None
 
     # Update main PM
     pm.checklist = checklist

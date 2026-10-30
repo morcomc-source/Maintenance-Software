@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<style>
+.dash-stat .card-body { padding: .75rem .5rem; }
+.dash-stat .stat-num { font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.dash-stat .text-muted.small { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+.dash-stat-row { --bs-gutter-x: .75rem; }
+@media (min-width: 992px) {
+  .dash-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+  .dash-main { flex: 1 1 0; }
+  .dash-side { flex: 0 0 340px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
+  .metric-card { background: #fff; border: 1px solid #e5e9ef; border-radius: 10px; padding: 1rem .75rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .metric-card .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: #6b7a90; font-weight: 600; }
+  .metric-card .num { font-size: 2.2rem; font-weight: 700; line-height: 1.1; margin: .25rem 0; }
+  .side-list .list-group-item { border: none; border-bottom: 1px solid #f0f2f5; padding: .75rem 1rem; }
+  .side-list .list-group-item:last-child { border-bottom: none; }
+}
+</style>
+<div class="container mt-4">
+    <h2 class="mb-1 text-center">Welcome, {{ current_user.display_name }} <small class="text-muted">({{ current_user.role|capitalize }})</small></h2>
+    <p class="text-center text-muted mb-4">System Overview</p>
+
+    <div class="dash-layout">
+    <div class="dash-main">
+        {% if current_user.role in ['admin', 'viewer'] %}
+        <div class="metric-grid">
+            <a href="{{ url_for('dashboard.in_progress') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">In Progress / On Hold</div>
+                <div class="num {% if in_progress_count|default(0) %}text-primary{% endif %}">{{ in_progress_count|default(0) }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.plant_today', tab='pm') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">PMs due</div>
+                <div class="num {% if (plant_pm|default([]))|length %}text-danger{% endif %}">{{ (plant_pm|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.plant_today', tab='wo') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Work due</div>
+                <div class="num {% if (plant_wo|default([]))|length %}text-danger{% endif %}">{{ (plant_wo|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.plant_today', tab='unassigned') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Unassigned</div>
+                <div class="num {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ (unassigned_wos|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.plant_today', tab='perm') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Permits waiting</div>
+                <div class="num {% if (plant_perm|default([]))|length %}text-warning{% endif %}">{{ (plant_perm|default([]))|length }}</div>
+            </div></a>
+        </div>
+        {% if current_user.role == 'viewer' %}
+        <div class="metric-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 400px; margin: 0 auto 1.5rem;">
+            <a href="{{ url_for('workorder.index', mine=1) }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">My open requests</div>
+                <div class="num {% if my_open_n|default(0) %}text-primary{% endif %}">{{ my_open_n|default(0) }}</div>
+            </div></a>
+            <a href="{{ url_for('workorder.history', mine=1) }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">My completed requests</div>
+                <div class="num {% if my_done_n|default(0) %}text-success{% endif %}">{{ my_done_n|default(0) }}</div>
+            </div></a>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if current_user.role == 'supervisor' %}
+        <div class="metric-grid">
+            <a href="{{ url_for('dashboard.in_progress') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">In Progress / On Hold</div>
+                <div class="num {% if in_progress_count|default(0) %}text-primary{% endif %}">{{ in_progress_count|default(0) }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.crew_today', tab='mine') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">My work today</div>
+                <div class="num {% if (today_mine|default([]))|length %}text-danger{% endif %}">{{ (today_mine|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.crew_today', tab='crew') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Crew due today</div>
+                <div class="num {% if (today_crew|default([]))|length %}text-warning{% endif %}">{{ (today_crew|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.crew_today', tab='unassigned') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Unassigned</div>
+                <div class="num {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ (unassigned_wos|default([]))|length }}</div>
+            </div></a>
+            <a href="{{ url_for('dashboard.crew_today', tab='perm') }}" class="text-decoration-none">
+            <div class="metric-card">
+                <div class="label">Permits waiting</div>
+                <div class="num {% if (pending_permits|default([]))|length %}text-warning{% endif %}">{{ (pending_permits|default([]))|length }}</div>
+            </div></a>
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Preventative Maintenance</h4>
+                        <a href="{{ url_for('pm.index') }}" class="btn btn-primary w-100 mt-auto">Manage PMs</a>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('pm.index') }}?new=1" class="btn btn-success w-100 mt-2">+ Create New PM</a>
+                        {% endif %}
+                        <a href="{{ url_for('pm.history_all') }}" class="btn btn-outline-secondary w-100 mt-2">PM History</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Parts & Inventory</h4>
+                        <a href="{{ url_for('parts.index') }}" class="btn btn-primary w-100 mt-auto">Manage Parts</a>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('parts.take_part') }}" class="btn btn-outline-danger w-100 mt-2">Take Part</a>
+                        <a href="{{ url_for('parts.receive_parts') }}" class="btn btn-outline-success w-100 mt-2">Receive Parts</a>
+                        {% endif %}
+                        <a href="{{ url_for('parts.history') }}" class="btn btn-outline-secondary w-100 mt-2">Movement History</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Work Orders</h4>
+                        <a href="{{ url_for('workorder.index') }}" class="btn btn-primary w-100 mt-auto">Manage Work Orders</a>
+                        <a href="{{ url_for('workorder.new') }}" class="btn btn-success w-100 mt-2">{% if current_user.role == 'viewer' %}+ Request Work{% else %}+ Create New Work Order{% endif %}</a>
+                        <a href="{{ url_for('workorder.history') }}" class="btn btn-outline-secondary w-100 mt-2">Work Order History</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Equipment</h4>
+                        <a href="{{ url_for('equipment.index') }}" class="btn btn-primary w-100 mt-auto">Manage Equipment</a>
+                    </div>
+                </div>
+            </div>
+            {% if current_user.role == 'admin' %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Manage Users</h4>
+                        <a href="{{ url_for('pm.manage_users') }}" class="btn btn-primary w-100 mt-auto">Manage Users</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Permits</h4>
+                        <a href="{{ url_for('permits.index') }}" class="btn btn-primary w-100 mt-auto">Manage Permits</a>
+                    </div>
+                </div>
+            </div>
+            {% if current_user.role == 'admin' %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">System Setup</h4>
+                        <a href="{{ url_for('settings.index') }}" class="btn btn-primary w-100 mt-auto">Open System Setup</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if current_user.role in ['admin', 'supervisor', 'viewer'] %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h4 class="mb-3">Shutdown Projects</h4>
+                        <a href="{{ url_for('projects.index') }}" class="btn btn-primary w-100 mt-auto">Open Shutdown List</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dash-side">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Work Order Backlog</div>
+            <div class="list-group list-group-flush side-list">
+                {% if current_user.role in ['admin', 'viewer'] %}
+                <a href="{{ url_for('dashboard.plant_today', tab='wo') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Work due</span><span class="badge bg-danger rounded-pill">{{ (plant_wo|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.plant_today', tab='pm') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>PMs due</span><span class="badge bg-warning text-dark rounded-pill">{{ (plant_pm|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.plant_today', tab='unassigned') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Unassigned</span><span class="badge bg-secondary rounded-pill">{{ (unassigned_wos|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.plant_today', tab='perm') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Permits waiting</span><span class="badge bg-info rounded-pill">{{ (plant_perm|default([]))|length }}</span>
+                </a>
+                {% elif current_user.role == 'supervisor' %}
+                <a href="{{ url_for('dashboard.crew_today', tab='mine') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>My work today</span><span class="badge bg-danger rounded-pill">{{ (today_mine|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.crew_today', tab='crew') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Crew due today</span><span class="badge bg-warning text-dark rounded-pill">{{ (today_crew|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.crew_today', tab='unassigned') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Unassigned</span><span class="badge bg-secondary rounded-pill">{{ (unassigned_wos|default([]))|length }}</span>
+                </a>
+                <a href="{{ url_for('dashboard.crew_today', tab='perm') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>Permits waiting</span><span class="badge bg-info rounded-pill">{{ (pending_permits|default([]))|length }}</span>
+                </a>
+                {% endif %}
+                <a href="{{ url_for('dashboard.in_progress') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>In Progress / On Hold</span><span class="badge bg-primary rounded-pill">{{ in_progress_count|default(0) }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}

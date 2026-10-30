@@ -27,8 +27,9 @@ def index():
             (WorkOrder.equipment_id.ilike(f'%{query}%'))
         )
 
-    if current_user.role in ('admin', 'supervisor'):
-        pass
+    if current_user.role in ('admin', 'supervisor', 'viewer'):
+        if current_user.role == 'viewer' and request.args.get('mine') == '1':
+            base = base.filter_by(created_by_id=current_user.id)
     elif current_user.role in ('requestor', 'department'):
         base = base.filter_by(created_by_id=current_user.id)
     else:
@@ -205,7 +206,7 @@ def assign(wo_id):
 @bp.route('/edit/<int:wo_id>')
 @login_required
 def edit(wo_id):
-    if current_user.role not in ('admin', 'supervisor'):
+    if current_user.role not in ('admin', 'supervisor') or current_user.role == 'viewer':
         flash("Only admins can edit work orders.", "danger")
         return redirect(url_for('workorder.index'))
 
@@ -232,7 +233,7 @@ def edit(wo_id):
 @bp.route('/edit/<int:wo_id>', methods=['POST'])
 @login_required
 def update(wo_id):
-    if current_user.role not in ('admin', 'supervisor'):
+    if current_user.role not in ('admin', 'supervisor') or current_user.role == 'viewer':
         flash("Only admins can edit work orders.", "danger")
         return redirect(url_for('workorder.index'))
   
@@ -341,6 +342,8 @@ def details(wo_id):
 def mark_in_progress(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
     
+    if current_user.role == 'viewer':
+        return jsonify({'success': False, 'error': 'View only'}), 403
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
     
@@ -363,6 +366,8 @@ def mark_in_progress(wo_id):
 @login_required
 def complete(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
+    if current_user.role == 'viewer':
+        return jsonify({'success': False, 'error': 'View only'}), 403
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
 
@@ -431,6 +436,8 @@ def complete(wo_id):
 @login_required
 def pause(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
+    if current_user.role == 'viewer':
+        return jsonify({'success': False, 'error': 'View only'}), 403
     if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
 
@@ -459,7 +466,7 @@ def pause(wo_id):
 @bp.route('/delete/<int:wo_id>', methods=['POST'])
 @login_required
 def delete(wo_id):
-    if current_user.role not in ('admin', 'supervisor'):
+    if current_user.role not in ('admin', 'supervisor') or current_user.role == 'viewer':
         flash("Only admins can delete work orders.", "danger")
         return redirect(url_for('workorder.index'))
 
@@ -494,6 +501,8 @@ def history():
             (WorkOrder.assigned_to_id == current_user.id)
         )
     elif current_user.role == "requestor":
+        query = query.filter(WorkOrder.created_by_id == current_user.id)
+    elif current_user.role == "viewer" and request.args.get("mine") == "1":
         query = query.filter(WorkOrder.created_by_id == current_user.id)
 
     if user:
@@ -543,7 +552,7 @@ def history():
 @bp.route('/dispatch/<int:wo_id>', methods=['POST'])
 @login_required
 def dispatch(wo_id):
-    if current_user.role not in ('admin', 'supervisor'):
+    if current_user.role not in ('admin', 'supervisor') or current_user.role == 'viewer':
         flash("Admin only.", "danger")
         return redirect(url_for('workorder.details', wo_id=wo_id))
     wo = WorkOrder.query.get_or_404(wo_id)
@@ -580,16 +589,17 @@ def dispatch(wo_id):
 @login_required
 def location_search():
     q = (request.args.get("q") or "").strip().lower()
-    from app.models.settings import PMMainEquipment
+    from app.models.equipment import Equipment
     rows, seen = [], set()
-    for item in PMMainEquipment.query.order_by(PMMainEquipment.name).all():
-        name = (item.name or "").strip()
+    for item in Equipment.query.order_by(Equipment.location).all():
+        name = (item.location or "").strip()
         if not name:
             continue
         if q and q not in name.lower():
             continue
-        if name.lower() not in seen:
-            seen.add(name.lower())
+        key = name.lower()
+        if key not in seen:
+            seen.add(key)
             rows.append(name)
     return jsonify(rows[:20])
 
@@ -598,23 +608,22 @@ def location_search():
 def machine_search():
     q = (request.args.get("q") or "").strip().lower()
     loc = (request.args.get("location") or "").strip()
-    from app.models.settings import PMMachine, PMMainEquipment
-    rows = []
-    query = PMMachine.query
+    from app.models.equipment import Equipment
+    query = Equipment.query
     if loc:
-        main = PMMainEquipment.query.filter(PMMainEquipment.name.ilike(loc)).first()
-        if main:
-            query = query.filter(PMMachine.main_equipment_id == main.id)
-        else:
-            query = query.filter(PMMachine.id == -1)
-    for m in query.order_by(PMMachine.name).limit(40).all():
+        query = query.filter(Equipment.location.ilike(loc))
+    rows = []
+    for m in query.order_by(Equipment.name).limit(40).all():
         name = (m.name or "").strip()
         if not name:
             continue
         if q and q not in name.lower():
             continue
-        locname = m.main_equipment.name if m.main_equipment else ""
-        rows.append({"name": name, "location": locname})
+        rows.append({
+            "name": name,
+            "location": m.location or "",
+            "equipment_id": m.equipment_id or "",
+        })
     return jsonify(rows[:15])
 
 

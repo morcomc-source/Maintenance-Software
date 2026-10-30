@@ -15,6 +15,7 @@ class PM(db.Model):
     checklist = db.Column(db.JSON)
 
     assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    keep_assigned = db.Column(db.Boolean, nullable=False, default=True)
     completed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     assigned_user = db.relationship(

@@ -158,7 +158,7 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
 
     <!-- Action Buttons -->
     <div class="mt-4">
-        {% if current_user.role == 'technician' and wo.assigned_to_id == current_user.id %}
+        {% if current_user.role in ['technician', 'supervisor'] and wo.assigned_to_id == current_user.id %}
             {% if wo.status != 'Completed' %}
                 {% if wo.status != 'In Progress' %}
                 <button class="btn btn-warning me-2" onclick="markInProgress({{ wo.id }})">🚧 Start / In Progress</button>

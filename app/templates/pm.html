@@ -233,7 +233,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 <div class="d-flex flex-wrap gap-2 mt-2">
                   <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.preventDefault(); event.stopPropagation(); confirmPdfDownload('{{ url_for('pm.export_pm_pdf', id=item.id) }}', 'this PM PDF')">📄 PDF</button>
                   <button type="button" class="btn btn-sm btn-outline-dark" onclick="editPM({{ item.id }})">Edit</button>
+                  {% if current_user.role == 'admin' %}
                   <button type="button" class="btn btn-sm btn-danger" onclick="showDeleteConfirm({{ item.id }})">Delete</button>
+                  {% endif %}
                 </div>
                 {% endif %}
               </div>
@@ -284,7 +286,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         {% if current_user.role in ['admin', 'supervisor'] %}
                         <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.preventDefault(); event.stopPropagation(); confirmPdfDownload('{{ url_for('pm.export_pm_pdf', id=item.id) }}', 'this PM PDF')">📄 PDF</button>
                         <button type="button" class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPM({{ item.id }})">✏️ Edit</button>
+                        {% if current_user.role == 'admin' %}
                         <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                        {% endif %}
                         {% endif %}
                     {% endif %}
                             </td>
@@ -327,7 +331,9 @@ document.addEventListener("DOMContentLoaded", function() {
                             <div class="card-footer border-0 d-flex flex-wrap gap-2">
                                 {% if current_user.role in ['admin', 'supervisor'] %}
                                 <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); editPM({{ item.id }})">✏️ Edit</button>
+                                {% if current_user.role == 'admin' %}
                                 <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); showDeleteConfirm({{ item.id }})">🗑️ Delete</button>
+                                {% endif %}
                                 {% endif %}
 
                             </div>
@@ -428,6 +434,10 @@ document.addEventListener("DOMContentLoaded", function() {
         <option value="{{ tech.id }}">{{ tech.display_name }}</option>
         {% endfor %}
     </select>
+    <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" name="keep_assigned" id="keep-assigned" value="1" checked>
+        <label class="form-check-label" for="keep-assigned">Keep assigned to this person after completion</label>
+    </div>
 </div>
 {% endif %}
         <div class="col-12">
@@ -639,6 +649,8 @@ function editPM(id) {
     if (assignedSelect) {
         assignedSelect.value = pm.assigned_user_id || '';
     }
+    var keepBox = document.getElementById("keep-assigned");
+    if (keepBox) keepBox.checked = (pm.keep_assigned !== false);
 }
     // ====================== VIEW ======================
     function viewPM(id) {

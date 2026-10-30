@@ -3,7 +3,7 @@
 {% block content %}
 <style>
 .list-table-wrap { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15,23,42,.08); background: #fff; }
-.list-table-wrap table { margin-bottom: 0; }
+.list-table-wrap table { margin-bottom: 0; table-layout: fixed; width: 100%; }
 .list-table-wrap thead th {
     background: #1e3a5f !important;
     color: #fff !important;
@@ -11,18 +11,48 @@
     letter-spacing: .04em;
     text-transform: uppercase;
     border: 0 !important;
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
+    vertical-align: middle;
 }
-.list-table-wrap tbody td { vertical-align: middle; }
-.list-table-wrap tbody td.notes-cell {
+.list-table-wrap tbody td {
+    vertical-align: middle;
     white-space: normal !important;
     word-wrap: break-word;
     word-break: break-word;
-    max-width: 320px;
-    min-width: 160px;
-    vertical-align: top;
+    overflow-wrap: anywhere;
 }
 .list-table-wrap tbody tr { cursor: pointer; }
+.col-priority { width: 8%; }
+.col-type { width: 10%; }
+.col-location { width: 12%; }
+.col-project { width: 26%; }
+.col-parts { width: 8%; }
+.col-assigned { width: 9%; }
+.col-notes { width: 19%; }
+.col-actions { width: 8%; }
+.list-table-wrap th.col-priority,
+.list-table-wrap th.col-type,
+.list-table-wrap th.col-location,
+.list-table-wrap th.col-parts,
+.list-table-wrap th.col-assigned,
+.list-table-wrap th.col-actions,
+.list-table-wrap td.col-priority,
+.list-table-wrap td.col-type,
+.list-table-wrap td.col-location,
+.list-table-wrap td.col-parts,
+.list-table-wrap td.col-assigned,
+.list-table-wrap td.col-actions {
+    text-align: center;
+}
+.list-table-wrap th.col-notes,
+.list-table-wrap td.col-project,
+.list-table-wrap td.col-notes {
+    text-align: left;
+}
+.list-table-wrap th.col-project {
+    text-align: center;
+}
 </style>
 
 <div class="container mt-4">
@@ -34,6 +64,13 @@
     </div>
 
     <div class="mb-3 d-flex align-items-end gap-3 flex-wrap">
+        <div>
+            <label class="form-label d-block">Show</label>
+            <div class="btn-group">
+                <a href="{{ url_for('projects.index', view='open') }}" class="btn {% if view != 'completed' %}btn-primary{% else %}btn-outline-primary{% endif %}">Open</a>
+                <a href="{{ url_for('projects.index', view='completed') }}" class="btn {% if view == 'completed' %}btn-primary{% else %}btn-outline-primary{% endif %}">Completed</a>
+            </div>
+        </div>
         <div>
             <label class="form-label">Filter by location</label>
             <select id="location-filter" class="form-select" style="max-width: 320px;">
@@ -63,55 +100,63 @@
 
     <div class="list-table-wrap">
         
-    <a href="#" id="export-excel" class="btn btn-outline-success me-2 mb-3">Export Excel</a>
     <a href="#" id="export-pdf" class="btn btn-outline-danger mb-3">Export PDF</a>
 <script>
-document.getElementById('export-excel').addEventListener('click', function(e) {
-  e.preventDefault();
-  var loc = document.getElementById('location-filter').value || '';
-  window.location = '{{ url_for("projects.export") }}?location=' + encodeURIComponent(loc);
-});
 document.getElementById('export-pdf').addEventListener('click', function(e) {
   e.preventDefault();
   var loc = document.getElementById('location-filter').value || '';
-  window.location = '{{ url_for("projects.export_pdf") }}?location=' + encodeURIComponent(loc);
+  var url = '{{ url_for("projects.export_pdf") }}?view={{ view or "open" }}&location=' + encodeURIComponent(loc);
+  if (typeof confirmPdfDownload === "function") {
+    confirmPdfDownload(url, "the shutdown projects PDF");
+  } else if (confirm("Download the shutdown projects PDF?")) {
+    window.location = url;
+  }
 });
 </script>
 <table class="table table-hover align-middle">
             <thead>
                 <tr>
-                    <th>Priority</th>
-                    <th>Type</th>
-                    <th>Location / Equipment</th>
-                    <th>Project</th>
-                    <th>Parts</th>
-                    <th>Assigned</th>
-                    <th>Notes</th>
-                    <th>Actions</th>
+                    <th class="col-priority">Priority</th>
+                    <th class="col-type">Type</th>
+                    <th class="col-location">Location / Equipment</th>
+                    <th class="col-project">Project Description</th>
+                    <th class="col-parts">Parts</th>
+                    <th class="col-assigned">Assigned</th>
+                    <th class="col-notes">Notes</th>
+                    <th class="col-actions">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in projects %}
                 <tr data-location="{{ p.equipment.location if p.equipment and p.equipment.location else (p.location or '') }}"
                     >
-                    <td>{{ p.priority or '' }}</td>
-                    <td>{{ p.project_type or '' }}</td>
-                    <td>
+                    <td class="col-priority">{{ p.priority or '' }}</td>
+                    <td class="col-type">{{ p.project_type or '' }}</td>
+                    <td class="col-location">
                         {% set loc = p.equipment.location if p.equipment and p.equipment.location else (p.location or '') %}
                         {% set eq = p.equipment.name if p.equipment else '' %}
                         {% if loc and eq %}{{ loc }} / {{ eq }}{% elif loc %}{{ loc }}{% elif eq %}{{ eq }}{% else %}—{% endif %}
                     </td>
-                    <td>{{ p.project }}</td>
-                    <td>{{ p.parts_status or '' }}</td>
-                    <td>{{ p.assigned_department or '' }}</td>
-                    <td class="notes-cell">{{ p.notes or '' }}</td>
-                    <td>
+                    <td class="col-project">{{ p.project }}</td>
+                    <td class="col-parts">{{ p.parts_status or '' }}</td>
+                    <td class="col-assigned">{{ p.assigned_department or '' }}</td>
+                    <td class="col-notes">{{ p.notes or '' }}</td>
+                    <td class="col-actions">
                         <a href="{{ url_for('projects.edit', id=p.id) }}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">Edit</a>
+                        {% if view != 'completed' and current_user.role in ['admin', 'supervisor'] %}
+                        <button type="button" class="btn btn-sm btn-success" onclick="event.stopPropagation(); showProjectComplete({{ p.id }}, '{{ p.project|e }}')">Complete</button>
+                        {% elif view == 'completed' %}
+                        <span class="badge bg-success">{{ p.completed_at.strftime('%Y-%m-%d') if p.completed_at else 'Completed' }}</span>
+                        {% endif %}
+                        {% if current_user.role == 'admin' %}
+                        {% if current_user.role == 'admin' %}
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); showProjectDelete({{ p.id }}, '{{ p.project|e }}')">Delete</button>
+                        {% endif %}
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="8" class="text-muted">No open projects</td></tr>
+                <tr><td colspan="8" class="text-muted">{% if view == 'completed' %}No completed projects{% else %}No open projects{% endif %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -127,7 +172,7 @@ document.getElementById('export-pdf').addEventListener('click', function(e) {
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p>Delete project <strong id="project-delete-label"></strong>? This cannot be undone.</p>
+        <p class="mb-0" style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;">Delete project <strong id="project-delete-label" style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;"></strong>? This cannot be undone.</p>
       </div>
       <div class="modal-footer">
         <form method="post" id="project-delete-form">
@@ -138,11 +183,39 @@ document.getElementById('export-pdf').addEventListener('click', function(e) {
     </div>
   </div>
 </div>
+
+<!-- Complete modal -->
+<div class="modal fade" id="project-complete-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Completion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0" style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;">Mark <strong id="project-complete-label" style="white-space:normal; overflow-wrap:anywhere; word-break:break-word;"></strong> as completed?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" id="project-complete-form">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+          <button type="submit" class="btn btn-success">Yes, Complete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 function showProjectDelete(id, label) {
-  document.getElementById('project-delete-label').textContent = label || ('#' + id);
+  var el = document.getElementById('project-delete-label');
+  el.textContent = label || ('#' + id);
   document.getElementById('project-delete-form').action = '/projects/delete/' + id;
   new bootstrap.Modal(document.getElementById('project-delete-modal')).show();
+}
+function showProjectComplete(id, label) {
+  var el = document.getElementById('project-complete-label');
+  el.textContent = label || ('#' + id);
+  document.getElementById('project-complete-form').action = '/projects/complete/' + id;
+  new bootstrap.Modal(document.getElementById('project-complete-modal')).show();
 }
 </script>
 {% endblock %}

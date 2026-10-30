@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+
+<style>
+.dash-stat .card-body { padding: .6rem .4rem; }
+.dash-stat .stat-num { font-size: 1.75rem; font-weight: 700; line-height: 1.1; }
+.dash-stat .text-muted { font-size: .75rem; }
+
+.dash-stat-row { --bs-gutter-x: .5rem; }
+@media (min-width: 992px) {
+  .dash-stat-row { flex-wrap: nowrap; }
+  .dash-stat-row > [class*="col"] { flex: 1 1 0; max-width: none; }
+}
+
+</style>
+
+<div class="container mt-4">
+    <h2 class="mb-2 text-center">Welcome, {{ current_user.display_name }} <small class="text-muted">({{ current_user.role|capitalize }})</small></h2>
+    <p class="lead mb-4 text-center">System Overview</p>
+
+    
+    
+    {% if current_user.role in ['admin', 'viewer'] %}
+    <div class="row g-2 mb-4 dash-stat-row">
+    <div class="col-6 col-lg">
+        <a href="{{ url_for('dashboard.in_progress') }}" class="text-decoration-none text-dark">
+        <div class="card shadow-sm text-center h-100 dash-stat">
+            <div class="card-body">
+                <div class="text-muted small">In Progress / On Hold</div>
+                <div class="stat-num {% if in_progress_count|default(0) %}text-primary{% endif %}">{{ in_progress_count|default(0) }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+            </div>
+        </div>
+        </a>
+    </div>
+
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.plant_today', tab='pm') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">PMs due</div>
+                    <div class="stat-num {% if (plant_pm|default([]))|length %}text-danger{% endif %}">{{ plant_pm|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.plant_today', tab='wo') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Work due</div>
+                    <div class="stat-num {% if (plant_wo|default([]))|length %}text-danger{% endif %}">{{ plant_wo|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.crew_today', tab='unassigned') if current_user.role == 'supervisor' else url_for('dashboard.plant_today', tab='unassigned') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Unassigned</div>
+                    <div class="stat-num {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ unassigned_wos|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.plant_today', tab='perm') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Permits waiting</div>
+                    <div class="stat-num {% if (plant_perm|default([]))|length %}text-warning{% endif %}">{{ plant_perm|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
+    {% if current_user.role == 'viewer' %}
+    <div class="row g-2 mb-4 justify-content-center">
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('workorder.index', mine=1) }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">My open requests</div>
+                    <div class="stat-num {% if my_open_n|default(0) %}text-primary{% endif %}">{{ my_open_n|default(0) }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('workorder.history', mine=1) }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">My completed requests</div>
+                    <div class="stat-num {% if my_done_n|default(0) %}text-success{% endif %}">{{ my_done_n|default(0) }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+{% if current_user.role == 'supervisor' %}
+    <div class="row g-2 mb-4 dash-stat-row">
+    <div class="col-6 col-lg">
+        <a href="{{ url_for('dashboard.in_progress') }}" class="text-decoration-none text-dark">
+        <div class="card shadow-sm text-center h-100 dash-stat">
+            <div class="card-body">
+                <div class="text-muted small">In Progress / On Hold</div>
+                <div class="stat-num {% if in_progress_count|default(0) %}text-primary{% endif %}">{{ in_progress_count|default(0) }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+            </div>
+        </div>
+        </a>
+    </div>
+
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.crew_today', tab='mine') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">My work today</div>
+                    <div class="stat-num {% if (today_mine|default([]))|length %}text-danger{% endif %}">{{ today_mine|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.crew_today', tab='crew') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Crew due today</div>
+                    <div class="stat-num {% if (today_crew|default([]))|length %}text-warning{% endif %}">{{ today_crew|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.crew_today', tab='unassigned') if current_user.role == 'supervisor' else url_for('dashboard.plant_today', tab='unassigned') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Unassigned</div>
+                    <div class="stat-num {% if (unassigned_wos|default([]))|length %}text-warning{% endif %}">{{ unassigned_wos|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg">
+            <a href="{{ url_for('dashboard.crew_today', tab='perm') }}" class="text-decoration-none text-dark">
+            <div class="card shadow-sm text-center h-100 dash-stat">
+                <div class="card-body">
+                    <div class="text-muted small">Permits waiting</div>
+                    <div class="stat-num {% if (pending_permits|default([]))|length %}text-warning{% endif %}">{{ pending_permits|default([])|length }}</div>
+                    <div class="small text-primary mt-1">Tap to view</div>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+<div class="row g-4">
+
+
+        <!-- PMs -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">🔧</h1>
+                    <h4>Preventative Maintenance</h4>
+                    <a href="{{ url_for('pm.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage PMs
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('pm.index') }}?new=1" class="btn btn-success btn-lg w-100 mt-2">
+                        + Create New PM
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('pm.history_all') }}" class="btn btn-outline-secondary btn-lg w-100 mt-2">
+                        PM History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parts -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">📦</h1>
+                    <h4>Parts & Inventory</h4>
+                    <a href="{{ url_for('parts.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Parts
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('parts.take_part') }}" class="btn btn-outline-danger btn-lg w-100 mt-2">
+                        Take Part
+                    </a>
+                    {% endif %}
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('parts.receive_parts') }}" class="btn btn-outline-success btn-lg w-100 mt-2">
+                        Receive Parts
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('parts.history') }}" class="btn btn-outline-secondary btn-lg w-100 mt-2">
+                        Movement History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Orders -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">📋</h1>
+                    <h4>Work Orders</h4>
+                    <a href="{{ url_for('workorder.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Work Orders
+                    </a>
+                    <a href="{{ url_for('workorder.new') }}" class="btn btn-success btn-lg w-100 mt-2">
+                        {% if current_user.role == 'viewer' %}+ Request Work{% else %}+ Create New Work Order{% endif %}
+                    </a>
+                    <a href="{{ url_for('workorder.history') }}" class="btn btn-outline-secondary btn-lg w-100 mt-2">
+                        Work Order History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipment -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">🏭</h1>
+                    <h4>Equipment</h4>
+                    <a href="{{ url_for('equipment.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Equipment
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users -->
+        {% if current_user.role == 'admin' %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">👥</h1>
+                    <h4>Manage Users</h4>
+                    {% if current_user.role != 'viewer' %}
+                    <a href="{{ url_for('pm.manage_users') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Users
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        
+                <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">🗂️</h1>
+                    <h4>Permits</h4>
+                    <a href="{{ url_for('permits.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Manage Permits
+                    </a>
+                </div>
+            </div>
+        </div>
+
+<!-- System Setup -->
+        {% if current_user.role == 'admin' %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">⚙️</h1>
+                    <h4>System Setup</h4>
+                    <a href="{{ url_for('settings.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">
+                        Open System Setup
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current_user.role in ['admin', 'supervisor', 'viewer'] %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h1 class="display-1 mb-3">📋</h1>
+                    <h4>Shutdown Projects</h4>
+                    <p class="text-muted">Shutdown project list</p>
+                    <a href="{{ url_for('projects.index') }}" class="btn btn-primary btn-lg w-100 mt-auto">Open Shutdown List</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -18,11 +18,15 @@ def _assignment_options():
 @bp.route('/', strict_slashes=False)
 @login_required
 def index():
-    if current_user.role not in ('admin', 'supervisor'):
+    if current_user.role not in ('admin', 'supervisor', 'technician', 'viewer'):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard.index'))
-    projects = Project.query.filter_by(status='Open').order_by(Project.created_at.desc()).all()
-    return render_template('projects/list.html', projects=projects)
+    view = (request.args.get('view') or 'open').strip().lower()
+    if view not in ('open', 'completed'):
+        view = 'open'
+    status = 'Completed' if view == 'completed' else 'Open'
+    projects = Project.query.filter_by(status=status).order_by(Project.created_at.desc()).all()
+    return render_template('projects/list.html', projects=projects, view=view)
 
 @bp.route('/new', methods=['GET', 'POST'])
 @login_required
@@ -92,7 +96,9 @@ def export():
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard.index'))
     loc = request.args.get('location', '').strip()
-    q = Project.query.filter_by(status='Open')
+    view = (request.args.get('view') or 'open').strip().lower()
+    status = 'Completed' if view == 'completed' else 'Open'
+    q = Project.query.filter_by(status=status)
     if loc:
         q = q.filter(Project.location.ilike(f'%{loc}%'))
     projects = q.order_by(Project.created_at.desc()).all()
@@ -130,7 +136,9 @@ def export_pdf():
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard.index'))
     loc = request.args.get('location', '').strip()
-    q = Project.query.filter_by(status='Open')
+    view = (request.args.get('view') or 'open').strip().lower()
+    status = 'Completed' if view == 'completed' else 'Open'
+    q = Project.query.filter_by(status=status)
     if loc:
         q = q.filter(Project.location.ilike(f'%{loc}%'))
     projects = q.order_by(Project.created_at.desc()).all()
@@ -141,7 +149,8 @@ def export_pdf():
     bio = BytesIO()
     doc = SimpleDocTemplate(bio, pagesize=landscape(letter), topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
-    story = [Paragraph(f"Shutdown Projects" + (f" — {loc}" if loc else ""), styles['Title']), Spacer(1, 12)]
+    label = "Completed Shutdown Projects" if status == "Completed" else "Open Shutdown Projects"
+    story = [Paragraph(label + (f" — {loc}" if loc else ""), styles['Title']), Spacer(1, 12)]
     from reportlab.platypus import Paragraph
     from reportlab.lib.styles import ParagraphStyle
     wrap_style = ParagraphStyle("wrap", fontSize=8, leading=10, wordWrap="CJK")
@@ -176,3 +185,31 @@ def export_pdf():
         download_name="shutdown_projects.pdf",
         mimetype="application/pdf",
     )
+
+
+@bp.route('/complete/<int:id>', methods=['POST'])
+@login_required
+def complete(id):
+    if current_user.role not in ('admin', 'supervisor'):
+        flash("Not allowed.", "danger")
+        return redirect(url_for('dashboard.index'))
+    p = Project.query.get_or_404(id)
+    if p.status != 'Completed':
+        p.status = 'Completed'
+        p.completed_at = datetime.utcnow()
+        db.session.commit()
+        flash("Project marked completed.", "success")
+    return redirect(url_for('projects.index'))
+
+@bp.route('/delete/<int:id>', methods=['POST'])
+@login_required
+def delete(id):
+    if current_user.role != 'admin':
+        flash("Only an admin can delete a project.", "danger")
+        return redirect(url_for('projects.index'))
+    p = Project.query.get_or_404(id)
+    view = 'completed' if p.status == 'Completed' else 'open'
+    db.session.delete(p)
+    db.session.commit()
+    flash("Project deleted.", "success")
+    return redirect(url_for('projects.index', view=view))

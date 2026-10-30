@@ -147,7 +147,7 @@ def search():
 @bp.route('/details/<int:id>')
 @login_required
 def details(id):
-    if current_user.role not in ('admin', 'supervisor', 'technician'):
+    if current_user.role not in ('admin', 'supervisor', 'technician', 'viewer'):
         flash("Access denied.", "danger")
         return redirect(url_for('equipment.index'))
     from app.models.workorder import WorkOrder
@@ -282,7 +282,7 @@ def upload_document(id):
 @bp.route("/documents/<int:doc_id>/view")
 @login_required
 def view_document(doc_id):
-    if current_user.role not in ("admin", "supervisor", "technician"):
+    if current_user.role not in ("admin", "supervisor", "technician", "viewer"):
         flash("Access denied.", "danger")
         return redirect(url_for("equipment.index"))
     doc = EquipmentDocument.query.get_or_404(doc_id)
@@ -292,7 +292,7 @@ def view_document(doc_id):
 @bp.route("/documents/<int:doc_id>/download")
 @login_required
 def download_document(doc_id):
-    if current_user.role not in ("admin", "supervisor", "technician"):
+    if current_user.role not in ("admin", "supervisor", "technician", "viewer"):
         flash("Access denied.", "danger")
         return redirect(url_for("equipment.index"))
     doc = EquipmentDocument.query.get_or_404(doc_id)

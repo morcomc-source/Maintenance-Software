@@ -12,7 +12,7 @@ bp = Blueprint('dashboard', __name__)
 @bp.route('/')
 @login_required
 def index():
-    if current_user.role in ('admin', 'supervisor'):
+    if current_user.role in ('admin', 'supervisor', 'viewer'):
         today_mine, today_crew = [], []
         if current_user.role == 'supervisor':
             today = datetime.now().date()
@@ -67,7 +67,7 @@ def index():
             except Exception:
                 pass
         plant_pm, plant_wo, plant_perm = [], [], []
-        if current_user.role == 'admin':
+        if current_user.role in ('admin', 'viewer'):
             today = datetime.now().date()
             for pm in PM.query.all():
                 if not pm.next_due or pm.next_due > today:
@@ -112,7 +112,7 @@ def index():
 
         unassigned_wos = []
         pending_permits = plant_perm
-        if current_user.role == "admin":
+        if current_user.role in ("admin", "viewer"):
             unassigned_wos = WorkOrder.query.filter(
                 WorkOrder.status != "Completed",
                 WorkOrder.assigned_to_id.is_(None),
@@ -144,6 +144,13 @@ def index():
             ip_pm = ip_pm.filter(PM.assigned_user_id.in_(crew_ids))
             ip_wo = ip_wo.filter(WorkOrder.assigned_to_id.in_(crew_ids))
         in_progress_count = ip_pm.count() + ip_wo.count()
+        my_requests = []
+        my_open_n = 0
+        my_done_n = 0
+        if current_user.role == "viewer":
+            my_requests = WorkOrder.query.filter_by(created_by_id=current_user.id).all()
+            my_open_n = sum(1 for w in my_requests if w.status != "Completed")
+            my_done_n = sum(1 for w in my_requests if w.status == "Completed")
         return render_template(
             'dashboard/admin.html',
             today_mine=today_mine,
@@ -154,6 +161,8 @@ def index():
             unassigned_wos=unassigned_wos,
             pending_permits=pending_permits,
             in_progress_count=in_progress_count,
+            my_open_n=my_open_n,
+            my_done_n=my_done_n,
         )
 
     if current_user.role == 'department':
@@ -269,7 +278,7 @@ def index():
 @bp.route("/today")
 @login_required
 def plant_today():
-    if current_user.role != "admin":
+    if current_user.role not in ("admin", "viewer"):
         flash("Admin only.", "danger")
         return redirect(url_for("dashboard.index"))
     today = datetime.now().date()
@@ -428,7 +437,7 @@ def crew_today():
 @bp.route("/in-progress")
 @login_required
 def in_progress():
-    if current_user.role not in ("admin", "supervisor"):
+    if current_user.role not in ("admin", "supervisor", "viewer"):
         return redirect(url_for("dashboard.index"))
     items = []
     pm_q = PM.query.filter(PM.status.in_(["In Progress", "On Hold", "Paused", "Hold"]))
