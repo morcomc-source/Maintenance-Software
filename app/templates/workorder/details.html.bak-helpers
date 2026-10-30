@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+{% block title %}Work Order #{{ wo.id }}{% endblock %}
+{% block content %}
+<script>
+if (new URLSearchParams(window.location.search).get("print") === "1") {
+  window.addEventListener("load", function() { window.print(); });
+}
+</script>
+
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="#" onclick="if (document.referrer) { history.back(); return false; }"
+           class="btn btn-secondary mb-4 w-100">
+            ← {{ 'Back to Dashboard' if current_user.role == 'requestor' else ('Back to Work Order History' if wo.status == 'Completed' else 'Back to Work Orders') }}
+        </a>
+    </div>
+    <h2 class="mb-4 text-center">Work Order Details</h2>
+
+
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Work Order #{{ wo.id }} - {{ wo.equipment }}</h4>
+        </div>
+        <div class="card-body">
+            {% if wo.pause_reason %}
+            <div class="alert alert-warning mt-3 mb-3">
+                <strong>⏸️ On Hold — Reason:</strong>
+                <div class="mt-1">{{ wo.pause_reason }}</div>
+            </div>
+            {% endif %}
+
+    <!-- Description (full width, prominent) -->
+    <div class="mb-4">
+        <strong>Description / Issue:</strong><br>
+        <p class="border p-3 bg-light rounded">{{ wo.description | default('No description provided') }}</p>
+    </div>
+
+    
+    {% if wo.photos %}
+    <div class="mb-4">
+        <strong>Photos:</strong>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for fn in wo.photos %}
+            <img src="{{ url_for('static', filename='uploads/workorders/' + fn) }}"
+                 alt="Work order photo"
+                 style="max-width: 180px; max-height: 180px; object-fit: cover; cursor: pointer;"
+                 class="border rounded wo-photo-thumb"
+                 onclick="openWoPhoto(this.src)">
+            {% endfor %}
+        </div>
+    </div>
+    <div id="wo-photo-overlay" onclick="if(event.target.id==='wo-photo-overlay') closeWoPhoto();"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:20000;
+                align-items:center; justify-content:center; flex-direction:column; padding:16px;">
+        <img id="wo-photo-full" alt="" style="max-width:100%; max-height:75vh; object-fit:contain;">
+        <button type="button" class="btn btn-light mt-3" onclick="closeWoPhoto()">Close</button>
+    </div>
+    <script>
+    function openWoPhoto(src) {
+        document.getElementById('wo-photo-full').src = src;
+        var el = document.getElementById('wo-photo-overlay');
+        el.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeWoPhoto() {
+        document.getElementById('wo-photo-overlay').style.display = 'none';
+        document.getElementById('wo-photo-full').src = '';
+        document.body.style.overflow = '';
+    }
+    </script>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <p><strong>Location:</strong> {{ wo.location or "—" }}</p>
+        <p><strong>Equipment:</strong> {{ wo.equipment }}</p>
+            <p><strong>Type:</strong>
+                {% if wo.work_area == 'facility' %}Facility
+                {% elif wo.work_area == 'press' %}Press
+                {% elif wo.work_area == 'mobile' %}Mobile
+                {% else %}—{% endif %}
+            </p>
+            <p><strong>Priority:</strong> {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}</p>
+            <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">{{ wo.status }}</span></p>
+            <p><strong>Assigned To:</strong> {{ wo.assigned_to.display_name if wo.assigned_to else 'Unassigned' }}</p>
+        </div>
+        <div class="col-md-6">
+            <p><strong>Created On:</strong> {% if wo.created_at %}{{ wo.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Expected Completion:</strong> {% if wo.expected_completion_date %}{{ wo.expected_completion_date.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Completed On:</strong> {% if wo.completed_at %}{{ wo.completed_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>
+            <p><strong>Completed By:</strong> {{ wo.completed_by.username if wo.completed_by else 'N/A' }}</p>
+        </div>
+    </div>
+
+    <!-- Completion Notes -->
+    {% if wo.completion_notes %}
+    <div class="mt-4 p-3 bg-light border rounded">
+        <strong>Completion Notes:</strong><br>
+        {{ wo.completion_notes }}
+    </div>
+    {% endif %}
+
+    <!-- Parts Used -->
+    {% if wo.parts_used %}
+    <div class="mt-3 p-3 bg-light border rounded">
+        <strong>Parts Used:</strong><br>
+        <ul>
+        {% for part in wo.parts_used %}
+            <li>{{ part.name }} × {{ part.quantity }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+
+    {% if current_user.role in ['admin', 'supervisor'] and wo.status != 'Completed' %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong>Assign work</strong></div>
+        {% if current_user.role in ['admin', 'supervisor'] %}
+        <div class="mt-3">
+            <button type="button" class="btn btn-sm btn-outline-dark" onclick="confirmPdfDownload('{{ url_for('workorder.export_pdf', wo_id=wo.id) }}', 'this work order PDF')">📄 Export PDF</button>
+        </div>
+        {% endif %}
+
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('workorder.dispatch', wo_id=wo.id) }}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="1" {% if wo.priority == 1 %}selected{% endif %}>Can wait</option>
+                        <option value="2" {% if wo.priority == 2 or not wo.priority %}selected{% endif %}>Normal</option>
+                        <option value="3" {% if wo.priority == 3 %}selected{% endif %}>Soon</option>
+                        <option value="4" {% if wo.priority == 4 %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Assign to</label>
+                    <select name="assigned_to_id" class="form-select">
+                        <option value="">— Unassigned —</option>
+                        {% for tech in technicians %}
+                        <option value="{{ tech.id }}" {% if wo.assigned_to_id == tech.id %}selected{% endif %}>{{ tech.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Needed by</label>
+                    <input type="date" name="expected_completion_date" class="form-control"
+                           value="{{ wo.expected_completion_date.strftime('%Y-%m-%d') if wo.expected_completion_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="mt-4">
+        {% if current_user.role in ['technician', 'supervisor'] and wo.assigned_to_id == current_user.id %}
+            {% if wo.status != 'Completed' %}
+                {% if wo.status != 'In Progress' %}
+                <button class="btn btn-warning me-2" onclick="markInProgress({{ wo.id }})">🚧 Start / In Progress</button>
+                {% endif %}
+                {% if wo.status == 'In Progress' %}
+                <button class="btn btn-secondary me-2" onclick="pauseWorkOrder({{ wo.id }})">⏸️ Pause</button>
+                {% endif %}
+                <button class="btn btn-success" onclick="showCompleteModal({{ wo.id }})">✅ Complete Work Order</button>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Complete Modal (unchanged) -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Work Order #{{ wo.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Completion Notes</label>
+                    <textarea id="completion-notes" class="form-control" rows="3" placeholder="What was done?"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Parts Used</label>
+                    <div class="input-group mb-2">
+                        <input type="text" id="part-search" class="form-control" placeholder="Barcode, name, part number...">
+                        <button class="btn btn-primary" onclick="searchParts(document.getElementById('part-search').value)">Search</button>
+                        <button class="btn btn-outline-primary" onclick="startScanning()">📷 Scan</button>
+                    </div>
+                    
+                    <div id="part-results" class="list-group mt-2" style="max-height: 200px; overflow-y:auto; display:none;"></div>
+                    <ul id="parts-list" class="list-group mt-3"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="completeWorkOrder()">✅ Complete Work Order</button>
+
+</div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container mt-3 mb-4">
+  <div class="card border-secondary">
+    <div class="card-header bg-secondary text-white">⏱️ Time Tracking</div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Started:</strong>
+            {{ wo.started_at|localtime }}
+          </p>
+          <p class="mb-1"><strong>Paused:</strong>
+            {{ wo.paused_at|localtime }}
+          </p>
+          <p class="mb-1"><strong>Last resumed:</strong>
+            {{ wo.resumed_at|localtime }}
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Completed:</strong>
+            {{ wo.completed_at|localtime }}
+          </p>
+          <p class="mb-0"><strong>Active work time:</strong>
+            {% if wo.total_work_seconds %}
+              {{ wo.total_work_seconds // 3600 }}h {{ (wo.total_work_seconds % 3600) // 60 }}m {{ wo.total_work_seconds % 60 }}s
+            {% else %}—{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Full Screen Scanner Overlay (same as Equipment) -->
+<div id="scanner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10050; align-items: center; justify-content: center;">
+    <div style="width: 90%; max-width: 600px; text-align: center;">
+        <div id="scanner-preview" style="background:#000; border-radius:8px; overflow:hidden; margin-bottom: 15px;"></div>
+        <button type="button" onclick="stopScanning()" class="btn btn-danger w-100">Cancel Scan</button>
+    </div>
+</div>
+
+
+<!-- Quantity used modal -->
+<div class="modal fade" id="qty-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Quantity Used</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Part: <strong id="qty-part-name"></strong></p>
+        <label class="form-label">How many were used?</label>
+        <input type="number" id="qty-input" class="form-control" min="1" value="1">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="qty-confirm-yes">Add Part</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Success modal -->
+<div class="modal fade" id="success-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="success-modal-title">Done</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="success-modal-body">Action completed.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" id="success-modal-ok">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Start -->
+<div class="modal fade" id="confirm-start-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Start</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Start this work order and mark it <strong>In Progress</strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="confirm-start-yes">Yes, Start</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Pause -->
+<div class="modal fade" id="confirm-pause-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Pause Work Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Why is this work order being paused?</p>
+        <textarea id="pause-reason-input" class="form-control" rows="3" placeholder="Pause reason (required)"></textarea>
+        <div id="pause-reason-error" class="text-danger small mt-2" style="display:none;">Please enter a reason before pausing.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" id="confirm-pause-yes">Yes, Pause</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentWOId = null;
+let partsUsed = [];
+let html5QrcodeScanner = null;
+
+// Show Modal
+
+function showSuccessModal(title, message, onOk) {
+    document.getElementById("success-modal-title").textContent = title;
+    document.getElementById("success-modal-body").textContent = message;
+    document.getElementById("success-modal-ok").onclick = function () {
+        var m = bootstrap.Modal.getInstance(document.getElementById("success-modal"));
+        if (m) m.hide();
+        if (typeof onOk === "function") onOk();
+    };
+    new bootstrap.Modal(document.getElementById("success-modal")).show();
+}
+
+function showCompleteModal(woId) {
+    currentWOId = woId;
+    partsUsed = [];
+    renderPartsList();
+    new bootstrap.Modal(document.getElementById('completeModal')).show();
+}
+
+// Scanner (equipment-style full overlay)
+function startScanning() {
+    var overlay = document.getElementById("scanner-overlay");
+    if (!overlay) {
+        alert("Scanner overlay missing");
+        return;
+    }
+    document.body.appendChild(overlay);
+    overlay.style.display = "flex";
+    overlay.style.zIndex = "20000";
+    html5QrcodeScanner = new Html5Qrcode("scanner-preview");
+    const config = { fps: 20, qrbox: { width: 500, height: 100 } };
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+            stopScanning();
+            document.getElementById('part-search').value = decodedText;
+            searchParts(decodedText);
+        },
+        (error) => {}
+    ).catch(err => {
+        console.error(err);
+        alert("Camera failed to start.");
+        stopScanning();
+    });
+}
+function stopScanning() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            var overlay = document.getElementById("scanner-overlay");
+            if (overlay) overlay.style.display = "none";
+            html5QrcodeScanner = null;
+        }).catch(() => {
+            var overlay = document.getElementById("scanner-overlay");
+            if (overlay) overlay.style.display = "none";
+            html5QrcodeScanner = null;
+        });
+    } else {
+        var overlay = document.getElementById("scanner-overlay");
+        if (overlay) overlay.style.display = "none";
+    }
+}
+// Search Parts
+function searchParts(query) {
+    const resultsDiv = document.getElementById('part-results');
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    fetch(`/parts/search?q=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+            resultsDiv.innerHTML = '';
+            if (data.length === 0) {
+                resultsDiv.innerHTML = `<div class="list-group-item text-muted">No matching part for "${query}"</div>`;
+            } else {
+                data.forEach(part => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = `${part.name} (Stock: ${part.quantity || 0})`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        addScannedPart(part.name);
+                        resultsDiv.style.display = 'none';
+                    };
+                    resultsDiv.appendChild(item);
+                });
+            }
+            resultsDiv.style.display = 'block';
+        });
+}
+
+// Add Part after selecting or scanning
+function addScannedPart(partName) {
+    document.getElementById("qty-part-name").textContent = partName;
+    document.getElementById("qty-input").value = "1";
+    document.getElementById("qty-confirm-yes").onclick = function () {
+        var quantity = parseInt(document.getElementById("qty-input").value, 10);
+        if (isNaN(quantity) || quantity <= 0) {
+            alert("Enter a valid quantity.");
+            return;
+        }
+        var modal = bootstrap.Modal.getInstance(document.getElementById("qty-modal"));
+        if (modal) modal.hide();
+        partsUsed.push({ name: partName, quantity: quantity });
+        renderPartsList();
+        document.getElementById("part-search").value = "";
+    };
+    new bootstrap.Modal(document.getElementById("qty-modal")).show();
+}
+
+function renderPartsList() {
+    const list = document.getElementById('parts-list');
+    list.innerHTML = '';
+    if (partsUsed.length === 0) {
+        list.innerHTML = '<li class="list-group-item text-muted">No parts added yet</li>';
+        return;
+    }
+    partsUsed.forEach((part, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.innerHTML = `${part.name} × ${part.quantity} <button class="btn btn-sm btn-outline-danger" onclick="removePart(${i})">Remove</button>`;
+        list.appendChild(li);
+    });
+}
+
+function removePart(i) {
+    partsUsed.splice(i, 1);
+    renderPartsList();
+}
+
+// Complete
+function completeWorkOrder() {
+    const notes = document.getElementById('completion-notes').value.trim();
+    fetch(`/workorder/complete/${currentWOId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ notes: notes, parts_used: partsUsed })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('completeModal')).hide();
+            showSuccessModal("Work Order Completed", "This work order has been completed successfully.", function () {
+                window.location.href = "{{ url_for('workorder.index') }}";
+            });
+        } else {
+            alert("Error: " + (data.error || "Unknown error"));
+        }
+    })
+    .catch(() => alert("Request failed."));
+}
+function markInProgress(woId) {
+    document.getElementById("confirm-start-yes").onclick = function () {
+        var modal = bootstrap.Modal.getInstance(document.getElementById("confirm-start-modal"));
+        if (modal) modal.hide();
+        fetch("/workorder/in_progress/" + woId, { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                window.location.href = "{{ url_for('workorder.index') }}";
+            } else {
+                alert("Error: " + (data.error || "Unknown"));
+            }
+        })
+        .catch(function () { alert("Request failed."); });
+    };
+    new bootstrap.Modal(document.getElementById("confirm-start-modal")).show();
+}
+function pauseWorkOrder(woId) {
+    var input = document.getElementById("pause-reason-input");
+    if (input) input.value = "";
+    var err = document.getElementById("pause-reason-error");
+    if (err) err.style.display = "none";
+    document.getElementById("confirm-pause-yes").onclick = function () {
+        var reason = (document.getElementById("pause-reason-input").value || "").trim();
+        if (!reason) {
+            var err = document.getElementById("pause-reason-error");
+            if (err) err.style.display = "block";
+            return;
+        }
+        var modal = bootstrap.Modal.getInstance(document.getElementById("confirm-pause-modal"));
+        if (modal) modal.hide();
+        fetch("/workorder/pause/" + woId, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                window.location.href = "{{ url_for('workorder.index') }}";
+            } else {
+                alert(data.error || "Could not pause.");
+            }
+        })
+        .catch(function () { alert("Request failed."); });
+    };
+    new bootstrap.Modal(document.getElementById("confirm-pause-modal")).show();
+}
+
+</script>
+
+<script>
+if (new URLSearchParams(window.location.search).get("print") === "1") {
+  window.addEventListener("load", function() { window.print(); });
+}
+</script>
+
+<script>
+(function () {
+  var btn = document.querySelector("a.btn.btn-secondary");
+  if (!btn || !document.referrer) return;
+  try {
+    var path = new URL(document.referrer).pathname;
+    if (path === "/" || path.indexOf("dashboard") !== -1) {
+      btn.textContent = "← Back to Dashboard";
+    }
+  } catch (e) {}
+})();
+</script>
+
+{% endblock %}

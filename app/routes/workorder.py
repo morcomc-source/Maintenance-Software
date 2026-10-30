@@ -30,10 +30,18 @@ def index():
     if current_user.role in ('admin', 'supervisor', 'viewer'):
         if current_user.role == 'viewer' and request.args.get('mine') == '1':
             base = base.filter_by(created_by_id=current_user.id)
+        elif current_user.role == 'supervisor':
+            # Only WOs assigned to self or direct reports
+            report_ids = [u.id for u in User.query.filter_by(reports_to_id=current_user.id).all()]
+            allowed = [current_user.id] + report_ids
+            base = base.filter(WorkOrder.assigned_to_id.in_(allowed))
     elif current_user.role in ('requestor', 'department'):
         base = base.filter_by(created_by_id=current_user.id)
     else:
-        base = base.filter_by(assigned_to_id=current_user.id)
+        base = base.filter(
+            (WorkOrder.assigned_to_id == current_user.id) |
+            (WorkOrder.helpers.any(id=current_user.id))
+        )
 
     workorders = base.order_by(
         (WorkOrder.expected_completion_date < datetime.now().date()).desc(),
@@ -304,7 +312,7 @@ def details(wo_id):
     if wo.completed_by_id:
         wo.completed_by = User.query.get(wo.completed_by_id)
     
-    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
+    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id and current_user not in wo.helpers:
         flash("You can only view your assigned work orders.", "danger")
         return redirect(url_for('workorder.index'))
    
@@ -333,7 +341,8 @@ def details(wo_id):
     else:
         technicians = []
 
-    return render_template('workorder/details.html', wo=wo, technicians=technicians)
+    possible_helpers = User.query.filter(User.role.in_(['admin', 'supervisor', 'technician'])).order_by(User.username).all()
+    return render_template('workorder/details.html', wo=wo, technicians=technicians, possible_helpers=possible_helpers)
 
 
 # ====================== IN PROGRESS ======================
@@ -344,7 +353,7 @@ def mark_in_progress(wo_id):
     
     if current_user.role == 'viewer':
         return jsonify({'success': False, 'error': 'View only'}), 403
-    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
+    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id and current_user not in wo.helpers:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
     
     wo.status = "In Progress"
@@ -368,7 +377,7 @@ def complete(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
     if current_user.role == 'viewer':
         return jsonify({'success': False, 'error': 'View only'}), 403
-    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
+    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id and current_user not in wo.helpers:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
 
     data = request.get_json(silent=True) or {}
@@ -438,7 +447,7 @@ def pause(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)
     if current_user.role == 'viewer':
         return jsonify({'success': False, 'error': 'View only'}), 403
-    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id:
+    if current_user.role == 'technician' and wo.assigned_to_id != current_user.id and current_user not in wo.helpers:
         return jsonify({'success': False, 'error': 'Not assigned'}), 403
 
     data = request.get_json(silent=True) or {}
@@ -692,3 +701,36 @@ def _wrap(text, width):
     if cur:
         lines.append(cur)
     return lines or [""]
+
+
+@bp.route('/<int:wo_id>/helpers', methods=['POST'])
+@login_required
+def manage_helpers(wo_id):
+    wo = WorkOrder.query.get_or_404(wo_id)
+    if wo.status == 'Completed':
+        flash('Cannot change helpers on a completed work order.', 'warning')
+        return redirect(url_for('workorder.details', wo_id=wo.id))
+    is_primary = wo.assigned_to_id == current_user.id
+    is_super = (current_user.role == 'supervisor' and
+                wo.assigned_to and wo.assigned_to.reports_to_id == current_user.id)
+    if not (is_primary or is_super or current_user.role == 'admin'):
+        flash('Not allowed to manage helpers.', 'danger')
+        return redirect(url_for('workorder.details', wo_id=wo.id))
+    action = request.form.get('action')
+    user_id = request.form.get('user_id', type=int)
+    if action == 'add' and user_id:
+        user = User.query.get(user_id)
+        if user and user not in wo.helpers:
+            if wo.assigned_to and user.reports_to_id == wo.assigned_to.reports_to_id:
+                wo.helpers.append(user)
+                db.session.commit()
+                flash(f'Added {user.display_name} as helper.', 'success')
+            else:
+                flash('That person does not report to the same supervisor.', 'warning')
+    elif action == 'remove' and user_id:
+        user = User.query.get(user_id)
+        if user and user in wo.helpers:
+            wo.helpers.remove(user)
+            db.session.commit()
+            flash(f'Removed {user.display_name}.', 'success')
+    return redirect(url_for('workorder.details', wo_id=wo.id))

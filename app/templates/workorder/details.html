@@ -84,6 +84,40 @@ if (new URLSearchParams(window.location.search).get("print") === "1") {
             <p><strong>Priority:</strong> {% if wo.priority %}<span class="badge bg-{{ 'danger' if wo.priority >= 4 else 'warning' if wo.priority == 3 else 'info' }}">{{ wo.priority }}</span>{% else %}-{% endif %}</p>
             <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if wo.status == 'Completed' else 'warning' if wo.status == 'In Progress' else 'primary' }}">{{ wo.status }}</span></p>
             <p><strong>Assigned To:</strong> {{ wo.assigned_to.display_name if wo.assigned_to else 'Unassigned' }}</p>
+            {% if wo.helpers %}
+            <p><strong>Helpers:</strong>
+                {% for h in wo.helpers %}
+                    <span class="badge bg-secondary me-1">{{ h.display_name }}</span>
+                {% endfor %}
+            </p>
+            {% endif %}
+            {% if wo.status != 'Completed' and (wo.assigned_to_id == current_user.id or current_user.role in ['admin', 'supervisor']) %}
+            <form method="post" action="{{ url_for('workorder.manage_helpers', wo_id=wo.id) }}" class="mt-2">
+                <div class="input-group input-group-sm">
+                    <select name="user_id" class="form-select" required>
+                        <option value="">Add helper...</option>
+                        {% for u in possible_helpers if u.id != wo.assigned_to_id and u not in wo.helpers %}
+                        <option value="{{ u.id }}">{{ u.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="action" value="add">
+                    <button class="btn btn-outline-primary" type="submit">Add</button>
+                </div>
+            </form>
+            {% if wo.helpers %}
+            <form method="post" action="{{ url_for('workorder.manage_helpers', wo_id=wo.id) }}" class="mt-1">
+                <div class="input-group input-group-sm">
+                    <select name="user_id" class="form-select">
+                        {% for h in wo.helpers %}
+                        <option value="{{ h.id }}">Remove {{ h.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="action" value="remove">
+                    <button class="btn btn-outline-danger" type="submit">Remove</button>
+                </div>
+            </form>
+            {% endif %}
+            {% endif %}
         </div>
         <div class="col-md-6">
             <p><strong>Created On:</strong> {% if wo.created_at %}{{ wo.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</p>

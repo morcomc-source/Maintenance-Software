@@ -1,6 +1,11 @@
 from app import db
 from datetime import datetime
 
+workorder_helpers = db.Table('workorder_helpers',
+    db.Column('workorder_id', db.Integer, db.ForeignKey('workorder.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
+)
+
 class WorkOrder(db.Model):
     __tablename__ = 'workorder'
     __table_args__ = {'extend_existing': True}
@@ -45,6 +50,9 @@ class WorkOrder(db.Model):
     created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_workorders')
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id], backref='assigned_workorders')
     completed_by = db.relationship('User', foreign_keys=[completed_by_id], backref='completed_workorders')
+
+    helpers = db.relationship('User', secondary=workorder_helpers,
+                              backref=db.backref('helped_workorders', lazy='dynamic'))
 
     def __repr__(self):
         return f'<WorkOrder {self.id} - {self.equipment}>'

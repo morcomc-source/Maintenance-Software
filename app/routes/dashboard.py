@@ -185,7 +185,10 @@ def index():
         upcoming_pm = sum(1 for p in assigned_pms if p.next_due and p.next_due > today)
 
         # WORK ORDER STATS
-        assigned_wos = WorkOrder.query.filter_by(assigned_to_id=current_user.id).all()
+        assigned_wos = WorkOrder.query.filter(
+            (WorkOrder.assigned_to_id == current_user.id) |
+            (WorkOrder.helpers.any(id=current_user.id))
+        ).all()
         open_wos = [wo for wo in assigned_wos if wo.status != 'Completed']
         total_assigned_wo = len(assigned_wos)
         completed_wo = sum(1 for wo in assigned_wos if wo.status == 'Completed')
